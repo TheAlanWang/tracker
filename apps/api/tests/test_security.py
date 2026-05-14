@@ -5,7 +5,7 @@ import pytest
 
 from app.core.security import InvalidTokenError, verify_supabase_jwt
 
-JWT_SECRET = "test-secret-key"
+JWT_SECRET = "test-secret-key-padded-for-tests"
 
 
 def make_token(sub: str = "user-123", exp_offset: int = 3600, **extra) -> str:
