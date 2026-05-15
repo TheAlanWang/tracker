@@ -121,7 +121,7 @@ export function WorkspaceLayout() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50">
+    <div className="h-screen flex flex-col bg-slate-50 overflow-hidden">
       <header className="border-b border-slate-200 bg-white">
         <div className="px-6 py-3 flex items-center justify-between">
           <div className="flex items-center gap-4">
