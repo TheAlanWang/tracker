@@ -18,7 +18,9 @@ def _env(monkeypatch):
     monkeypatch.setenv("SUPABASE_JWT_SECRET", TEST_JWT_SECRET)
     # clear cached settings so each test re-reads env
     from app.core.config import get_settings
+    from app.db.supabase import get_supabase_admin
     get_settings.cache_clear()
+    get_supabase_admin.cache_clear()
 
 
 @pytest.fixture
