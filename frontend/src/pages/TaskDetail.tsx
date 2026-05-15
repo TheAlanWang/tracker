@@ -387,7 +387,7 @@ export default function TaskDetail() {
           )}
         </div>
 
-        <aside className="space-y-4 border-l border-slate-200 pl-6 self-start sticky top-0 max-h-[calc(100vh-6rem)] overflow-y-auto pb-4">
+        <aside className="space-y-4 border-l border-slate-200 pl-6 self-start sticky top-0 pb-4">
           <div className="space-y-1">
             <p className="text-xs font-medium uppercase text-muted-foreground">
               Status
