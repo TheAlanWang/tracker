@@ -1,4 +1,4 @@
-import { Outlet, useNavigate, useParams } from "react-router-dom";
+import { Outlet, useLocation, useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import { useEffect, useRef, useState } from "react";
 
@@ -23,6 +23,10 @@ const LAST_WORKSPACE_KEY = "tracker.lastWorkspaceSlug";
 export function WorkspaceLayout() {
   const { wsSlug } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  // Hide the left sidebar on workspace-level settings — page is self-contained
+  // (has its own workspace picker) and doesn't relate to project navigation.
+  const hideSidebar = location.pathname === `/w/${wsSlug}/settings`;
   const { data: workspaces = [] } = useWorkspaces();
   const { data: me } = useCurrentUser();
 
@@ -223,7 +227,9 @@ export function WorkspaceLayout() {
       </header>
 
       <div className="flex flex-1 min-h-0">
-        <SidebarNav wsSlug={wsSlug ?? ""} currentWsId={currentWs?.id ?? ""} />
+        {!hideSidebar && (
+          <SidebarNav wsSlug={wsSlug ?? ""} currentWsId={currentWs?.id ?? ""} />
+        )}
 
         <main className="flex-1 p-8 overflow-auto">
           <Outlet />
