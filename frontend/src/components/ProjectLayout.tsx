@@ -128,7 +128,7 @@ export function ProjectLayout() {
           >
             <h2 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
               <span>New Task in</span>
-              <span className="inline-flex items-center rounded-md bg-slate-100 px-2 py-0.5 text-sm font-medium text-slate-700">
+              <span className="inline-flex items-center rounded-md bg-slate-100 px-2 py-0.5">
                 {currentProject.name}
               </span>
             </h2>

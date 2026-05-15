@@ -5,6 +5,7 @@ import remarkGfm from "remark-gfm";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import { Select } from "@/components/ui/select";
 import { type Activity, useTaskActivity } from "@/features/activity/api";
 import {
   useComments,
@@ -187,6 +188,7 @@ export default function TaskDetail() {
   ) {
     try {
       await updateMutation.mutateAsync({ [field]: value } as never);
+      toast.success("Saved");
     } catch (err) {
       const detail =
         (err as { response?: { data?: { detail?: string } } }).response?.data
@@ -210,11 +212,19 @@ export default function TaskDetail() {
   }
 
   return (
-    <div className="grid grid-cols-3 gap-8 max-w-6xl">
-      <div className="col-span-2 space-y-4">
-        <p className="font-mono text-xs text-muted-foreground">
-          {issue.identifier}
-        </p>
+    <div className="space-y-4 max-w-6xl">
+      <button
+        type="button"
+        onClick={() => navigate(`/w/${wsSlug}/p/${pKey}/board`)}
+        className="text-sm text-slate-500 hover:text-slate-700"
+      >
+        ← Back to board
+      </button>
+      <div className="grid grid-cols-3 gap-8">
+        <div className="col-span-2 space-y-4">
+          <p className="font-mono text-xs text-muted-foreground">
+            {issue.identifier}
+          </p>
         <input
           className="w-full bg-transparent text-2xl font-bold text-slate-900 outline-none focus:bg-slate-100 rounded px-1 py-0.5 -mx-1"
           value={titleDraft}
@@ -230,19 +240,40 @@ export default function TaskDetail() {
             Description
           </p>
           {descEditing ? (
-            <textarea
-              autoFocus
-              className="w-full rounded border border-slate-200 bg-white p-2 text-sm"
-              rows={8}
-              value={descDraft}
-              onChange={(e) => setDescDraft(e.target.value)}
-              onBlur={() => {
-                setDescEditing(false);
-                if (descDraft !== issue.description) {
-                  save("description", descDraft);
-                }
-              }}
-            />
+            <div className="space-y-2">
+              <textarea
+                autoFocus
+                className="w-full rounded border border-slate-200 bg-white p-2 text-sm"
+                rows={8}
+                value={descDraft}
+                onChange={(e) => setDescDraft(e.target.value)}
+              />
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={() => {
+                    setDescEditing(false);
+                    if (descDraft !== issue.description) {
+                      save("description", descDraft);
+                    }
+                  }}
+                >
+                  Save
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    setDescDraft(issue.description);
+                    setDescEditing(false);
+                  }}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
           ) : (
             <div
               role="button"
@@ -337,34 +368,22 @@ export default function TaskDetail() {
           <p className="text-xs font-medium uppercase text-muted-foreground">
             Status
           </p>
-          <select
-            className="w-full rounded border border-slate-300 bg-white px-2 py-1 text-sm"
+          <Select
             value={issue.status}
-            onChange={(e) => save("status", e.target.value as TaskStatus)}
-          >
-            {STATUSES.map((s) => (
-              <option key={s} value={s}>
-                {s}
-              </option>
-            ))}
-          </select>
+            onChange={(v) => save("status", v as TaskStatus)}
+            options={STATUSES.map((s) => ({ value: s, label: s }))}
+          />
         </div>
 
         <div className="space-y-1">
           <p className="text-xs font-medium uppercase text-muted-foreground">
             Priority
           </p>
-          <select
-            className="w-full rounded border border-slate-300 bg-white px-2 py-1 text-sm"
+          <Select
             value={issue.priority}
-            onChange={(e) => save("priority", e.target.value as TaskPriority)}
-          >
-            {PRIORITIES.map((p) => (
-              <option key={p} value={p}>
-                {p}
-              </option>
-            ))}
-          </select>
+            onChange={(v) => save("priority", v as TaskPriority)}
+            options={PRIORITIES.map((p) => ({ value: p, label: p }))}
+          />
         </div>
 
         <div className="space-y-1">
@@ -385,22 +404,19 @@ export default function TaskDetail() {
           <p className="text-xs font-medium uppercase text-muted-foreground">
             Sprint
           </p>
-          <select
-            className="w-full rounded border border-slate-300 bg-white px-2 py-1 text-sm"
+          <Select
             value={issue.sprint_id ?? ""}
-            onChange={(e) =>
-              save("sprint_id", e.target.value === "" ? null : e.target.value)
-            }
-          >
-            <option value="">Backlog (no sprint)</option>
-            {sprints
-              .filter((s) => s.status !== "completed")
-              .map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.name} {s.status === "active" ? "(active)" : ""}
-                </option>
-              ))}
-          </select>
+            onChange={(v) => save("sprint_id", v === "" ? null : v)}
+            options={[
+              { value: "", label: "Backlog (no sprint)" },
+              ...sprints
+                .filter((s) => s.status !== "completed")
+                .map((s) => ({
+                  value: s.id,
+                  label: s.status === "active" ? `${s.name} (active)` : s.name,
+                })),
+            ]}
+          />
         </div>
 
         <div className="space-y-1">
@@ -457,20 +473,17 @@ export default function TaskDetail() {
           <p className="text-xs font-medium uppercase text-muted-foreground">
             Assignee
           </p>
-          <select
-            className="w-full rounded border border-slate-300 bg-white px-2 py-1 text-sm"
+          <Select
             value={issue.assignee_id ?? ""}
-            onChange={(e) =>
-              save("assignee_id", e.target.value === "" ? null : e.target.value)
-            }
-          >
-            <option value="">Unassigned</option>
-            {members.map((m) => (
-              <option key={m.user_id} value={m.user_id}>
-                {m.email ?? m.user_id}
-              </option>
-            ))}
-          </select>
+            onChange={(v) => save("assignee_id", v === "" ? null : v)}
+            options={[
+              { value: "", label: "Unassigned" },
+              ...members.map((m) => ({
+                value: m.user_id,
+                label: m.email ?? m.user_id,
+              })),
+            ]}
+          />
         </div>
 
         <div className="space-y-1">
@@ -489,6 +502,7 @@ export default function TaskDetail() {
           </p>
         </div>
       </aside>
+      </div>
     </div>
   );
 }
