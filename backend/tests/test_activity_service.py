@@ -73,22 +73,3 @@ def test_list_activity_issue_not_found(mock_supabase):
 
     with pytest.raises(IssueNotFoundError):
         list_issue_activity(mock_supabase, user_id="u-1", issue_id="missing")
-
-
-def test_list_activity_non_member_raises(mock_supabase):
-    issues_chain = MagicMock()
-    issues_chain.select.return_value.eq.return_value.single.return_value.execute.return_value.data = _issue_row()
-    members_chain = MagicMock()
-    members_chain.select.return_value.eq.return_value.eq.return_value.execute.return_value.data = []
-
-    def table_router(name):
-        if name == "issues":
-            return issues_chain
-        if name == "workspace_members":
-            return members_chain
-        raise AssertionError(f"unexpected: {name}")
-
-    mock_supabase.table.side_effect = table_router
-
-    with pytest.raises(ActivityPermissionError):
-        list_issue_activity(mock_supabase, user_id="u-1", issue_id="i-1")

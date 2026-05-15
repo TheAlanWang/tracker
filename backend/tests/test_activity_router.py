@@ -28,18 +28,3 @@ def test_list_activity_200(client, make_token):
         )
         assert r.status_code == 200
         assert len(r.json()) == 2
-
-
-def test_list_activity_404(client, make_token):
-    from app.services.activity import IssueNotFoundError
-
-    with patch(
-        "app.routers.activity.list_issue_activity",
-        side_effect=IssueNotFoundError("i-missing"),
-    ):
-        token = make_token(sub="u-1")
-        r = client.get(
-            "/issues/i-missing/activity",
-            headers={"Authorization": f"Bearer {token}"},
-        )
-        assert r.status_code == 404

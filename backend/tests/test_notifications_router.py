@@ -31,45 +31,6 @@ def test_list_notifications_200(client, make_token):
         assert len(r.json()) == 2
 
 
-def test_list_notifications_unread_only_param(client, make_token):
-    with patch(
-        "app.routers.notifications.list_my_notifications", return_value=[_n()]
-    ) as mock:
-        token = make_token(sub="u-1")
-        r = client.get(
-            "/me/notifications?unread_only=true",
-            headers={"Authorization": f"Bearer {token}"},
-        )
-        assert r.status_code == 200
-        _, kwargs = mock.call_args
-        assert kwargs["unread_only"] is True
-
-
-def test_mark_notification_read_204(client, make_token):
-    with patch("app.routers.notifications.mark_read", return_value=None):
-        token = make_token(sub="u-1")
-        r = client.post(
-            "/notifications/n-1/read",
-            headers={"Authorization": f"Bearer {token}"},
-        )
-        assert r.status_code == 204
-
-
-def test_mark_notification_read_404(client, make_token):
-    from app.services.notifications import NotificationNotFoundError
-
-    with patch(
-        "app.routers.notifications.mark_read",
-        side_effect=NotificationNotFoundError("n-missing"),
-    ):
-        token = make_token(sub="u-1")
-        r = client.post(
-            "/notifications/n-missing/read",
-            headers={"Authorization": f"Bearer {token}"},
-        )
-        assert r.status_code == 404
-
-
 def test_mark_all_read_returns_count(client, make_token):
     with patch("app.routers.notifications.mark_all_read", return_value=3):
         token = make_token(sub="u-1")

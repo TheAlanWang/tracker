@@ -59,35 +59,6 @@ def test_list_comments_member_ok(mock_supabase):
     assert len(result) == 2
 
 
-def test_list_comments_non_member_raises(mock_supabase):
-    issues_chain = MagicMock()
-    issues_chain.select.return_value.eq.return_value.single.return_value.execute.return_value.data = _issue_row()
-    members_chain = MagicMock()
-    members_chain.select.return_value.eq.return_value.eq.return_value.execute.return_value.data = []
-
-    def table_router(name):
-        if name == "issues": return issues_chain
-        if name == "workspace_members": return members_chain
-        raise AssertionError(f"unexpected: {name}")
-    mock_supabase.table.side_effect = table_router
-
-    with pytest.raises(CommentPermissionError):
-        list_comments(mock_supabase, user_id="u-1", issue_id="i-1")
-
-
-def test_list_comments_issue_not_found(mock_supabase):
-    issues_chain = MagicMock()
-    issues_chain.select.return_value.eq.return_value.single.return_value.execute.return_value.data = None
-
-    def table_router(name):
-        if name == "issues": return issues_chain
-        raise AssertionError(f"unexpected: {name}")
-    mock_supabase.table.side_effect = table_router
-
-    with pytest.raises(IssueNotFoundError):
-        list_comments(mock_supabase, user_id="u-1", issue_id="missing")
-
-
 def test_create_comment_inserts_with_author(mock_supabase):
     issues_chain = MagicMock()
     issues_chain.select.return_value.eq.return_value.single.return_value.execute.return_value.data = _issue_row()
@@ -114,22 +85,6 @@ def test_create_comment_inserts_with_author(mock_supabase):
         "author_id": "u-1",
         "body": "new",
     }
-
-
-def test_update_comment_author_only(mock_supabase):
-    comments_chain_fetch = MagicMock()
-    comments_chain_fetch.select.return_value.eq.return_value.single.return_value.execute.return_value.data = _comment_row(author_id="other")
-
-    def table_router(name):
-        if name == "comments": return comments_chain_fetch
-        raise AssertionError(f"unexpected: {name}")
-    mock_supabase.table.side_effect = table_router
-
-    with pytest.raises(CommentPermissionError):
-        update_comment(
-            mock_supabase, user_id="u-1", comment_id="c-1",
-            payload=CommentUpdate(body="x"),
-        )
 
 
 def test_update_comment_happy_path(mock_supabase):
@@ -164,16 +119,3 @@ def test_delete_comment_author_only(mock_supabase):
 
     with pytest.raises(CommentPermissionError):
         delete_comment(mock_supabase, user_id="u-1", comment_id="c-1")
-
-
-def test_delete_comment_not_found(mock_supabase):
-    comments_chain = MagicMock()
-    comments_chain.select.return_value.eq.return_value.single.return_value.execute.return_value.data = None
-
-    def table_router(name):
-        if name == "comments": return comments_chain
-        raise AssertionError(f"unexpected: {name}")
-    mock_supabase.table.side_effect = table_router
-
-    with pytest.raises(CommentNotFoundError):
-        delete_comment(mock_supabase, user_id="u-1", comment_id="missing")

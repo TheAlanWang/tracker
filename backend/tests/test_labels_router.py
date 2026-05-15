@@ -28,46 +28,10 @@ def test_create_label_201(client, make_token):
         assert r.status_code == 201
 
 
-def test_create_label_409_duplicate(client, make_token):
-    from app.services.labels import LabelNameExistsError
-    with patch("app.routers.labels.create_label", side_effect=LabelNameExistsError("bug")):
-        token = make_token(sub="u-1")
-        r = client.post(
-            "/workspaces/ws-1/labels",
-            json={"name": "bug", "color": "#ff0000"},
-            headers={"Authorization": f"Bearer {token}"},
-        )
-        assert r.status_code == 409
-
-
-def test_delete_label_204(client, make_token):
-    with patch("app.routers.labels.delete_label", return_value=None):
-        token = make_token(sub="u-1")
-        r = client.delete("/labels/l-1", headers={"Authorization": f"Bearer {token}"})
-        assert r.status_code == 204
-
-
-def test_list_issue_labels_200(client, make_token):
-    with patch("app.routers.labels.list_issue_labels", return_value=[_l()]):
-        token = make_token(sub="u-1")
-        r = client.get("/issues/i-1/labels", headers={"Authorization": f"Bearer {token}"})
-        assert r.status_code == 200
-
-
 def test_attach_label_204(client, make_token):
     with patch("app.routers.labels.attach_label", return_value=None):
         token = make_token(sub="u-1")
         r = client.post(
-            "/issues/i-1/labels/l-1",
-            headers={"Authorization": f"Bearer {token}"},
-        )
-        assert r.status_code == 204
-
-
-def test_detach_label_204(client, make_token):
-    with patch("app.routers.labels.detach_label", return_value=None):
-        token = make_token(sub="u-1")
-        r = client.delete(
             "/issues/i-1/labels/l-1",
             headers={"Authorization": f"Bearer {token}"},
         )

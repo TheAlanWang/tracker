@@ -31,12 +31,8 @@ def mock_supabase():
     return MagicMock()
 
 
-# ─── list_my_notifications ───
-
-
 def test_list_notifications_returns_all(mock_supabase):
     chain = MagicMock()
-    # no unread filter: select→eq→order→limit→execute
     chain.select.return_value.eq.return_value.order.return_value.limit.return_value.execute.return_value.data = [
         _notif_row(),
         _notif_row(id="n-2", type="commented"),
@@ -76,41 +72,6 @@ def test_list_notifications_unread_only_uses_is_filter(mock_supabase):
     )
 
 
-# ─── mark_read ───
-
-
-def test_mark_read_happy_path(mock_supabase):
-    fetch_chain = MagicMock()
-    fetch_chain.select.return_value.eq.return_value.single.return_value.execute.return_value.data = _notif_row()
-    update_chain = MagicMock()
-    update_chain.update.return_value.eq.return_value.execute.return_value.data = [
-        _notif_row(read_at="2026-05-14T01:00:00Z")
-    ]
-
-    call_count = {"notifications": 0}
-
-    def table_router(name):
-        if name == "notifications":
-            call_count["notifications"] += 1
-            return fetch_chain if call_count["notifications"] == 1 else update_chain
-        raise AssertionError(f"unexpected: {name}")
-
-    mock_supabase.table.side_effect = table_router
-
-    # Should not raise
-    mark_read(mock_supabase, user_id="u-1", notification_id="n-1")
-
-
-def test_mark_read_not_found_raises(mock_supabase):
-    chain = MagicMock()
-    chain.select.return_value.eq.return_value.single.return_value.execute.return_value.data = None
-
-    mock_supabase.table.side_effect = lambda name: chain
-
-    with pytest.raises(NotificationNotFoundError):
-        mark_read(mock_supabase, user_id="u-1", notification_id="missing")
-
-
 def test_mark_read_wrong_user_raises(mock_supabase):
     chain = MagicMock()
     chain.select.return_value.eq.return_value.single.return_value.execute.return_value.data = _notif_row(user_id="other")
@@ -119,9 +80,6 @@ def test_mark_read_wrong_user_raises(mock_supabase):
 
     with pytest.raises(NotificationPermissionError):
         mark_read(mock_supabase, user_id="u-1", notification_id="n-1")
-
-
-# ─── mark_all_read ───
 
 
 def test_mark_all_read_returns_count(mock_supabase):

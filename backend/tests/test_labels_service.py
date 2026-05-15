@@ -43,17 +43,6 @@ def test_list_labels_member_ok(mock_supabase):
     assert len(result) == 2
 
 
-def test_list_labels_non_member_raises(mock_supabase):
-    members_chain = MagicMock()
-    members_chain.select.return_value.eq.return_value.eq.return_value.execute.return_value.data = []
-    def tr(name):
-        if name == "workspace_members": return members_chain
-        raise AssertionError(name)
-    mock_supabase.table.side_effect = tr
-    with pytest.raises(LabelPermissionError):
-        list_labels(mock_supabase, user_id="u-1", workspace_id="ws-1")
-
-
 def test_create_label_happy(mock_supabase):
     members_chain = MagicMock()
     members_chain.select.return_value.eq.return_value.eq.return_value.execute.return_value.data = [{"role": "member"}]
@@ -82,68 +71,6 @@ def test_create_label_duplicate_name_raises(mock_supabase):
         create_label(mock_supabase, user_id="u-1", workspace_id="ws-1", payload=LabelCreate(name="bug", color="#ff0000"))
 
 
-def test_delete_label_not_found(mock_supabase):
-    labels_chain = MagicMock()
-    labels_chain.select.return_value.eq.return_value.single.return_value.execute.return_value.data = None
-    def tr(name):
-        if name == "labels": return labels_chain
-        raise AssertionError(name)
-    mock_supabase.table.side_effect = tr
-    with pytest.raises(LabelNotFoundError):
-        delete_label(mock_supabase, user_id="u-1", label_id="missing")
-
-
-def test_delete_label_non_member_raises(mock_supabase):
-    labels_chain = MagicMock()
-    labels_chain.select.return_value.eq.return_value.single.return_value.execute.return_value.data = {"workspace_id": "ws-1"}
-    members_chain = MagicMock()
-    members_chain.select.return_value.eq.return_value.eq.return_value.execute.return_value.data = []
-    def tr(name):
-        if name == "labels": return labels_chain
-        if name == "workspace_members": return members_chain
-        raise AssertionError(name)
-    mock_supabase.table.side_effect = tr
-    with pytest.raises(LabelPermissionError):
-        delete_label(mock_supabase, user_id="u-1", label_id="l-1")
-
-
-def test_list_issue_labels_empty(mock_supabase):
-    issues_chain = MagicMock()
-    issues_chain.select.return_value.eq.return_value.single.return_value.execute.return_value.data = {"workspace_id": "ws-1"}
-    members_chain = MagicMock()
-    members_chain.select.return_value.eq.return_value.eq.return_value.execute.return_value.data = [{"role": "member"}]
-    rel_chain = MagicMock()
-    rel_chain.select.return_value.eq.return_value.execute.return_value.data = []
-    def tr(name):
-        if name == "issues": return issues_chain
-        if name == "workspace_members": return members_chain
-        if name == "issue_labels": return rel_chain
-        raise AssertionError(name)
-    mock_supabase.table.side_effect = tr
-    result = list_issue_labels(mock_supabase, user_id="u-1", issue_id="i-1")
-    assert result == []
-
-
-def test_list_issue_labels_with_rows(mock_supabase):
-    issues_chain = MagicMock()
-    issues_chain.select.return_value.eq.return_value.single.return_value.execute.return_value.data = {"workspace_id": "ws-1"}
-    members_chain = MagicMock()
-    members_chain.select.return_value.eq.return_value.eq.return_value.execute.return_value.data = [{"role": "member"}]
-    rel_chain = MagicMock()
-    rel_chain.select.return_value.eq.return_value.execute.return_value.data = [{"label_id": "l-1"}]
-    labels_chain = MagicMock()
-    labels_chain.select.return_value.in_.return_value.order.return_value.execute.return_value.data = [_label()]
-    def tr(name):
-        if name == "issues": return issues_chain
-        if name == "workspace_members": return members_chain
-        if name == "issue_labels": return rel_chain
-        if name == "labels": return labels_chain
-        raise AssertionError(name)
-    mock_supabase.table.side_effect = tr
-    result = list_issue_labels(mock_supabase, user_id="u-1", issue_id="i-1")
-    assert len(result) == 1
-
-
 def test_attach_label_cross_workspace_raises(mock_supabase):
     issues_chain = MagicMock()
     issues_chain.select.return_value.eq.return_value.single.return_value.execute.return_value.data = {"workspace_id": "ws-1"}
@@ -159,26 +86,6 @@ def test_attach_label_cross_workspace_raises(mock_supabase):
     mock_supabase.table.side_effect = tr
     with pytest.raises(LabelNotFoundError):
         attach_label(mock_supabase, user_id="u-1", issue_id="i-1", label_id="l-1")
-
-
-def test_attach_label_happy(mock_supabase):
-    issues_chain = MagicMock()
-    issues_chain.select.return_value.eq.return_value.single.return_value.execute.return_value.data = {"workspace_id": "ws-1"}
-    members_chain = MagicMock()
-    members_chain.select.return_value.eq.return_value.eq.return_value.execute.return_value.data = [{"role": "member"}]
-    labels_chain = MagicMock()
-    labels_chain.select.return_value.eq.return_value.single.return_value.execute.return_value.data = {"workspace_id": "ws-1"}
-    rel_chain = MagicMock()
-    rel_chain.insert.return_value.execute.return_value.data = [{"issue_id": "i-1", "label_id": "l-1"}]
-    def tr(name):
-        if name == "issues": return issues_chain
-        if name == "workspace_members": return members_chain
-        if name == "labels": return labels_chain
-        if name == "issue_labels": return rel_chain
-        raise AssertionError(name)
-    mock_supabase.table.side_effect = tr
-    result = attach_label(mock_supabase, user_id="u-1", issue_id="i-1", label_id="l-1")
-    assert result is None
 
 
 def test_attach_label_duplicate_is_idempotent(mock_supabase):

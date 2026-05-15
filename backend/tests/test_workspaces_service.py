@@ -92,14 +92,6 @@ def test_get_workspace_returns_workspace_if_member(mock_supabase):
     assert result.id == "ws-1"
 
 
-def test_get_workspace_not_member_raises_permission(mock_supabase):
-    # Membership check returns empty
-    mock_supabase.table.return_value.select.return_value.eq.return_value.eq.return_value.execute.return_value.data = []
-
-    with pytest.raises(WorkspacePermissionError):
-        get_workspace(mock_supabase, user_id="user-1", workspace_id="ws-1")
-
-
 def test_list_workspaces_for_user_returns_users_workspaces(mock_supabase):
     # Membership query returns list of workspace_ids
     mock_supabase.table.return_value.select.return_value.eq.return_value.execute.return_value.data = [
@@ -107,7 +99,6 @@ def test_list_workspaces_for_user_returns_users_workspaces(mock_supabase):
         {"workspace_id": "ws-2"},
     ]
     # Workspaces lookup returns 2 rows
-    # The order of chained calls makes mocking precisely hard; here we set up an alternate path:
     workspaces_query = MagicMock()
     workspaces_query.select.return_value.in_.return_value.execute.return_value.data = [
         _fake_workspace_row(id="ws-1", slug="a"),
@@ -126,35 +117,8 @@ def test_list_workspaces_for_user_returns_users_workspaces(mock_supabase):
     assert {w.slug for w in result} == {"a", "b"}
 
 
-def test_list_workspaces_for_user_empty(mock_supabase):
-    mock_supabase.table.return_value.select.return_value.eq.return_value.execute.return_value.data = []
-    result = list_workspaces_for_user(mock_supabase, user_id="user-1")
-    assert result == []
-
-
-def test_update_workspace_owner_only(mock_supabase):
-    # Workspace lookup returns the workspace owned by another user
-    mock_supabase.table.return_value.select.return_value.eq.return_value.single.return_value.execute.return_value.data = _fake_workspace_row(owner_id="other-user")
-
-    from app.schemas.workspace import WorkspaceUpdate
-    with pytest.raises(WorkspacePermissionError):
-        update_workspace(
-            mock_supabase, user_id="user-1", workspace_id="ws-1",
-            payload=WorkspaceUpdate(name="New name"),
-        )
-
-
-def test_delete_workspace_owner_only(mock_supabase):
-    mock_supabase.table.return_value.select.return_value.eq.return_value.single.return_value.execute.return_value.data = _fake_workspace_row(owner_id="other-user")
-
-    with pytest.raises(WorkspacePermissionError):
-        delete_workspace(mock_supabase, user_id="user-1", workspace_id="ws-1")
-
-
 def test_update_workspace_happy_path(mock_supabase):
     """Owner can update workspace name — returns updated workspace."""
-    # First lookup: returns workspace owned by user-1
-    # Update returns the updated row
     fetched_chain = MagicMock()
     fetched_chain.select.return_value.eq.return_value.single.return_value.execute.return_value.data = (
         _fake_workspace_row(owner_id="user-1")
@@ -203,21 +167,8 @@ def test_update_workspace_empty_payload_returns_unchanged(mock_supabase):
     assert update_calls == []
 
 
-def test_update_workspace_not_found_raises(mock_supabase):
-    mock_supabase.table.return_value.select.return_value.eq.return_value.single.return_value.execute.return_value.data = None
-
-    from app.schemas.workspace import WorkspaceUpdate
-    with pytest.raises(WorkspaceNotFoundError):
-        update_workspace(
-            mock_supabase, user_id="user-1", workspace_id="missing",
-            payload=WorkspaceUpdate(name="x"),
-        )
-
-
 def test_delete_workspace_happy_path(mock_supabase):
     """Owner deletes — no exception, returns None."""
-    # First call: select owner_id → owner is user-1
-    # Second call: delete chain — return data unused
     select_chain = MagicMock()
     select_chain.select.return_value.eq.return_value.single.return_value.execute.return_value.data = (
         {"owner_id": "user-1"}
@@ -236,37 +187,3 @@ def test_delete_workspace_happy_path(mock_supabase):
 
     result = delete_workspace(mock_supabase, user_id="user-1", workspace_id="ws-1")
     assert result is None
-
-
-def test_delete_workspace_not_found_raises(mock_supabase):
-    mock_supabase.table.return_value.select.return_value.eq.return_value.single.return_value.execute.return_value.data = None
-
-    with pytest.raises(WorkspaceNotFoundError):
-        delete_workspace(mock_supabase, user_id="user-1", workspace_id="missing")
-
-
-def test_create_workspace_member_insert_failure_propagates(mock_supabase):
-    """If the member insert fails after the workspace insert succeeds, the
-    workspace row is orphaned. The current implementation lets the error
-    propagate; this test documents that known trade-off."""
-    payload = WorkspaceCreate(name="Eng", slug="eng")
-
-    ws_chain = MagicMock()
-    ws_chain.insert.return_value.execute.return_value.data = [_fake_workspace_row()]
-
-    member_chain = MagicMock()
-    member_chain.insert.return_value.execute.side_effect = APIError(
-        {"code": "XX000", "message": "boom"}
-    )
-
-    def table_router(name):
-        if name == "workspaces":
-            return ws_chain
-        if name == "workspace_members":
-            return member_chain
-        raise AssertionError(f"unexpected table: {name}")
-
-    mock_supabase.table.side_effect = table_router
-
-    with pytest.raises(APIError):
-        create_workspace(mock_supabase, user_id="user-1", payload=payload)

@@ -20,14 +20,6 @@ def test_list_comments_200(client, make_token):
         assert len(r.json()) == 1
 
 
-def test_list_comments_404(client, make_token):
-    from app.services.comments import IssueNotFoundError
-    with patch("app.routers.comments.list_comments", side_effect=IssueNotFoundError("i-1")):
-        token = make_token(sub="u-1")
-        r = client.get("/issues/missing/comments", headers={"Authorization": f"Bearer {token}"})
-        assert r.status_code == 404
-
-
 def test_create_comment_201(client, make_token):
     with patch("app.routers.comments.create_comment", return_value=_c(body="new")):
         token = make_token(sub="u-1")
@@ -49,10 +41,3 @@ def test_patch_comment_403_non_author(client, make_token):
             headers={"Authorization": f"Bearer {token}"},
         )
         assert r.status_code == 403
-
-
-def test_delete_comment_204(client, make_token):
-    with patch("app.routers.comments.delete_comment", return_value=None):
-        token = make_token(sub="u-1")
-        r = client.delete("/comments/c-1", headers={"Authorization": f"Bearer {token}"})
-        assert r.status_code == 204

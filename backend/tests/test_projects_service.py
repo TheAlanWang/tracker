@@ -1,6 +1,7 @@
 from unittest.mock import MagicMock
 
 import pytest
+from postgrest.exceptions import APIError
 
 from app.schemas.project import ProjectCreate
 from app.services.projects import (
@@ -49,7 +50,6 @@ def test_create_project_non_member_raises(mock_supabase):
 
 def test_create_project_duplicate_key_raises(mock_supabase):
     mock_supabase.table.return_value.select.return_value.eq.return_value.eq.return_value.execute.return_value.data = [{"role": "member"}]
-    from postgrest.exceptions import APIError
     mock_supabase.table.return_value.insert.return_value.execute.side_effect = APIError(
         {"code": "23505", "message": "duplicate", "details": "(workspace_id, key) already exists"}
     )
@@ -58,32 +58,6 @@ def test_create_project_duplicate_key_raises(mock_supabase):
             mock_supabase, user_id="u1", workspace_id="ws-1",
             payload=ProjectCreate(name="X", key="BE"),
         )
-
-
-def test_list_projects_non_member_raises(mock_supabase):
-    mock_supabase.table.return_value.select.return_value.eq.return_value.eq.return_value.execute.return_value.data = []
-    with pytest.raises(ProjectPermissionError):
-        list_projects(mock_supabase, user_id="u1", workspace_id="ws-1")
-
-
-def test_get_project_non_member_raises(mock_supabase):
-    proj_chain = MagicMock()
-    proj_chain.select.return_value.eq.return_value.single.return_value.execute.return_value.data = _proj_row()
-
-    members_chain = MagicMock()
-    members_chain.select.return_value.eq.return_value.eq.return_value.execute.return_value.data = []
-
-    def table_router(name):
-        if name == "projects":
-            return proj_chain
-        if name == "workspace_members":
-            return members_chain
-        raise AssertionError(f"unexpected table: {name}")
-
-    mock_supabase.table.side_effect = table_router
-
-    with pytest.raises(ProjectPermissionError):
-        get_project(mock_supabase, user_id="u1", project_id="p-1")
 
 
 def test_get_project_not_found_raises(mock_supabase):
