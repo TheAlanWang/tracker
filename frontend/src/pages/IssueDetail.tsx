@@ -4,6 +4,11 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import {
+  useComments,
+  useCreateComment,
+  useDeleteComment,
+} from "@/features/comments/api";
+import {
   IssuePriority,
   IssueStatus,
   useDeleteIssue,
@@ -61,6 +66,34 @@ export default function IssueDetail() {
       setDescDraft(issue.description);
     }
   }, [issue]);
+
+  const { data: comments = [] } = useComments(issue?.id ?? "");
+  const createCommentMutation = useCreateComment(issue?.id ?? "");
+  const deleteCommentMutation = useDeleteComment(issue?.id ?? "");
+  const [commentDraft, setCommentDraft] = useState("");
+
+  async function onPostComment(e: React.FormEvent) {
+    e.preventDefault();
+    if (!commentDraft.trim()) return;
+    try {
+      await createCommentMutation.mutateAsync({ body: commentDraft });
+      setCommentDraft("");
+    } catch (err) {
+      const detail =
+        (err as { response?: { data?: { detail?: string } } }).response?.data
+          ?.detail ?? "Failed to post comment";
+      toast.error(detail);
+    }
+  }
+
+  async function onDeleteComment(commentId: string) {
+    if (!confirm("Delete this comment?")) return;
+    try {
+      await deleteCommentMutation.mutateAsync(commentId);
+    } catch (err) {
+      toast.error("Failed to delete comment");
+    }
+  }
 
   if (!issue) {
     return <p className="text-muted-foreground">Loading…</p>;
@@ -134,6 +167,43 @@ export default function IssueDetail() {
         >
           Delete issue
         </Button>
+
+        <section className="space-y-3 pt-6 border-t border-slate-200">
+          <h2 className="text-sm font-semibold uppercase text-muted-foreground">
+            Comments ({comments.length})
+          </h2>
+          {comments.map((c) => (
+            <div key={c.id} className="rounded border border-slate-200 bg-white p-3">
+              <div className="flex justify-between items-baseline">
+                <p className="text-xs text-muted-foreground">
+                  {c.author_id ?? "Unknown"} ·{" "}
+                  {new Date(c.created_at).toLocaleString()}
+                </p>
+                <button
+                  type="button"
+                  className="text-xs text-red-600 hover:underline"
+                  onClick={() => onDeleteComment(c.id)}
+                >
+                  Delete
+                </button>
+              </div>
+              <p className="mt-1 whitespace-pre-wrap text-sm">{c.body}</p>
+            </div>
+          ))}
+          <form onSubmit={onPostComment} className="space-y-2">
+            <textarea
+              className="w-full rounded border border-slate-300 bg-white p-2 text-sm"
+              rows={3}
+              value={commentDraft}
+              onChange={(e) => setCommentDraft(e.target.value)}
+              placeholder="Write a comment…"
+              maxLength={10000}
+            />
+            <Button type="submit" size="sm" disabled={createCommentMutation.isPending || !commentDraft.trim()}>
+              {createCommentMutation.isPending ? "Posting…" : "Post comment"}
+            </Button>
+          </form>
+        </section>
       </div>
 
       <aside className="space-y-4 border-l border-slate-200 pl-6">
