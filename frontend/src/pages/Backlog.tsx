@@ -15,7 +15,7 @@ export default function Backlog() {
 
   const { data: issues = [], isLoading } = useIssues(
     currentProject?.id ?? "",
-    { sprint: "null" },
+    { status: "backlog" },
   );
 
   if (!currentProject) return null;
@@ -23,7 +23,8 @@ export default function Backlog() {
   return (
     <div className="space-y-6 max-w-5xl">
       <p className="text-sm text-muted-foreground">
-        Issues not assigned to any sprint.
+        New items live here until they're picked up. Set priority + dates, then
+        move to Board to start work.
       </p>
 
       {isLoading && <p>Loading…</p>}
