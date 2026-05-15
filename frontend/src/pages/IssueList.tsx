@@ -17,6 +17,7 @@ import {
   useIssues,
 } from "@/features/issues/api";
 import { useProjects } from "@/features/projects/api";
+import { useProjectIssuesRealtime } from "@/features/realtime/useProjectIssuesRealtime";
 import { useWorkspaces } from "@/features/workspaces/api";
 
 const STATUS_LABELS: Record<IssueStatus | "all", string> = {
@@ -55,6 +56,7 @@ export default function IssueList() {
   const currentWs = workspaces.find((w) => w.slug === wsSlug);
   const { data: projects = [] } = useProjects(currentWs?.id ?? "");
   const currentProject = projects.find((p) => p.key === pKey);
+  useProjectIssuesRealtime(currentProject?.id);
 
   const [statusFilter, setStatusFilter] = useState<IssueStatus | "all">("all");
   const {

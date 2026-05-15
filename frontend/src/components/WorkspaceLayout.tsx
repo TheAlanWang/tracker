@@ -5,6 +5,7 @@ import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { CommandPalette } from "@/components/CommandPalette";
 import { useNotifications } from "@/features/notifications/api";
+import { useNotificationsRealtime } from "@/features/realtime/useNotificationsRealtime";
 import { useWorkspaces } from "@/features/workspaces/api";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useCommandPaletteStore } from "@/lib/commandPaletteStore";
@@ -22,6 +23,8 @@ export function WorkspaceLayout() {
   const { data: unreadNotifications = [] } = useNotifications({ unreadOnly: true });
   const unreadCount = unreadNotifications.length;
   const { toggle: togglePalette } = useCommandPaletteStore();
+
+  useNotificationsRealtime(me?.id);
 
   useEffect(() => {
     if (wsSlug) localStorage.setItem(LAST_WORKSPACE_KEY, wsSlug);

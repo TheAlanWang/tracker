@@ -16,6 +16,7 @@ import { useNavigate, useParams } from "react-router-dom";
 
 import { Issue, IssueStatus, useIssues, useMoveIssue } from "@/features/issues/api";
 import { useProjects } from "@/features/projects/api";
+import { useProjectIssuesRealtime } from "@/features/realtime/useProjectIssuesRealtime";
 import { useWorkspaces } from "@/features/workspaces/api";
 
 // Board shows only active work statuses. New issues default to "backlog"
@@ -123,6 +124,7 @@ export default function Board() {
   const currentProject = projects.find((p) => p.key === pKey);
   const { data: issues = [] } = useIssues(currentProject?.id ?? "");
   const moveMutation = useMoveIssue(currentProject?.id ?? "");
+  useProjectIssuesRealtime(currentProject?.id);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
