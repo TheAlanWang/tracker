@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.routers import me, members, workspaces
+from app.routers import me, members, projects, workspaces
 
 app = FastAPI(title="tracker-api")
 
@@ -22,3 +22,4 @@ def health() -> dict[str, str]:
 app.include_router(me.router)
 app.include_router(workspaces.router)
 app.include_router(members.router)
+app.include_router(projects.router)
