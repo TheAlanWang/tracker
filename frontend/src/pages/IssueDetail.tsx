@@ -9,6 +9,12 @@ import {
   useDeleteComment,
 } from "@/features/comments/api";
 import {
+  useAttachLabel,
+  useDetachLabel,
+  useIssueLabels,
+  useLabels,
+} from "@/features/labels/api";
+import {
   IssuePriority,
   IssueStatus,
   useDeleteIssue,
@@ -71,6 +77,25 @@ export default function IssueDetail() {
   const createCommentMutation = useCreateComment(issue?.id ?? "");
   const deleteCommentMutation = useDeleteComment(issue?.id ?? "");
   const [commentDraft, setCommentDraft] = useState("");
+
+  const { data: workspaceLabels = [] } = useLabels(currentWs?.id ?? "");
+  const { data: attachedLabels = [] } = useIssueLabels(issue?.id ?? "");
+  const attachLabelMutation = useAttachLabel(issue?.id ?? "");
+  const detachLabelMutation = useDetachLabel(issue?.id ?? "");
+
+  const attachedIds = new Set(attachedLabels.map((l) => l.id));
+
+  async function toggleLabel(labelId: string) {
+    try {
+      if (attachedIds.has(labelId)) {
+        await detachLabelMutation.mutateAsync(labelId);
+      } else {
+        await attachLabelMutation.mutateAsync(labelId);
+      }
+    } catch (err) {
+      toast.error("Failed to toggle label");
+    }
+  }
 
   async function onPostComment(e: React.FormEvent) {
     e.preventDefault();
@@ -275,6 +300,56 @@ export default function IssueDetail() {
                 </option>
               ))}
           </select>
+        </div>
+
+        <div className="space-y-1">
+          <p className="text-xs font-medium uppercase text-muted-foreground">
+            Labels
+          </p>
+          <div className="flex flex-wrap gap-1">
+            {attachedLabels.length === 0 && (
+              <span className="text-xs text-muted-foreground">—</span>
+            )}
+            {attachedLabels.map((l) => (
+              <span
+                key={l.id}
+                className="inline-flex items-center gap-1 rounded px-2 py-0.5 text-xs"
+                style={{ backgroundColor: `${l.color}20`, color: l.color }}
+              >
+                <span
+                  className="inline-block w-2 h-2 rounded-full"
+                  style={{ backgroundColor: l.color }}
+                />
+                {l.name}
+              </span>
+            ))}
+          </div>
+          {workspaceLabels.length > 0 && (
+            <details className="mt-2">
+              <summary className="text-xs text-muted-foreground cursor-pointer hover:text-slate-700">
+                Edit labels
+              </summary>
+              <div className="mt-2 space-y-1">
+                {workspaceLabels.map((l) => (
+                  <label
+                    key={l.id}
+                    className="flex items-center gap-2 text-xs cursor-pointer hover:bg-slate-50 rounded px-1 py-0.5"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={attachedIds.has(l.id)}
+                      onChange={() => toggleLabel(l.id)}
+                    />
+                    <span
+                      className="inline-block w-2 h-2 rounded-full"
+                      style={{ backgroundColor: l.color }}
+                    />
+                    {l.name}
+                  </label>
+                ))}
+              </div>
+            </details>
+          )}
         </div>
 
         <div className="space-y-1">
