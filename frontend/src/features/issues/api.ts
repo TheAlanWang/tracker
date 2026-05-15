@@ -52,14 +52,19 @@ export type IssueUpdate = Partial<{
   priority: IssuePriority;
   assignee_id: string | null;
   due_date: string | null;
+  sprint_id: string | null;
 }>;
 
-export function useIssues(projectId: string, opts: { status?: IssueStatus } = {}) {
+export function useIssues(
+  projectId: string,
+  opts: { status?: IssueStatus; sprint?: string | "null" } = {},
+) {
   return useQuery<Issue[]>({
     queryKey: ["projects", projectId, "issues", opts],
     queryFn: async () => {
       const params = new URLSearchParams();
       if (opts.status) params.set("status", opts.status);
+      if (opts.sprint) params.set("sprint", opts.sprint);
       const qs = params.toString();
       const { data } = await apiClient.get<Issue[]>(
         `/projects/${projectId}/issues${qs ? `?${qs}` : ""}`,
