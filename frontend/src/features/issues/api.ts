@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 
 import { apiClient } from "@/api/client";
 
@@ -132,6 +133,50 @@ export function useDeleteIssue() {
       // Issues lists across projects might need invalidating, but in Plan 3
       // the delete is always called from within a project context.
       qc.invalidateQueries({ queryKey: ["projects"] });
+    },
+  });
+}
+
+export function useMoveIssue(projectId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (args: {
+      issueId: string;
+      status: IssueStatus;
+      position: number;
+    }) => {
+      const { data } = await apiClient.post<Issue>(
+        `/issues/${args.issueId}/move`,
+        { status: args.status, position: args.position },
+      );
+      return data;
+    },
+    onMutate: async (args) => {
+      // Snapshot all issues queries for this project (any status filter variant)
+      await qc.cancelQueries({ queryKey: ["projects", projectId, "issues"] });
+      const snapshot = qc.getQueriesData<Issue[]>({
+        queryKey: ["projects", projectId, "issues"],
+      });
+      // Update each cached list: mutate the issue in place
+      qc.setQueriesData<Issue[]>(
+        { queryKey: ["projects", projectId, "issues"] },
+        (old) => {
+          if (!old) return old;
+          return old.map((i) =>
+            i.id === args.issueId
+              ? { ...i, status: args.status, position: args.position }
+              : i,
+          );
+        },
+      );
+      return { snapshot };
+    },
+    onError: (_err, _args, ctx) => {
+      ctx?.snapshot.forEach(([key, data]) => qc.setQueryData(key, data));
+      toast.error("Failed to move issue");
+    },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: ["projects", projectId, "issues"] });
     },
   });
 }
