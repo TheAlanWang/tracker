@@ -8,7 +8,9 @@ from app.core.security import (
     InvalidTokenError,
     verify_and_decode_supabase_jwt,
 )
+from app.schemas.dashboard import DashboardResponse
 from app.schemas.user import MeResponse, WorkspaceSummary
+from app.services.dashboard import get_dashboard
 from app.services.workspaces import list_workspaces_for_user
 
 router = APIRouter()
@@ -41,3 +43,11 @@ def get_me(
     ]
 
     return MeResponse(id=user_id, email=email, workspaces=workspace_summaries)
+
+
+@router.get("/me/dashboard", response_model=DashboardResponse)
+def get_dashboard_endpoint(
+    user_id: str = Depends(get_current_user_id),
+    supabase: Client = Depends(get_supabase_admin),
+) -> DashboardResponse:
+    return get_dashboard(supabase, user_id=user_id)
