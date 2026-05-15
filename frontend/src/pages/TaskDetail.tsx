@@ -79,6 +79,58 @@ function formatActivity(a: Activity): string {
   }
 }
 
+function VersionEntry({
+  entry,
+  versionNumber,
+}: {
+  entry: Activity;
+  versionNumber: number;
+}) {
+  const actor = entry.actor_id ? `${entry.actor_id.slice(0, 8)}…` : "Someone";
+  const time = new Date(entry.created_at).toLocaleString();
+  const isUpdate = entry.action === "updated";
+  return (
+    <li className="rounded border border-slate-200 bg-white p-3 text-xs space-y-1.5">
+      <div className="flex items-baseline justify-between gap-3">
+        <span className="font-medium text-slate-900">
+          {isUpdate ? `Version ${versionNumber}` : entry.action.replace(/_/g, " ")}
+        </span>
+        <span className="text-slate-400 shrink-0">{time}</span>
+      </div>
+      <p className="text-slate-500">by {actor}</p>
+      {isUpdate && Object.keys(entry.payload).length > 0 && (
+        <ul className="space-y-0.5 pt-1">
+          {Object.entries(entry.payload).map(([field, change]) => {
+            const label = FIELD_LABEL[field] ?? field;
+            const c = change as { from?: unknown; to?: unknown; updated?: boolean };
+            if (c.updated) {
+              return (
+                <li key={field} className="text-slate-700">
+                  <span className="font-medium">{label}</span> edited
+                </li>
+              );
+            }
+            return (
+              <li key={field} className="text-slate-700">
+                <span className="font-medium">{label}</span>{" "}
+                <span className="text-slate-500">{String(c.from ?? "—")}</span>
+                {" → "}
+                <span className="text-slate-900">{String(c.to ?? "—")}</span>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+      {entry.action === "created" && (
+        <p className="text-slate-700">Task created.</p>
+      )}
+      {entry.action === "commented" && (
+        <p className="text-slate-700">Posted a comment.</p>
+      )}
+    </li>
+  );
+}
+
 function ArrowLeftIcon() {
   return (
     <svg
@@ -262,28 +314,6 @@ export default function TaskDetail() {
           <ArrowLeftIcon />
           <span>Back to board</span>
         </button>
-        {dirty && (
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-amber-600">Unsaved changes</span>
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              onClick={onDiscard}
-              disabled={updateMutation.isPending}
-            >
-              Discard
-            </Button>
-            <Button
-              type="button"
-              size="sm"
-              onClick={onSave}
-              disabled={updateMutation.isPending}
-            >
-              {updateMutation.isPending ? "Saving…" : "Save changes"}
-            </Button>
-          </div>
-        )}
       </div>
 
       <div className="grid grid-cols-3 gap-8">
@@ -320,14 +350,36 @@ export default function TaskDetail() {
             )}
           </div>
 
-          <Button
-            variant="outline"
-            onClick={onDelete}
-            disabled={deleteMutation.isPending}
-            className="text-red-600 hover:bg-red-50"
-          >
-            Delete task
-          </Button>
+          <div className="flex items-center justify-between gap-2 pt-2">
+            <Button
+              variant="outline"
+              onClick={onDelete}
+              disabled={deleteMutation.isPending}
+              className="text-red-600 hover:bg-red-50"
+            >
+              Delete task
+            </Button>
+            {dirty && (
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-amber-600">Unsaved changes</span>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={onDiscard}
+                  disabled={updateMutation.isPending}
+                >
+                  Discard
+                </Button>
+                <Button
+                  type="button"
+                  onClick={onSave}
+                  disabled={updateMutation.isPending}
+                >
+                  {updateMutation.isPending ? "Saving…" : "Save Task"}
+                </Button>
+              </div>
+            )}
+          </div>
 
           <section className="space-y-3 pt-6 border-t border-slate-200">
             <h2 className="text-sm font-semibold uppercase text-muted-foreground">
@@ -369,20 +421,19 @@ export default function TaskDetail() {
           </section>
 
           {activity.length > 0 && (
-            <section className="space-y-2 pt-6 border-t border-slate-200">
+            <section className="space-y-3 pt-6 border-t border-slate-200">
               <h2 className="text-sm font-semibold uppercase text-muted-foreground">
-                Activity
+                Version history
               </h2>
-              <ul className="space-y-1">
-                {activity.map((a) => (
-                  <li key={a.id} className="flex items-baseline justify-between gap-4 text-xs">
-                    <span className="text-slate-600">{formatActivity(a)}</span>
-                    <span className="shrink-0 text-muted-foreground">
-                      {new Date(a.created_at).toLocaleString()}
-                    </span>
-                  </li>
+              <ol className="space-y-3">
+                {[...activity].reverse().map((a, idx) => (
+                  <VersionEntry
+                    key={a.id}
+                    entry={a}
+                    versionNumber={activity.length - idx}
+                  />
                 ))}
-              </ul>
+              </ol>
             </section>
           )}
         </div>

@@ -159,6 +159,8 @@ export function useUpdateTask(taskId: string) {
       qc.invalidateQueries({
         queryKey: ["projects", task.project_id, "tasks"],
       });
+      // Activity log gets a new row on every UPDATE (via trigger) — refetch
+      qc.invalidateQueries({ queryKey: ["tasks", taskId, "activity"] });
     },
   });
 }
