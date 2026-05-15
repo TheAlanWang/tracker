@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useCreateProject, useProjects } from "@/features/projects/api";
+import { useCreateProject, useDeleteProject, useProjects } from "@/features/projects/api";
 import { useWorkspaces } from "@/features/workspaces/api";
 
 export default function WorkspaceHome() {
@@ -17,6 +17,21 @@ export default function WorkspaceHome() {
 
   const { data: projects = [], isLoading } = useProjects(currentWs?.id ?? "");
   const createMutation = useCreateProject(currentWs?.id ?? "");
+  const deleteMutation = useDeleteProject();
+
+  async function onDelete(e: React.MouseEvent, projectId: string, projectName: string) {
+    e.stopPropagation();
+    if (!confirm(`Delete project "${projectName}"? This deletes all its issues and sprints.`)) return;
+    try {
+      await deleteMutation.mutateAsync(projectId);
+      toast.success(`Deleted ${projectName}`);
+    } catch (err) {
+      const detail =
+        (err as { response?: { data?: { detail?: string } } }).response?.data
+          ?.detail ?? "Failed to delete project";
+      toast.error(detail);
+    }
+  }
 
   const [showForm, setShowForm] = useState(false);
   const [name, setName] = useState("");
@@ -99,24 +114,50 @@ export default function WorkspaceHome() {
       )}
       <div className="grid gap-2">
         {projects.map((p) => (
-          <button
+          <div
             key={p.id}
-            type="button"
-            className="text-left p-4 rounded border border-slate-200 bg-white hover:bg-slate-50"
+            role="button"
+            tabIndex={0}
+            className="group flex items-center justify-between p-4 rounded border border-slate-200 bg-white hover:bg-slate-50 cursor-pointer"
             onClick={() => navigate(`/w/${wsSlug}/p/${p.key}/list`)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") navigate(`/w/${wsSlug}/p/${p.key}/list`);
+            }}
           >
-            <div className="flex items-center gap-2">
-              <span className="font-mono text-xs px-1.5 py-0.5 rounded bg-slate-100 text-slate-600">
-                {p.key}
-              </span>
-              <span className="font-medium">{p.name}</span>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <span className="font-mono text-xs px-1.5 py-0.5 rounded bg-slate-100 text-slate-600">
+                  {p.key}
+                </span>
+                <span className="font-medium">{p.name}</span>
+              </div>
+              {p.description && (
+                <p className="text-sm text-muted-foreground mt-1">
+                  {p.description}
+                </p>
+              )}
             </div>
-            {p.description && (
-              <p className="text-sm text-muted-foreground mt-1">
-                {p.description}
-              </p>
-            )}
-          </button>
+            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigate(`/w/${wsSlug}/p/${p.key}/settings`);
+                }}
+                className="text-xs text-slate-500 hover:text-slate-700 px-2 py-1"
+              >
+                Settings
+              </button>
+              <button
+                type="button"
+                onClick={(e) => onDelete(e, p.id, p.name)}
+                className="text-xs text-red-600 hover:bg-red-50 rounded px-2 py-1"
+                disabled={deleteMutation.isPending}
+              >
+                Delete
+              </button>
+            </div>
+          </div>
         ))}
       </div>
     </div>
