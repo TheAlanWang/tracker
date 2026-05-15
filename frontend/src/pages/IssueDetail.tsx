@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -87,6 +89,7 @@ export default function IssueDetail() {
 
   const [titleDraft, setTitleDraft] = useState("");
   const [descDraft, setDescDraft] = useState("");
+  const [descEditing, setDescEditing] = useState(false);
 
   useEffect(() => {
     if (issue) {
@@ -196,17 +199,42 @@ export default function IssueDetail() {
           <p className="text-xs font-medium uppercase text-muted-foreground">
             Description
           </p>
-          <textarea
-            className="w-full rounded border border-slate-200 bg-white p-2 text-sm"
-            rows={8}
-            value={descDraft}
-            onChange={(e) => setDescDraft(e.target.value)}
-            onBlur={() => {
-              if (descDraft !== issue.description) {
-                save("description", descDraft);
-              }
-            }}
-          />
+          {descEditing ? (
+            <textarea
+              autoFocus
+              className="w-full rounded border border-slate-200 bg-white p-2 text-sm"
+              rows={8}
+              value={descDraft}
+              onChange={(e) => setDescDraft(e.target.value)}
+              onBlur={() => {
+                setDescEditing(false);
+                if (descDraft !== issue.description) {
+                  save("description", descDraft);
+                }
+              }}
+            />
+          ) : (
+            <div
+              role="button"
+              tabIndex={0}
+              onClick={() => setDescEditing(true)}
+              onKeyDown={(e) => e.key === "Enter" && setDescEditing(true)}
+              className="min-h-[8rem] w-full cursor-text rounded border border-slate-200 bg-white p-2"
+            >
+              {descDraft.trim() ? (
+                <ReactMarkdown
+                  remarkPlugins={[remarkGfm]}
+                  className="prose prose-sm max-w-none"
+                >
+                  {descDraft}
+                </ReactMarkdown>
+              ) : (
+                <span className="text-sm text-muted-foreground">
+                  Click to add a description…
+                </span>
+              )}
+            </div>
+          )}
         </div>
         <Button
           variant="outline"
@@ -236,7 +264,7 @@ export default function IssueDetail() {
                   Delete
                 </button>
               </div>
-              <p className="mt-1 whitespace-pre-wrap text-sm">{c.body}</p>
+              <ReactMarkdown remarkPlugins={[remarkGfm]} className="prose prose-sm max-w-none mt-1">{c.body}</ReactMarkdown>
             </div>
           ))}
           <form onSubmit={onPostComment} className="space-y-2">
