@@ -69,8 +69,8 @@ export function ProjectLayout() {
 
   const tabClass = ({ isActive }: { isActive: boolean }) =>
     isActive
-      ? "border-b-2 border-slate-900 px-3 py-2 text-sm font-medium text-slate-900"
-      : "border-b-2 border-transparent px-3 py-2 text-sm text-slate-500 hover:text-slate-900";
+      ? "inline-flex items-center h-9 border-b-2 border-slate-900 px-3 text-sm font-medium text-slate-900"
+      : "inline-flex items-center h-9 border-b-2 border-transparent px-3 text-sm text-slate-500 hover:text-slate-900";
 
   return (
     <div className="space-y-0">
@@ -101,16 +101,6 @@ export function ProjectLayout() {
               {t.label}
             </NavLink>
           ))}
-          <div className="ml-auto">
-            <NavLink
-              to={`/w/${wsSlug}/p/${pKey}/settings`}
-              className={tabClass}
-              title="Project settings"
-              end={false}
-            >
-              ⚙
-            </NavLink>
-          </div>
         </nav>
       </div>
       <div className="pt-6">

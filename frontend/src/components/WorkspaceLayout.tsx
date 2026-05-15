@@ -9,7 +9,6 @@ import { Label } from "@/components/ui/label";
 import { useNotifications } from "@/features/notifications/api";
 import {
   useCreateProject,
-  useDeleteProject,
   useProjects,
 } from "@/features/projects/api";
 import { useNotificationsRealtime } from "@/features/realtime/useNotificationsRealtime";
@@ -155,8 +154,20 @@ export function WorkspaceLayout() {
                     }}
                     className="w-full text-left px-3 py-1.5 text-sm hover:bg-slate-50 flex items-center gap-2"
                   >
-                    <span>⚙</span>
-                    <span>Workspace settings</span>
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth={1.8}
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="w-4 h-4 text-slate-500"
+                    >
+                      <circle cx="12" cy="12" r="3" />
+                      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z" />
+                    </svg>
+                    <span>Workspace Settings</span>
                   </button>
 
                   <div className="border-t border-slate-100 mt-1 pt-1">
@@ -252,7 +263,17 @@ export function WorkspaceLayout() {
                     }}
                     className="w-full text-left px-3 py-1.5 text-sm hover:bg-slate-50"
                   >
-                    Profile settings
+                    Profile Settings
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setProfileMenuOpen(false);
+                      navigate(`/w/${wsSlug}/settings`);
+                    }}
+                    className="w-full text-left px-3 py-1.5 text-sm hover:bg-slate-50"
+                  >
+                    Workspace Settings
                   </button>
                   <button
                     type="button"
@@ -260,7 +281,7 @@ export function WorkspaceLayout() {
                       setProfileMenuOpen(false);
                       signOut();
                     }}
-                    className="w-full text-left px-3 py-1.5 text-sm hover:bg-slate-50 text-red-600"
+                    className="w-full text-left px-3 py-1.5 text-sm hover:bg-slate-50 text-red-600 border-t border-slate-100 mt-1 pt-2"
                   >
                     Sign out
                   </button>
@@ -276,7 +297,7 @@ export function WorkspaceLayout() {
           <SidebarNav wsSlug={wsSlug ?? ""} currentWsId={currentWs?.id ?? ""} />
         )}
 
-        <main className="flex-1 p-8 overflow-auto">
+        <main className="flex-1 p-8 overflow-y-auto overflow-x-hidden bg-white">
           <Outlet />
         </main>
       </div>
@@ -348,15 +369,10 @@ function SidebarNav({ wsSlug, currentWsId }: { wsSlug: string; currentWsId: stri
   const { pKey: activePKey } = useParams();
   const { data: projects = [] } = useProjects(currentWsId);
   const createMutation = useCreateProject(currentWsId);
-  const deleteMutation = useDeleteProject(currentWsId);
 
   const [showModal, setShowModal] = useState(false);
   const [name, setName] = useState("");
   const derivedKey = deriveProjectKey(name);
-
-  // Kebab menu state — which project's menu is open
-  const [openMenuPid, setOpenMenuPid] = useState<string | null>(null);
-  const menuRef = useRef<HTMLDivElement>(null);
 
   // Close modal on Esc
   useEffect(() => {
@@ -367,18 +383,6 @@ function SidebarNav({ wsSlug, currentWsId }: { wsSlug: string; currentWsId: stri
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [showModal]);
-
-  // Outside click closes kebab
-  useEffect(() => {
-    if (!openMenuPid) return;
-    function onClick(e: MouseEvent) {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setOpenMenuPid(null);
-      }
-    }
-    document.addEventListener("mousedown", onClick);
-    return () => document.removeEventListener("mousedown", onClick);
-  }, [openMenuPid]);
 
   function openModal() {
     setName("");
@@ -402,22 +406,6 @@ function SidebarNav({ wsSlug, currentWsId }: { wsSlug: string; currentWsId: stri
       const detail =
         (err as { response?: { data?: { detail?: string } } }).response?.data
           ?.detail ?? "Failed to create project";
-      toast.error(detail);
-    }
-  }
-
-  async function onDelete(e: React.MouseEvent, projectId: string, projectName: string) {
-    e.stopPropagation();
-    if (!confirm(`Delete project "${projectName}"? Deletes all its tasks and sprints.`)) return;
-    try {
-      await deleteMutation.mutateAsync(projectId);
-      toast.success(`Deleted ${projectName}`);
-      // If the deleted project was active, bounce to workspace home
-      navigate(`/w/${wsSlug}`);
-    } catch (err) {
-      const detail =
-        (err as { response?: { data?: { detail?: string } } }).response?.data
-          ?.detail ?? "Failed to delete project";
       toast.error(detail);
     }
   }
@@ -532,50 +520,30 @@ function SidebarNav({ wsSlug, currentWsId }: { wsSlug: string; currentWsId: stri
               }
             >
               <span className="truncate min-w-0">{p.name}</span>
-              <div className="relative" ref={openMenuPid === p.id ? menuRef : undefined}>
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setOpenMenuPid(openMenuPid === p.id ? null : p.id);
-                  }}
-                  className={
-                    openMenuPid === p.id
-                      ? "text-slate-700 px-1"
-                      : "opacity-0 group-hover:opacity-100 text-slate-500 hover:text-slate-900 px-1"
-                  }
-                  title={`More for ${p.name}`}
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigate(`/w/${wsSlug}/p/${p.key}/settings`);
+                }}
+                className="opacity-0 group-hover:opacity-100 text-slate-500 hover:text-slate-900 hover:bg-slate-200 rounded p-0.5 transition-opacity"
+                title={`${p.name} settings`}
+                aria-label={`${p.name} settings`}
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth={1.8}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="w-4 h-4"
                 >
-                  ⋯
-                </button>
-                {openMenuPid === p.id && (
-                  <div
-                    onClick={(e) => e.stopPropagation()}
-                    className="absolute right-0 top-full mt-1 w-40 rounded-md border border-slate-200 bg-white shadow-lg z-30 py-1"
-                  >
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setOpenMenuPid(null);
-                        navigate(`/w/${wsSlug}/p/${p.key}/settings`);
-                      }}
-                      className="w-full text-left px-3 py-1.5 text-sm hover:bg-slate-50"
-                    >
-                      Project settings
-                    </button>
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        setOpenMenuPid(null);
-                        onDelete(e, p.id, p.name);
-                      }}
-                      className="w-full text-left px-3 py-1.5 text-sm text-red-600 hover:bg-red-50"
-                    >
-                      Delete project
-                    </button>
-                  </div>
-                )}
-              </div>
+                  <circle cx="12" cy="12" r="3" />
+                  <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z" />
+                </svg>
+              </button>
             </div>
           );
         })}

@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -64,7 +64,12 @@ function SprintRow({
 
 export default function Dashboard() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { data, isLoading } = useDashboard();
+
+  const dashboardOrigin = {
+    state: { from: { path: location.pathname, label: "Dashboard" } },
+  };
 
   if (isLoading) {
     return (
@@ -101,6 +106,7 @@ export default function Dashboard() {
                   onClick={() =>
                     navigate(
                       `/w/${issue.workspace_slug}/p/${issue.project_key}/tasks/${issue.identifier}`,
+                      dashboardOrigin,
                     )
                   }
                 />
@@ -129,6 +135,7 @@ export default function Dashboard() {
                   onClick={() =>
                     navigate(
                       `/w/${issue.workspace_slug}/p/${issue.project_key}/tasks/${issue.identifier}`,
+                      dashboardOrigin,
                     )
                   }
                 />

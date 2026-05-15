@@ -1,4 +1,4 @@
-import { useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 
 import { useWorkspaceTasks } from "@/features/tasks/api";
 import { useWorkspaces } from "@/features/workspaces/api";
@@ -24,6 +24,7 @@ const PRIORITY_LABELS: Record<string, string> = {
 export default function MyIssues() {
   const { wsSlug } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const { data: me } = useCurrentUser();
   const { data: workspaces = [] } = useWorkspaces();
@@ -69,6 +70,14 @@ export default function MyIssues() {
                     onClick={() =>
                       navigate(
                         `/w/${wsSlug}/p/${pKey}/tasks/${issue.identifier}`,
+                        {
+                          state: {
+                            from: {
+                              path: location.pathname,
+                              label: "My Tasks",
+                            },
+                          },
+                        },
                       )
                     }
                   >

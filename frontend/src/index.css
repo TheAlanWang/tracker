@@ -89,3 +89,14 @@
     font-family: var(--font-sans, sans-serif);
   }
 }
+
+@layer utilities {
+  /* Hide native scrollbars while keeping scroll behavior. */
+  .scrollbar-hide {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+}

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -9,21 +9,6 @@ import {
   useMarkRead,
   useNotifications,
 } from "@/features/notifications/api";
-
-function notificationIcon(type: Notification["type"]): string {
-  switch (type) {
-    case "assigned":
-      return "→";
-    case "commented":
-      return "💬";
-    case "mentioned":
-      return "@";
-    case "status_changed":
-      return "◎";
-    default:
-      return "•";
-  }
-}
 
 function notificationLabel(type: Notification["type"]): string {
   switch (type) {
@@ -53,6 +38,7 @@ function timeAgo(iso: string): string {
 export default function Inbox() {
   const { wsSlug } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const [unreadOnly, setUnreadOnly] = useState(false);
 
   const { data: notifications = [], isLoading } = useNotifications({
@@ -73,7 +59,9 @@ export default function Inbox() {
     if (identifier) {
       // identifier format: "KEY-N" — need project key
       const projectKey = identifier.split("-")[0];
-      navigate(`/w/${wsSlug}/p/${projectKey}/tasks/${identifier}`);
+      navigate(`/w/${wsSlug}/p/${projectKey}/tasks/${identifier}`, {
+        state: { from: { path: location.pathname, label: "Inbox" } },
+      });
     }
   }
 
@@ -148,9 +136,6 @@ export default function Inbox() {
             >
               <div className="flex items-start justify-between gap-4">
                 <div className="flex items-start gap-3 min-w-0">
-                  <span className="mt-0.5 text-base shrink-0" aria-hidden>
-                    {notificationIcon(n.type)}
-                  </span>
                   <div className="min-w-0">
                     <p className="text-sm font-medium text-slate-800 truncate">
                       {(n.payload["identifier"] as string) ?? "Issue"}{" "}

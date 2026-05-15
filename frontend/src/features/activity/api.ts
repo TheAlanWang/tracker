@@ -8,7 +8,8 @@ export type ActivityAction =
   | "assignee_changed"
   | "sprint_changed"
   | "commented"
-  | "created";
+  | "created"
+  | "updated";
 
 export type Activity = {
   id: string;

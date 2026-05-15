@@ -13,11 +13,20 @@ import {
   useUpdateMemberRole,
 } from "@/features/members/api";
 import {
+  useCreateWorkspace,
   useDeleteWorkspace,
   useUpdateWorkspace,
   useWorkspaces,
 } from "@/features/workspaces/api";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+
+function slugifyWorkspace(name: string): string {
+  return name
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
 
 export default function WorkspaceSettings() {
   const { wsSlug } = useParams();
@@ -35,6 +44,30 @@ export default function WorkspaceSettings() {
 
   const updateWsMutation = useUpdateWorkspace();
   const deleteWsMutation = useDeleteWorkspace();
+  const createWsMutation = useCreateWorkspace();
+
+  const [newWsOpen, setNewWsOpen] = useState(false);
+  const [newWsName, setNewWsName] = useState("");
+
+  async function onCreateWorkspace(e: React.FormEvent) {
+    e.preventDefault();
+    const slug = slugifyWorkspace(newWsName);
+    if (!slug || slug.length < 2) {
+      toast.error("Workspace name is too short");
+      return;
+    }
+    try {
+      const ws = await createWsMutation.mutateAsync({ name: newWsName, slug });
+      toast.success(`Created ${ws.name}`);
+      setNewWsOpen(false);
+      setNewWsName("");
+    } catch (err) {
+      const detail =
+        (err as { response?: { data?: { detail?: string } } }).response?.data
+          ?.detail ?? "Failed to create workspace";
+      toast.error(detail);
+    }
+  }
 
   const [inviteEmail, setInviteEmail] = useState("");
   const [wsName, setWsName] = useState("");
@@ -73,8 +106,10 @@ export default function WorkspaceSettings() {
       toast.success("Workspace deleted");
       const remaining = workspaces.filter((w) => w.id !== currentWs.id);
       if (remaining.length > 0) {
-        navigate(`/w/${remaining[0].slug}`, { replace: true });
+        // Stay on Workspace Settings — switch to another workspace's settings.
+        navigate(`/w/${remaining[0].slug}/settings`, { replace: true });
       } else {
+        // No workspaces left; nowhere to go but home.
         navigate("/", { replace: true });
       }
     } catch (err) {
@@ -154,47 +189,102 @@ export default function WorkspaceSettings() {
               {w.name}
             </button>
           ))}
-          <p className="text-xs text-slate-400 mt-3 px-2">
-            Use the workspace dropdown (top-left) to create a new one.
-          </p>
+          <button
+            type="button"
+            onClick={() => setNewWsOpen(true)}
+            className="mt-2 w-full text-left rounded px-2 py-1.5 text-sm text-slate-600 hover:bg-slate-50 hover:text-slate-900 inline-flex items-center gap-1.5"
+          >
+            <span className="text-base leading-none">+</span>
+            <span>New Workspace</span>
+          </button>
         </aside>
+
+        {newWsOpen && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4"
+            onClick={() => setNewWsOpen(false)}
+          >
+            <div
+              className="w-full max-w-md rounded-lg bg-white shadow-2xl p-6"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h2 className="text-base font-semibold mb-4">New Workspace</h2>
+              <form onSubmit={onCreateWorkspace} className="space-y-3">
+                <div className="space-y-1">
+                  <Label htmlFor="new-ws-name">Name</Label>
+                  <Input
+                    id="new-ws-name"
+                    autoFocus
+                    value={newWsName}
+                    onChange={(e) => setNewWsName(e.target.value)}
+                    placeholder="Acme Inc."
+                    maxLength={100}
+                  />
+                  {newWsName.trim() && (
+                    <p className="text-xs text-slate-500">
+                      URL slug: <span className="font-mono">{slugifyWorkspace(newWsName) || "—"}</span>
+                    </p>
+                  )}
+                </div>
+                <div className="flex justify-end gap-2 pt-1">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setNewWsOpen(false)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    disabled={
+                      createWsMutation.isPending ||
+                      slugifyWorkspace(newWsName).length < 2
+                    }
+                  >
+                    {createWsMutation.isPending ? "Creating…" : "Create"}
+                  </Button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
 
         {/* Right column: settings for the selected workspace */}
         <div className="space-y-10 min-w-0">
           <section className="space-y-4">
             <h2 className="text-xl font-medium text-slate-900">General settings</h2>
             <form onSubmit={onRenameWorkspace}>
-              <div className="rounded-lg border border-slate-200 bg-white divide-y divide-slate-200">
+              <div className="rounded-lg border border-slate-200 bg-white">
                 <SettingRow
                   label="Workspace name"
                   description="Displayed throughout the app."
                 >
-                  <Input
-                    value={wsName}
-                    onChange={(e) => setWsName(e.target.value)}
-                    maxLength={100}
-                    disabled={!isOwner}
-                  />
-                </SettingRow>
-                <div className="flex items-center justify-between p-4">
+                  <div className="flex items-center gap-2">
+                    <Input
+                      value={wsName}
+                      onChange={(e) => setWsName(e.target.value)}
+                      maxLength={100}
+                      disabled={!isOwner}
+                      className="max-w-xs"
+                    />
+                    <Button
+                      type="submit"
+                      disabled={
+                        !isOwner ||
+                        updateWsMutation.isPending ||
+                        !wsName.trim() ||
+                        wsName === currentWs?.name
+                      }
+                    >
+                      {updateWsMutation.isPending ? "Saving…" : "Save changes"}
+                    </Button>
+                  </div>
                   {!isOwner && (
-                    <p className="text-xs text-slate-500">
+                    <p className="mt-2 text-xs text-slate-500">
                       Only the workspace owner can rename.
                     </p>
                   )}
-                  <Button
-                    type="submit"
-                    disabled={
-                      !isOwner ||
-                      updateWsMutation.isPending ||
-                      !wsName.trim() ||
-                      wsName === currentWs?.name
-                    }
-                    className="ml-auto"
-                  >
-                    {updateWsMutation.isPending ? "Saving…" : "Save changes"}
-                  </Button>
-                </div>
+                </SettingRow>
               </div>
             </form>
           </section>
@@ -281,7 +371,7 @@ export default function WorkspaceSettings() {
             <h2 className="text-xl font-medium text-red-700">Danger zone</h2>
             <div className="rounded-lg border border-red-200 bg-white">
               <SettingRow
-                label="Delete workspace"
+                label="Delete Workspace"
                 description="Permanently delete this workspace and everything in it. This cannot be undone."
               >
                 {isOwner ? (
@@ -293,7 +383,7 @@ export default function WorkspaceSettings() {
                       disabled={deleteWsMutation.isPending}
                       className="border-red-300 text-red-700 hover:bg-red-50"
                     >
-                      {deleteWsMutation.isPending ? "Deleting…" : "Delete workspace"}
+                      {deleteWsMutation.isPending ? "Deleting…" : "Delete Workspace"}
                     </Button>
                   </div>
                 ) : (

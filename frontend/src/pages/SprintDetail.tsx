@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
 import { useTasks } from "@/features/tasks/api";
 import {
   useCompleteSprint,
@@ -12,12 +13,33 @@ import {
   useUpdateSprint,
 } from "@/features/sprints/api";
 
+function toDateInputValue(iso: string | null): string {
+  if (!iso) return "";
+  return iso.slice(0, 10);
+}
+
+function fmtFull(iso: string | null): string {
+  if (!iso) return "—";
+  return new Date(iso).toLocaleDateString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+}
+
+const STATUS_STYLE: Record<string, string> = {
+  planned: "bg-slate-100 text-slate-700",
+  active: "bg-blue-100 text-blue-700",
+  completed: "bg-green-100 text-green-700",
+};
+
 export default function SprintDetail() {
   const { wsSlug, pKey, sprintId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const { data: sprint } = useSprint(sprintId ?? "");
-  const { data: issues = [] } = useTasks(sprint?.project_id ?? "", {
+  const { data: tasks = [] } = useTasks(sprint?.project_id ?? "", {
     sprint: sprintId,
   });
 
@@ -27,12 +49,36 @@ export default function SprintDetail() {
   const deleteMutation = useDeleteSprint();
 
   const [nameDraft, setNameDraft] = useState("");
+  const [startDraft, setStartDraft] = useState("");
+  const [endDraft, setEndDraft] = useState("");
+
   useEffect(() => {
-    if (sprint) setNameDraft(sprint.name);
+    if (sprint) {
+      setNameDraft(sprint.name);
+      setStartDraft(toDateInputValue(sprint.start_at));
+      setEndDraft(toDateInputValue(sprint.end_at));
+    }
   }, [sprint]);
 
   if (!sprint) {
     return <p className="text-muted-foreground">Loading…</p>;
+  }
+
+  const taskStats = {
+    total: tasks.length,
+    done: tasks.filter((t) => t.status === "done").length,
+    inProgress: tasks.filter((t) => t.status === "in_progress").length,
+    todo: tasks.filter((t) => t.status === "todo" || t.status === "backlog")
+      .length,
+  };
+  const progressPct =
+    taskStats.total > 0 ? Math.round((taskStats.done / taskStats.total) * 100) : 0;
+
+  function saveDate(field: "start_at" | "end_at", value: string) {
+    const next = value || null;
+    const current = field === "start_at" ? sprint!.start_at : sprint!.end_at;
+    if (next === current) return;
+    updateMutation.mutate({ [field]: next });
   }
 
   async function onStart() {
@@ -90,10 +136,24 @@ export default function SprintDetail() {
 
   return (
     <div className="space-y-6 max-w-5xl">
-      <div>
-        <p className="text-xs uppercase text-muted-foreground">
-          Sprint · {sprint.status}
-        </p>
+      <button
+        type="button"
+        onClick={() => navigate(`/w/${wsSlug}/p/${pKey}/sprints`)}
+        className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-900"
+      >
+        ← Back to sprints
+      </button>
+
+      <div className="space-y-3">
+        <div className="flex items-center gap-2">
+          <span
+            className={`inline-flex items-center rounded px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
+              STATUS_STYLE[sprint.status] ?? "bg-slate-100 text-slate-700"
+            }`}
+          >
+            {sprint.status}
+          </span>
+        </div>
         <input
           className="w-full bg-transparent text-2xl font-bold text-slate-900 outline-none focus:bg-slate-100 rounded px-1 py-0.5 -mx-1"
           value={nameDraft}
@@ -105,6 +165,63 @@ export default function SprintDetail() {
           }}
         />
       </div>
+
+      <div className="grid grid-cols-3 gap-4 rounded border border-slate-200 bg-white p-4">
+        <div className="space-y-1">
+          <Label htmlFor="sprint-start" className="text-xs uppercase text-muted-foreground">
+            Start date
+          </Label>
+          <input
+            id="sprint-start"
+            type="date"
+            value={startDraft}
+            onChange={(e) => setStartDraft(e.target.value)}
+            onBlur={() => saveDate("start_at", startDraft)}
+            className="w-full rounded border border-slate-300 bg-white px-2 py-1.5 text-sm"
+          />
+        </div>
+        <div className="space-y-1">
+          <Label htmlFor="sprint-end" className="text-xs uppercase text-muted-foreground">
+            End date
+          </Label>
+          <input
+            id="sprint-end"
+            type="date"
+            value={endDraft}
+            onChange={(e) => setEndDraft(e.target.value)}
+            onBlur={() => saveDate("end_at", endDraft)}
+            className="w-full rounded border border-slate-300 bg-white px-2 py-1.5 text-sm"
+          />
+        </div>
+        <div className="space-y-1">
+          <p className="text-xs uppercase text-muted-foreground">Created</p>
+          <p className="text-sm text-slate-700 pt-1">{fmtFull(sprint.created_at)}</p>
+        </div>
+      </div>
+
+      {taskStats.total > 0 && (
+        <div className="rounded border border-slate-200 bg-white p-4 space-y-3">
+          <div className="flex items-baseline justify-between">
+            <h2 className="text-sm font-semibold uppercase text-muted-foreground">
+              Progress
+            </h2>
+            <span className="text-sm text-slate-700">
+              {taskStats.done} / {taskStats.total} done · {progressPct}%
+            </span>
+          </div>
+          <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-blue-500 transition-all"
+              style={{ width: `${progressPct}%` }}
+            />
+          </div>
+          <div className="flex items-center gap-4 text-xs text-slate-500">
+            <span>{taskStats.todo} to do</span>
+            <span>{taskStats.inProgress} in progress</span>
+            <span>{taskStats.done} done</span>
+          </div>
+        </div>
+      )}
 
       <div className="flex gap-2">
         {sprint.status === "planned" && (
@@ -118,23 +235,21 @@ export default function SprintDetail() {
           </Button>
         )}
         {sprint.status !== "active" && (
-          <Button variant="outline" onClick={onDelete} className="text-red-600 hover:bg-red-50">
+          <Button
+            variant="outline"
+            onClick={onDelete}
+            className="text-red-600 hover:bg-red-50 ml-auto"
+          >
             Delete
           </Button>
         )}
-        <Button
-          variant="outline"
-          onClick={() => navigate(`/w/${wsSlug}/p/${pKey}/sprints`)}
-        >
-          Back
-        </Button>
       </div>
 
       <section className="space-y-2">
         <h2 className="text-sm font-semibold uppercase text-muted-foreground">
-          Tasks ({issues.length})
+          Tasks ({tasks.length})
         </h2>
-        {issues.length === 0 ? (
+        {tasks.length === 0 ? (
           <p className="text-sm text-muted-foreground">No tasks assigned.</p>
         ) : (
           <div className="overflow-hidden rounded border border-slate-200 bg-white">
@@ -147,21 +262,28 @@ export default function SprintDetail() {
                 </tr>
               </thead>
               <tbody>
-                {issues.map((i) => (
+                {tasks.map((t) => (
                   <tr
-                    key={i.id}
+                    key={t.id}
                     className="cursor-pointer border-t border-slate-100 hover:bg-slate-50"
                     onClick={() =>
-                      navigate(`/w/${wsSlug}/p/${pKey}/tasks/${i.identifier}`)
+                      navigate(`/w/${wsSlug}/p/${pKey}/tasks/${t.identifier}`, {
+                        state: {
+                          from: {
+                            path: location.pathname,
+                            label: sprint?.name ?? "Sprint",
+                          },
+                        },
+                      })
                     }
                   >
                     <td className="px-3 py-2 font-mono text-xs text-slate-600">
-                      {i.identifier}
+                      {t.identifier}
                     </td>
-                    <td className="px-3 py-2">{i.title}</td>
+                    <td className="px-3 py-2">{t.title}</td>
                     <td className="px-3 py-2">
-                      <span className="rounded bg-slate-100 px-2 py-0.5 text-xs">
-                        {i.status}
+                      <span className="inline-flex items-center rounded bg-slate-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-700">
+                        {t.status.replace(/_/g, " ")}
                       </span>
                     </td>
                   </tr>
