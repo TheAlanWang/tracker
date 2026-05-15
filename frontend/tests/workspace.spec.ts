@@ -1,4 +1,10 @@
-import { expect, test } from "@playwright/test";
+import {
+  expect,
+  test,
+  type Browser,
+  type BrowserContext,
+  type Page,
+} from "@playwright/test";
 
 const TS = Date.now();
 const TEST_EMAIL = `ws+${TS}@example.com`;
@@ -8,8 +14,20 @@ const WS_SLUG = `test-ws-${TS}`;
 const PROJ_NAME = "Backend";
 const PROJ_KEY = "BE";
 
+let context: BrowserContext;
+let page: Page;
+
 test.describe.serial("workspace + project flow", () => {
-  test("new user is routed to onboarding", async ({ page }) => {
+  test.beforeAll(async ({ browser }: { browser: Browser }) => {
+    context = await browser.newContext();
+    page = await context.newPage();
+  });
+
+  test.afterAll(async () => {
+    await context.close();
+  });
+
+  test("new user is routed to onboarding", async () => {
     await page.goto("/");
     await expect(page).toHaveURL(/\/login$/);
 
@@ -23,7 +41,7 @@ test.describe.serial("workspace + project flow", () => {
     await expect(page.getByText(/welcome to tracker/i)).toBeVisible();
   });
 
-  test("creating workspace redirects to /w/<slug>", async ({ page }) => {
+  test("creating workspace redirects to /w/<slug>", async () => {
     await page.goto("/");
     // Should land on /onboarding (session from previous test)
     await page.waitForURL("**/onboarding");
@@ -37,7 +55,7 @@ test.describe.serial("workspace + project flow", () => {
     await expect(page.getByRole("heading", { name: /projects/i })).toBeVisible();
   });
 
-  test("can create a project in the workspace", async ({ page }) => {
+  test("can create a project in the workspace", async () => {
     await page.goto(`/w/${WS_SLUG}`);
     await page.getByRole("button", { name: /new project/i }).click();
 
