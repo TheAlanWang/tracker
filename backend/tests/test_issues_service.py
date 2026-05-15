@@ -367,3 +367,49 @@ def test_delete_issue_happy_path(mock_supabase):
 
     result = delete_issue(mock_supabase, user_id="u-1", issue_id="i-1")
     assert result is None
+
+
+def test_list_issues_filters_by_sprint_null(mock_supabase):
+    """sprint='null' filters issues with sprint_id IS NULL (backlog)."""
+    project_chain = MagicMock()
+    project_chain.select.return_value.eq.return_value.single.return_value.execute.return_value.data = _project_row()
+    members_chain = MagicMock()
+    members_chain.select.return_value.eq.return_value.eq.return_value.execute.return_value.data = [{"role": "member"}]
+    issues_chain = MagicMock()
+    issues_chain.select.return_value.eq.return_value.is_.return_value.order.return_value.limit.return_value.execute.return_value.data = [
+        _issue_row(sprint_id=None)
+    ]
+
+    def table_router(name):
+        if name == "projects": return project_chain
+        if name == "workspace_members": return members_chain
+        if name == "issues": return issues_chain
+        raise AssertionError(f"unexpected: {name}")
+    mock_supabase.table.side_effect = table_router
+
+    result = list_issues(mock_supabase, user_id="u-1", project_id="p-1", sprint="null")
+    assert len(result) == 1
+    # Verify .is_("sprint_id", None) was called
+    issues_chain.select.return_value.eq.return_value.is_.assert_called_with("sprint_id", "null")
+
+
+def test_list_issues_filters_by_sprint_id(mock_supabase):
+    """sprint=<uuid> filters issues by sprint_id."""
+    project_chain = MagicMock()
+    project_chain.select.return_value.eq.return_value.single.return_value.execute.return_value.data = _project_row()
+    members_chain = MagicMock()
+    members_chain.select.return_value.eq.return_value.eq.return_value.execute.return_value.data = [{"role": "member"}]
+    issues_chain = MagicMock()
+    issues_chain.select.return_value.eq.return_value.eq.return_value.order.return_value.limit.return_value.execute.return_value.data = [
+        _issue_row(sprint_id="s-1")
+    ]
+
+    def table_router(name):
+        if name == "projects": return project_chain
+        if name == "workspace_members": return members_chain
+        if name == "issues": return issues_chain
+        raise AssertionError(f"unexpected: {name}")
+    mock_supabase.table.side_effect = table_router
+
+    result = list_issues(mock_supabase, user_id="u-1", project_id="p-1", sprint="s-1")
+    assert len(result) == 1

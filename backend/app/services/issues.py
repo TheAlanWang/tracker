@@ -92,6 +92,7 @@ def list_issues(
     user_id: str,
     project_id: str,
     status: str | None = None,
+    sprint: str | None = None,
 ) -> list[IssueResponse]:
     project = _fetch_project(supabase, project_id)
     if not project:
@@ -108,6 +109,10 @@ def list_issues(
     )
     if status:
         query = query.eq("status", status)
+    if sprint == "null":
+        query = query.is_("sprint_id", "null")
+    elif sprint:
+        query = query.eq("sprint_id", sprint)
     rows = query.order("created_at", desc=True).limit(200).execute().data
     return [IssueResponse(**r) for r in rows]
 
