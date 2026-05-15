@@ -18,8 +18,11 @@ import { Issue, IssueStatus, useIssues, useMoveIssue } from "@/features/issues/a
 import { useProjects } from "@/features/projects/api";
 import { useWorkspaces } from "@/features/workspaces/api";
 
+// Board shows only active work statuses. New issues default to "backlog"
+// (see IssueCreate.status default) and live in the /backlog page until
+// someone moves them to "todo". "cancelled" issues are hidden from the
+// board too — they remain visible in the List view.
 const COLUMNS: { status: IssueStatus; label: string }[] = [
-  { status: "backlog", label: "Backlog" },
   { status: "todo", label: "Todo" },
   { status: "in_progress", label: "In progress" },
   { status: "in_review", label: "In review" },
@@ -213,7 +216,7 @@ export default function Board() {
         <h1 className="text-2xl font-bold text-slate-900">Board</h1>
       </div>
       <DndContext sensors={sensors} onDragEnd={onDragEnd}>
-        <div className="grid grid-cols-5 gap-3 min-h-[400px]">
+        <div className="grid grid-cols-4 gap-3 min-h-[400px]">
           {COLUMNS.map((col) => (
             <Column
               key={col.status}
