@@ -48,3 +48,33 @@ export function useCreateWorkspace() {
     },
   });
 }
+
+export function useUpdateWorkspace() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (args: { wsId: string; payload: WorkspaceUpdate }) => {
+      const { data } = await apiClient.patch<Workspace>(
+        `/workspaces/${args.wsId}`,
+        args.payload,
+      );
+      return data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["workspaces"] });
+      qc.invalidateQueries({ queryKey: ["me"] });
+    },
+  });
+}
+
+export function useDeleteWorkspace() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (wsId: string) => {
+      await apiClient.delete(`/workspaces/${wsId}`);
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["workspaces"] });
+      qc.invalidateQueries({ queryKey: ["me"] });
+    },
+  });
+}

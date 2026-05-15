@@ -36,14 +36,9 @@ export function ProjectLayout() {
   return (
     <div className="space-y-0">
       <div className="border-b border-slate-200 -mt-8 -mx-8 px-8 pt-8 pb-0 bg-white">
-        <div className="flex items-center gap-3">
-          <span className="font-mono text-xs px-2 py-0.5 rounded bg-slate-100 text-slate-600">
-            {currentProject.key}
-          </span>
-          <h1 className="text-2xl font-bold text-slate-900">
-            {currentProject.name}
-          </h1>
-        </div>
+        <h1 className="text-2xl font-bold text-slate-900">
+          {currentProject.name}
+        </h1>
         <nav className="mt-4 flex items-center gap-1">
           {TABS.map((t) => (
             <NavLink

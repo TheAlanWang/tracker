@@ -80,19 +80,6 @@ export default function ProjectSettings() {
 
       <form onSubmit={onSave} className="space-y-4">
         <div className="space-y-1">
-          <Label htmlFor="project-key">Key</Label>
-          <Input
-            id="project-key"
-            value={currentProject.key}
-            readOnly
-            className="bg-slate-50 text-muted-foreground cursor-default font-mono"
-          />
-          <p className="text-xs text-muted-foreground">
-            The project key cannot be changed as it is part of issue identifiers.
-          </p>
-        </div>
-
-        <div className="space-y-1">
           <Label htmlFor="project-name">Name</Label>
           <Input
             id="project-name"
