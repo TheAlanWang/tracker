@@ -1,6 +1,7 @@
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 
 import { PersonalLayout } from "@/components/PersonalLayout";
+import { ProjectLayout } from "@/components/ProjectLayout";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { WorkspaceLayout } from "@/components/WorkspaceLayout";
 import AuthCallback from "@/pages/AuthCallback";
@@ -73,14 +74,17 @@ export default function App() {
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="inbox" element={<Inbox />} />
           <Route path="my-issues" element={<MyIssues />} />
-          <Route path="p/:pKey/list" element={<IssueList />} />
-          <Route path="p/:pKey/issues/:identifier" element={<IssueDetail />} />
-          <Route path="p/:pKey/board" element={<Board />} />
-          <Route path="p/:pKey/sprints" element={<SprintList />} />
-          <Route path="p/:pKey/sprints/:sprintId" element={<SprintDetail />} />
-          <Route path="p/:pKey/backlog" element={<Backlog />} />
-          <Route path="p/:pKey/settings" element={<ProjectSettings />} />
           <Route path="settings" element={<WorkspaceSettings />} />
+          <Route path="p/:pKey/issues/:identifier" element={<IssueDetail />} />
+          <Route path="p/:pKey" element={<ProjectLayout />}>
+            <Route index element={<Navigate to="board" replace />} />
+            <Route path="board" element={<Board />} />
+            <Route path="list" element={<IssueList />} />
+            <Route path="backlog" element={<Backlog />} />
+            <Route path="sprints" element={<SprintList />} />
+            <Route path="sprints/:sprintId" element={<SprintDetail />} />
+            <Route path="settings" element={<ProjectSettings />} />
+          </Route>
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

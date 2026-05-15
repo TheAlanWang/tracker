@@ -76,15 +76,7 @@ export default function ProjectSettings() {
   if (!currentProject) return null;
 
   return (
-    <div className="max-w-lg space-y-8">
-      <button
-        type="button"
-        onClick={() => navigate(`/w/${wsSlug}/p/${pKey}/list`)}
-        className="text-sm text-slate-500 hover:text-slate-700 -mb-4"
-      >
-        ← Back to {currentProject.name}
-      </button>
-      <h1 className="text-2xl font-bold text-slate-900">Project Settings</h1>
+    <div className="max-w-lg space-y-6">
 
       <form onSubmit={onSave} className="space-y-4">
         <div className="space-y-1">

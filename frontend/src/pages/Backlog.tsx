@@ -22,15 +22,9 @@ export default function Backlog() {
 
   return (
     <div className="space-y-6 max-w-5xl">
-      <div>
-        <p className="text-xs uppercase text-muted-foreground">
-          {currentProject.key}
-        </p>
-        <h1 className="text-2xl font-bold text-slate-900">Backlog</h1>
-        <p className="text-sm text-muted-foreground">
-          Issues not assigned to any sprint.
-        </p>
-      </div>
+      <p className="text-sm text-muted-foreground">
+        Issues not assigned to any sprint.
+      </p>
 
       {isLoading && <p>Loading…</p>}
       {!isLoading && issues.length === 0 && (

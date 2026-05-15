@@ -58,13 +58,7 @@ export default function SprintList() {
 
   return (
     <div className="space-y-6 max-w-5xl">
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-xs uppercase text-muted-foreground">
-            {currentProject.key}
-          </p>
-          <h1 className="text-2xl font-bold text-slate-900">Sprints</h1>
-        </div>
+      <div className="flex items-center justify-end">
         <Button onClick={() => setShowForm((v) => !v)}>
           {showForm ? "Cancel" : "New sprint"}
         </Button>

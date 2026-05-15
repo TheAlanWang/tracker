@@ -211,12 +211,6 @@ export default function Board() {
 
   return (
     <div className="space-y-4">
-      <div>
-        <p className="text-xs uppercase text-muted-foreground">
-          {currentProject.key}
-        </p>
-        <h1 className="text-2xl font-bold text-slate-900">Board</h1>
-      </div>
       <DndContext sensors={sensors} onDragEnd={onDragEnd}>
         <div className="grid grid-cols-4 gap-3 min-h-[400px]">
           {COLUMNS.map((col) => (
