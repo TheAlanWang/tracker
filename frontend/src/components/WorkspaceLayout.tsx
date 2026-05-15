@@ -3,9 +3,11 @@ import { toast } from "sonner";
 import { useEffect } from "react";
 
 import { Button } from "@/components/ui/button";
+import { CommandPalette } from "@/components/CommandPalette";
 import { useNotifications } from "@/features/notifications/api";
 import { useWorkspaces } from "@/features/workspaces/api";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { useCommandPaletteStore } from "@/lib/commandPaletteStore";
 import { supabase } from "@/lib/supabase";
 
 const LAST_WORKSPACE_KEY = "tracker.lastWorkspaceSlug";
@@ -19,10 +21,22 @@ export function WorkspaceLayout() {
   const currentWs = workspaces.find((w) => w.slug === wsSlug);
   const { data: unreadNotifications = [] } = useNotifications({ unreadOnly: true });
   const unreadCount = unreadNotifications.length;
+  const { toggle: togglePalette } = useCommandPaletteStore();
 
   useEffect(() => {
     if (wsSlug) localStorage.setItem(LAST_WORKSPACE_KEY, wsSlug);
   }, [wsSlug]);
+
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault();
+        togglePalette();
+      }
+    }
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [togglePalette]);
 
   useEffect(() => {
     if (workspaces.length > 0 && !currentWs) {
@@ -86,6 +100,7 @@ export function WorkspaceLayout() {
       <main className="flex-1 p-8">
         <Outlet />
       </main>
+      <CommandPalette />
     </div>
   );
 }
