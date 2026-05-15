@@ -55,43 +55,42 @@ Single git repo, two apps, three top-level dirs.
 
 ```
 tracker/
-├── apps/
-│   ├── web/                          # Vite + React frontend
-│   │   ├── src/
-│   │   │   ├── api/                  # axios client + openapi-typescript output
-│   │   │   ├── components/
-│   │   │   │   ├── ui/               # shadcn/ui components
-│   │   │   │   └── shared/           # cross-feature business components
-│   │   │   ├── features/             # vertical-sliced by business domain
-│   │   │   │   ├── issues/
-│   │   │   │   ├── sprints/
-│   │   │   │   ├── workspaces/
-│   │   │   │   ├── auth/
-│   │   │   │   └── command-palette/
-│   │   │   ├── hooks/                # useShortcuts, useOptimisticUpdate, ...
-│   │   │   ├── lib/                  # utils, supabase client (auth only)
-│   │   │   ├── pages/                # route components
-│   │   │   ├── stores/               # Zustand stores
-│   │   │   ├── App.tsx
-│   │   │   └── main.tsx
-│   │   ├── index.html
-│   │   ├── vite.config.ts
-│   │   ├── tailwind.config.ts
-│   │   └── package.json
-│   └── api/                          # FastAPI backend
-│       ├── app/
-│       │   ├── routers/              # HTTP routes, thin
-│       │   ├── schemas/              # Pydantic request/response models
-│       │   ├── services/             # business logic, testable in isolation
-│       │   ├── db/
-│       │   │   └── supabase.py       # supabase-py client wrapper
-│       │   ├── core/
-│       │   │   ├── config.py         # env vars
-│       │   │   ├── deps.py           # FastAPI dependencies (auth, db)
-│       │   │   └── security.py       # JWT verification against Supabase
-│       │   └── main.py
-│       ├── tests/
-│       └── pyproject.toml
+├── frontend/                         # Vite + React frontend
+│   ├── src/
+│   │   ├── api/                      # axios client + openapi-typescript output
+│   │   ├── components/
+│   │   │   ├── ui/                   # shadcn/ui components
+│   │   │   └── shared/               # cross-feature business components
+│   │   ├── features/                 # vertical-sliced by business domain
+│   │   │   ├── issues/
+│   │   │   ├── sprints/
+│   │   │   ├── workspaces/
+│   │   │   ├── auth/
+│   │   │   └── command-palette/
+│   │   ├── hooks/                    # useShortcuts, useOptimisticUpdate, ...
+│   │   ├── lib/                      # utils, supabase client (auth only)
+│   │   ├── pages/                    # route components
+│   │   ├── stores/                   # Zustand stores
+│   │   ├── App.tsx
+│   │   └── main.tsx
+│   ├── index.html
+│   ├── vite.config.ts
+│   ├── tailwind.config.ts
+│   └── package.json
+├── backend/                          # FastAPI backend
+│   ├── app/
+│   │   ├── routers/                  # HTTP routes, thin
+│   │   ├── schemas/                  # Pydantic request/response models
+│   │   ├── services/                 # business logic, testable in isolation
+│   │   ├── db/
+│   │   │   └── supabase.py           # supabase-py client wrapper
+│   │   ├── core/
+│   │   │   ├── config.py             # env vars
+│   │   │   ├── deps.py               # FastAPI dependencies (auth, db)
+│   │   │   └── security.py           # JWT verification against Supabase
+│   │   └── main.py
+│   ├── tests/
+│   └── pyproject.toml
 ├── supabase/
 │   ├── migrations/                   # SQL migrations (CLI-managed)
 │   ├── seed.sql                      # dev seed

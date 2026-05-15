@@ -16,8 +16,8 @@ help:
 	@echo "  db-status   print Supabase Local URLs and keys"
 
 install:
-	cd apps/api && uv sync
-	cd apps/web && pnpm install
+	cd backend && uv sync
+	cd frontend && pnpm install
 
 dev:
 	@echo "Starting Supabase Local…"
@@ -25,26 +25,26 @@ dev:
 	@echo ""
 	@echo "Starting api on :8000 and web on :5173"
 	@echo "Press Ctrl+C to stop. Supabase keeps running; run 'make clean' to stop it."
-	@(cd apps/api && uv run uvicorn app.main:app --port 8000 --reload) & \
-	 (cd apps/web && pnpm dev) ; \
+	@(cd backend && uv run uvicorn app.main:app --port 8000 --reload) & \
+	 (cd frontend && pnpm dev) ; \
 	 wait
 
 api:
-	cd apps/api && uv run uvicorn app.main:app --port 8000 --reload
+	cd backend && uv run uvicorn app.main:app --port 8000 --reload
 
 web:
-	cd apps/web && pnpm dev
+	cd frontend && pnpm dev
 
 test: test-api test-web
 
 test-api:
-	cd apps/api && uv run pytest
+	cd backend && uv run pytest
 
 test-web:
-	cd apps/web && pnpm tsc --noEmit
+	cd frontend && pnpm tsc --noEmit
 
 test-e2e:
-	cd apps/web && pnpm exec playwright test
+	cd frontend && pnpm exec playwright test
 
 migrate:
 	supabase db reset

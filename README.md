@@ -25,9 +25,9 @@ supabase start
 # 3. Copy printed keys into env files
 supabase status   # prints anon_key, service_role_key, JWT secret
 cp .env.example .env
-cp apps/web/.env.example apps/web/.env.local
-# Edit .env and apps/web/.env.local, paste the values.
-# The api reads .env in the repo root; the web reads .env.local in apps/web.
+cp frontend/.env.example frontend/.env.local
+# Edit .env and frontend/.env.local, paste the values.
+# The api reads .env in the repo root; the web reads .env.local in frontend/.
 
 # 4. Start the full stack
 make dev
@@ -41,8 +41,8 @@ Run `make help` for the full list.
 
 ## Repo layout
 
-- `apps/web/` — Vite + React + TypeScript frontend (Tailwind + shadcn/ui)
-- `apps/api/` — FastAPI backend (Python + uv)
+- `frontend/` — Vite + React + TypeScript frontend (Tailwind + shadcn/ui)
+- `backend/` — FastAPI backend (Python + uv)
 - `supabase/` — DB migrations + Supabase config
 - `docs/superpowers/specs/` — design specs
 - `docs/superpowers/plans/` — implementation plans

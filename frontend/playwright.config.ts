@@ -17,7 +17,7 @@ export default defineConfig({
   ],
   webServer: [
     {
-      command: "cd ../api && PYTHONPATH=. uv run --env-file ../../.env uvicorn app.main:app --port 8001",
+      command: "cd ../backend && PYTHONPATH=. uv run --env-file ../.env uvicorn app.main:app --port 8001",
       port: 8001,
       reuseExistingServer: true,
       stdout: "pipe",
