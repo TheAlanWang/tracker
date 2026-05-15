@@ -86,7 +86,6 @@ export function ProjectLayout() {
               setTaskDesc("");
               setNewTaskOpen(true);
             }}
-            className="bg-blue-600 hover:bg-blue-700 text-white"
           >
             + New task
           </Button>
@@ -170,8 +169,7 @@ export function ProjectLayout() {
                 <Button
                   type="submit"
                   disabled={createTaskMutation.isPending || !taskTitle.trim()}
-                  className="bg-blue-600 hover:bg-blue-700 text-white"
-                >
+                      >
                   {createTaskMutation.isPending ? "Creating…" : "Create task"}
                 </Button>
               </div>
