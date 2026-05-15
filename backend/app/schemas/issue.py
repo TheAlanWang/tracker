@@ -30,6 +30,7 @@ class IssueUpdate(BaseModel):
     priority: IssuePriority | None = None
     assignee_id: str | None = None
     due_date: date | None = None
+    sprint_id: str | None = None
 
 
 class IssueResponse(BaseModel):
