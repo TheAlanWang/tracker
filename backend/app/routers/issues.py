@@ -17,11 +17,32 @@ from app.services.issues import (
     delete_issue,
     get_issue,
     list_issues,
+    list_workspace_issues,
     move_issue,
     update_issue,
 )
 
 router = APIRouter(tags=["issues"])
+
+
+@router.get(
+    "/workspaces/{ws_id}/issues", response_model=list[IssueResponse]
+)
+def list_workspace(
+    ws_id: str,
+    assignee_id: str | None = Query(None),
+    user_id: str = Depends(get_current_user_id),
+    supabase: Client = Depends(get_supabase_admin),
+):
+    try:
+        return list_workspace_issues(
+            supabase,
+            user_id=user_id,
+            workspace_id=ws_id,
+            assignee_id=assignee_id,
+        )
+    except IssuePermissionError as exc:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN) from exc
 
 
 @router.get(

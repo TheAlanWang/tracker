@@ -171,6 +171,28 @@ def delete_issue(
     supabase.table("issues").delete().eq("id", issue_id).execute()
 
 
+def list_workspace_issues(
+    supabase: Client,
+    *,
+    user_id: str,
+    workspace_id: str,
+    assignee_id: str | None = None,
+) -> list[IssueResponse]:
+    if not _is_member(supabase, user_id=user_id, workspace_id=workspace_id):
+        raise IssuePermissionError(workspace_id)
+
+    query = (
+        supabase.table("issues")
+        .select("*")
+        .eq("workspace_id", workspace_id)
+    )
+    if assignee_id:
+        query = query.eq("assignee_id", assignee_id)
+
+    rows = query.order("updated_at", desc=True).limit(200).execute().data
+    return [IssueResponse(**r) for r in rows]
+
+
 def move_issue(
     supabase: Client,
     *,

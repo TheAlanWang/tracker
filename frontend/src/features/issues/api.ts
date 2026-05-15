@@ -56,6 +56,25 @@ export type IssueUpdate = Partial<{
   sprint_id: string | null;
 }>;
 
+export function useWorkspaceIssues(
+  workspaceId: string,
+  opts: { assigneeId?: string } = {},
+) {
+  return useQuery<Issue[]>({
+    queryKey: ["workspaces", workspaceId, "issues", opts],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      if (opts.assigneeId) params.set("assignee_id", opts.assigneeId);
+      const qs = params.toString();
+      const { data } = await apiClient.get<Issue[]>(
+        `/workspaces/${workspaceId}/issues${qs ? `?${qs}` : ""}`,
+      );
+      return data;
+    },
+    enabled: !!workspaceId,
+  });
+}
+
 export function useIssues(
   projectId: string,
   opts: { status?: IssueStatus; sprint?: string | "null" } = {},

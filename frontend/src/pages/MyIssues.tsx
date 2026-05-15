@@ -1,0 +1,99 @@
+import { useNavigate, useParams } from "react-router-dom";
+
+import { useWorkspaceIssues } from "@/features/issues/api";
+import { useWorkspaces } from "@/features/workspaces/api";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
+
+const STATUS_LABELS: Record<string, string> = {
+  backlog: "Backlog",
+  todo: "Todo",
+  in_progress: "In progress",
+  in_review: "In review",
+  done: "Done",
+  cancelled: "Cancelled",
+};
+
+const PRIORITY_LABELS: Record<string, string> = {
+  no_priority: "—",
+  urgent: "Urgent",
+  high: "High",
+  medium: "Medium",
+  low: "Low",
+};
+
+export default function MyIssues() {
+  const { wsSlug } = useParams();
+  const navigate = useNavigate();
+
+  const { data: me } = useCurrentUser();
+  const { data: workspaces = [] } = useWorkspaces();
+  const currentWs = workspaces.find((w) => w.slug === wsSlug);
+  const wsId = currentWs?.id ?? "";
+
+  const { data: issues = [], isLoading } = useWorkspaceIssues(wsId, {
+    assigneeId: me?.id,
+  });
+
+  return (
+    <div className="space-y-6 max-w-5xl">
+      <h1 className="text-2xl font-bold text-slate-900">My Issues</h1>
+
+      {isLoading && <p className="text-muted-foreground">Loading…</p>}
+
+      {!isLoading && issues.length === 0 && (
+        <p className="text-muted-foreground">
+          No issues assigned to you in this workspace.
+        </p>
+      )}
+
+      {issues.length > 0 && (
+        <div className="overflow-hidden rounded border border-slate-200 bg-white">
+          <table className="w-full text-sm">
+            <thead className="border-b border-slate-200 bg-slate-50">
+              <tr>
+                <th className="px-3 py-2 text-left font-medium">ID</th>
+                <th className="px-3 py-2 text-left font-medium">Title</th>
+                <th className="px-3 py-2 text-left font-medium">Status</th>
+                <th className="px-3 py-2 text-left font-medium">Priority</th>
+                <th className="px-3 py-2 text-left font-medium">Updated</th>
+              </tr>
+            </thead>
+            <tbody>
+              {issues.map((issue) => {
+                // Derive pKey from identifier (e.g. "ABC-123" → "ABC")
+                const pKey = issue.identifier.split("-")[0];
+                return (
+                  <tr
+                    key={issue.id}
+                    className="cursor-pointer border-t border-slate-100 hover:bg-slate-50"
+                    onClick={() =>
+                      navigate(
+                        `/w/${wsSlug}/p/${pKey}/issues/${issue.identifier}`,
+                      )
+                    }
+                  >
+                    <td className="px-3 py-2 font-mono text-xs text-slate-600">
+                      {issue.identifier}
+                    </td>
+                    <td className="px-3 py-2">{issue.title}</td>
+                    <td className="px-3 py-2">
+                      <span className="rounded bg-slate-100 px-2 py-0.5 text-xs">
+                        {STATUS_LABELS[issue.status] ?? issue.status}
+                      </span>
+                    </td>
+                    <td className="px-3 py-2 text-xs">
+                      {PRIORITY_LABELS[issue.priority] ?? issue.priority}
+                    </td>
+                    <td className="px-3 py-2 text-xs text-muted-foreground">
+                      {new Date(issue.updated_at).toLocaleDateString()}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
