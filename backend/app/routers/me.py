@@ -1,13 +1,15 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from supabase import Client
 
 from app.core.config import Settings, get_settings
-from app.core.deps import get_current_user_id
+from app.core.deps import get_current_user_id, get_supabase_admin
 from app.core.security import (
     InvalidTokenError,
     verify_and_decode_supabase_jwt,
 )
-from app.schemas.user import MeResponse
+from app.schemas.user import MeResponse, WorkspaceSummary
+from app.services.workspaces import list_workspaces_for_user
 
 router = APIRouter()
 
@@ -19,9 +21,8 @@ def get_me(
     creds: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
     user_id: str = Depends(get_current_user_id),
     settings: Settings = Depends(get_settings),
+    supabase: Client = Depends(get_supabase_admin),
 ) -> MeResponse:
-    # Reach back into the token to extract email claim. Plan 2 will pull from
-    # auth.users via service role instead.
     email: str | None = None
     if creds is not None:
         try:
@@ -30,9 +31,13 @@ def get_me(
             )
             email = payload.get("email")
         except InvalidTokenError:
-            # Token was already validated by get_current_user_id; this is unreachable.
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
-    return MeResponse(id=user_id, email=email, workspaces=[])
+    workspaces = list_workspaces_for_user(supabase, user_id=user_id)
+    workspace_summaries = [
+        WorkspaceSummary(id=w.id, slug=w.slug, name=w.name) for w in workspaces
+    ]
+
+    return MeResponse(id=user_id, email=email, workspaces=workspace_summaries)
