@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import { useEffect } from "react";
 
 import { Button } from "@/components/ui/button";
+import { useNotifications } from "@/features/notifications/api";
 import { useWorkspaces } from "@/features/workspaces/api";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { supabase } from "@/lib/supabase";
@@ -16,6 +17,8 @@ export function WorkspaceLayout() {
   const { data: me } = useCurrentUser();
 
   const currentWs = workspaces.find((w) => w.slug === wsSlug);
+  const { data: unreadNotifications = [] } = useNotifications({ unreadOnly: true });
+  const unreadCount = unreadNotifications.length;
 
   useEffect(() => {
     if (wsSlug) localStorage.setItem(LAST_WORKSPACE_KEY, wsSlug);
@@ -52,6 +55,18 @@ export function WorkspaceLayout() {
             onClick={() => navigate(`/w/${wsSlug}`)}
           >
             Projects
+          </button>
+          <button
+            type="button"
+            className="flex w-full items-center justify-between rounded px-2 py-1 hover:bg-slate-100"
+            onClick={() => navigate(`/w/${wsSlug}/inbox`)}
+          >
+            <span>Inbox</span>
+            {unreadCount > 0 && (
+              <span className="rounded-full bg-blue-500 px-1.5 py-0.5 text-xs font-medium text-white leading-none">
+                {unreadCount}
+              </span>
+            )}
           </button>
         </nav>
         <hr className="my-4" />

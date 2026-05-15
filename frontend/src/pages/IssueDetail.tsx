@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import { type Activity, useIssueActivity } from "@/features/activity/api";
 import {
   useComments,
   useCreateComment,
@@ -43,6 +44,27 @@ const PRIORITIES: IssuePriority[] = [
   "low",
 ];
 
+function formatActivity(a: Activity): string {
+  const actor = a.actor_id ? `${a.actor_id.slice(0, 8)}…` : "Someone";
+  const p = a.payload;
+  switch (a.action) {
+    case "status_changed":
+      return `${actor} changed status from ${p["from"]} to ${p["to"]}`;
+    case "priority_changed":
+      return `${actor} changed priority from ${p["from"]} to ${p["to"]}`;
+    case "assignee_changed":
+      return `${actor} changed assignee`;
+    case "sprint_changed":
+      return `${actor} changed sprint`;
+    case "commented":
+      return `${actor} commented`;
+    case "created":
+      return `${actor} created this issue`;
+    default:
+      return `${actor} made a change`;
+  }
+}
+
 export default function IssueDetail() {
   const { wsSlug, pKey, identifier } = useParams();
   const navigate = useNavigate();
@@ -77,6 +99,8 @@ export default function IssueDetail() {
   const createCommentMutation = useCreateComment(issue?.id ?? "");
   const deleteCommentMutation = useDeleteComment(issue?.id ?? "");
   const [commentDraft, setCommentDraft] = useState("");
+
+  const { data: activity = [] } = useIssueActivity(issue?.id ?? "");
 
   const { data: workspaceLabels = [] } = useLabels(currentWs?.id ?? "");
   const { data: attachedLabels = [] } = useIssueLabels(issue?.id ?? "");
@@ -229,6 +253,24 @@ export default function IssueDetail() {
             </Button>
           </form>
         </section>
+
+        {activity.length > 0 && (
+          <section className="space-y-2 pt-6 border-t border-slate-200">
+            <h2 className="text-sm font-semibold uppercase text-muted-foreground">
+              Activity
+            </h2>
+            <ul className="space-y-1">
+              {activity.map((a) => (
+                <li key={a.id} className="flex items-baseline justify-between gap-4 text-xs">
+                  <span className="text-slate-600">{formatActivity(a)}</span>
+                  <span className="shrink-0 text-muted-foreground">
+                    {new Date(a.created_at).toLocaleString()}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
       </div>
 
       <aside className="space-y-4 border-l border-slate-200 pl-6">
