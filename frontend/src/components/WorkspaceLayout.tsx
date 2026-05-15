@@ -347,6 +347,10 @@ function SidebarNav({ wsSlug, currentWsId }: { wsSlug: string; currentWsId: stri
   const [name, setName] = useState("");
   const derivedKey = deriveProjectKey(name);
 
+  // Kebab menu state — which project's menu is open
+  const [openMenuPid, setOpenMenuPid] = useState<string | null>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+
   // Close modal on Esc
   useEffect(() => {
     if (!showModal) return;
@@ -356,6 +360,18 @@ function SidebarNav({ wsSlug, currentWsId }: { wsSlug: string; currentWsId: stri
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [showModal]);
+
+  // Outside click closes kebab
+  useEffect(() => {
+    if (!openMenuPid) return;
+    function onClick(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setOpenMenuPid(null);
+      }
+    }
+    document.addEventListener("mousedown", onClick);
+    return () => document.removeEventListener("mousedown", onClick);
+  }, [openMenuPid]);
 
   function openModal() {
     setName("");
@@ -509,15 +525,50 @@ function SidebarNav({ wsSlug, currentWsId }: { wsSlug: string; currentWsId: stri
               }
             >
               <span className="truncate min-w-0">{p.name}</span>
-              <button
-                type="button"
-                onClick={(e) => onDelete(e, p.id, p.name)}
-                className="opacity-0 group-hover:opacity-100 text-red-500 hover:text-red-700 text-sm leading-none px-1"
-                title={`Delete ${p.name}`}
-                disabled={deleteMutation.isPending}
-              >
-                ×
-              </button>
+              <div className="relative" ref={openMenuPid === p.id ? menuRef : undefined}>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setOpenMenuPid(openMenuPid === p.id ? null : p.id);
+                  }}
+                  className={
+                    openMenuPid === p.id
+                      ? "text-slate-700 px-1"
+                      : "opacity-0 group-hover:opacity-100 text-slate-500 hover:text-slate-900 px-1"
+                  }
+                  title={`More for ${p.name}`}
+                >
+                  ⋯
+                </button>
+                {openMenuPid === p.id && (
+                  <div
+                    onClick={(e) => e.stopPropagation()}
+                    className="absolute right-0 top-full mt-1 w-40 rounded-md border border-slate-200 bg-white shadow-lg z-30 py-1"
+                  >
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setOpenMenuPid(null);
+                        navigate(`/w/${wsSlug}/p/${p.key}/settings`);
+                      }}
+                      className="w-full text-left px-3 py-1.5 text-sm hover:bg-slate-50"
+                    >
+                      Project settings
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        setOpenMenuPid(null);
+                        onDelete(e, p.id, p.name);
+                      }}
+                      className="w-full text-left px-3 py-1.5 text-sm text-red-600 hover:bg-red-50"
+                    >
+                      Delete project
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           );
         })}
