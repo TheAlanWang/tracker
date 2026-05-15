@@ -106,9 +106,20 @@ export default function IssueList() {
           <p className="text-xs uppercase text-muted-foreground">
             {currentProject.key}
           </p>
-          <h1 className="text-2xl font-bold text-slate-900">
-            {currentProject.name}
-          </h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-bold text-slate-900">
+              {currentProject.name}
+            </h1>
+            <button
+              type="button"
+              className="text-xs text-muted-foreground hover:text-slate-700 hover:underline"
+              onClick={() =>
+                navigate(`/w/${wsSlug}/p/${pKey}/settings`)
+              }
+            >
+              Settings
+            </button>
+          </div>
         </div>
         <div className="flex items-center gap-2">
           <select

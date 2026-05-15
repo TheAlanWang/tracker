@@ -32,6 +32,11 @@ export function useProjects(wsId: string) {
   });
 }
 
+export type ProjectUpdate = {
+  name?: string;
+  description?: string | null;
+};
+
 export function useCreateProject(wsId: string) {
   const qc = useQueryClient();
   return useMutation({
@@ -41,6 +46,40 @@ export function useCreateProject(wsId: string) {
         payload,
       );
       return data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["workspaces", wsId, "projects"] });
+    },
+  });
+}
+
+export function useUpdateProject(wsId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      projectId,
+      payload,
+    }: {
+      projectId: string;
+      payload: ProjectUpdate;
+    }) => {
+      const { data } = await apiClient.patch<Project>(
+        `/projects/${projectId}`,
+        payload,
+      );
+      return data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["workspaces", wsId, "projects"] });
+    },
+  });
+}
+
+export function useDeleteProject(wsId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (projectId: string) => {
+      await apiClient.delete(`/projects/${projectId}`);
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["workspaces", wsId, "projects"] });
