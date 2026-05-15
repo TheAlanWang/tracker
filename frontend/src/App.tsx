@@ -1,6 +1,5 @@
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 
-import { PersonalLayout } from "@/components/PersonalLayout";
 import { ProjectLayout } from "@/components/ProjectLayout";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { WorkspaceLayout } from "@/components/WorkspaceLayout";
@@ -46,15 +45,6 @@ export default function App() {
           }
         />
         <Route
-          element={
-            <ProtectedRoute>
-              <PersonalLayout />
-            </ProtectedRoute>
-          }
-        >
-          <Route path="/settings/profile" element={<ProfileSettings />} />
-        </Route>
-        <Route
           path="/browse/:identifier"
           element={
             <ProtectedRoute>
@@ -75,6 +65,7 @@ export default function App() {
           <Route path="inbox" element={<Inbox />} />
           <Route path="my-issues" element={<MyIssues />} />
           <Route path="settings" element={<WorkspaceSettings />} />
+          <Route path="profile" element={<ProfileSettings />} />
           <Route path="p/:pKey/tasks/:identifier" element={<TaskDetail />} />
           <Route path="p/:pKey" element={<ProjectLayout />}>
             <Route index element={<Navigate to="board" replace />} />

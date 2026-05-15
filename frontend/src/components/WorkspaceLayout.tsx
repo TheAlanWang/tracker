@@ -30,7 +30,9 @@ export function WorkspaceLayout() {
   const location = useLocation();
   // Hide the left sidebar on workspace-level settings — page is self-contained
   // (has its own workspace picker) and doesn't relate to project navigation.
-  const hideSidebar = location.pathname === `/w/${wsSlug}/settings`;
+  const hideSidebar =
+    location.pathname === `/w/${wsSlug}/settings` ||
+    location.pathname === `/w/${wsSlug}/profile`;
   const { data: workspaces = [] } = useWorkspaces();
   const { data: me } = useCurrentUser();
 
@@ -233,7 +235,7 @@ export function WorkspaceLayout() {
                     type="button"
                     onClick={() => {
                       setProfileMenuOpen(false);
-                      navigate("/settings/profile");
+                      navigate(`/w/${wsSlug}/profile`);
                     }}
                     className="w-full text-left px-3 py-1.5 text-sm hover:bg-slate-50"
                   >
