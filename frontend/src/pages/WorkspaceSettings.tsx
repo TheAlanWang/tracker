@@ -127,9 +127,14 @@ export default function WorkspaceSettings() {
 
   return (
     <div className="mx-auto max-w-5xl">
-      <h1 className="text-2xl font-bold text-slate-900 mb-6">Workspace Settings</h1>
+      <header className="mb-10">
+        <h1 className="text-3xl font-semibold text-slate-900">Workspace Settings</h1>
+        <p className="mt-2 text-slate-500">
+          General configuration, members, and lifecycle.
+        </p>
+      </header>
 
-      <div className="grid grid-cols-[200px_1fr] gap-8">
+      <div className="grid grid-cols-[200px_1fr] gap-10">
         {/* Left column: workspace picker */}
         <aside className="space-y-1">
           <p className="text-xs uppercase text-slate-400 font-medium px-2 pb-1">
@@ -159,143 +164,174 @@ export default function WorkspaceSettings() {
         </aside>
 
         {/* Right column: settings for the selected workspace */}
-        <div className="space-y-8 min-w-0">
-
-      <section className="space-y-4">
-        <h2 className="text-lg font-semibold text-slate-800">General</h2>
-        <form onSubmit={onRenameWorkspace} className="space-y-3">
-          <div className="space-y-1">
-            <Label htmlFor="ws-name">Name</Label>
-            <Input
-              id="ws-name"
-              value={wsName}
-              onChange={(e) => setWsName(e.target.value)}
-              maxLength={100}
-              disabled={!isOwner}
-            />
-          </div>
-          {isOwner ? (
-            <Button
-              type="submit"
-              size="sm"
-              disabled={
-                updateWsMutation.isPending ||
-                !wsName.trim() ||
-                wsName === currentWs?.name
-              }
-            >
-              {updateWsMutation.isPending ? "Saving…" : "Save"}
-            </Button>
-          ) : (
-            <p className="text-xs text-muted-foreground">
-              Only the workspace owner can rename.
-            </p>
-          )}
-        </form>
-      </section>
-
-      <section className="space-y-4">
-        <h2 className="text-lg font-semibold text-slate-800">
-          Invite a member
-        </h2>
-        <form onSubmit={onInvite} className="flex gap-2">
-          <input
-            type="email"
-            className="flex-1 rounded border border-slate-300 bg-white px-3 py-1.5 text-sm"
-            placeholder="user@example.com"
-            value={inviteEmail}
-            onChange={(e) => setInviteEmail(e.target.value)}
-            required
-          />
-          <Button
-            type="submit"
-            size="sm"
-            disabled={inviteMutation.isPending || !inviteEmail.trim()}
-          >
-            {inviteMutation.isPending ? "Inviting…" : "Invite"}
-          </Button>
-        </form>
-      </section>
-
-      <section className="space-y-4">
-        <h2 className="text-lg font-semibold text-slate-800">Members</h2>
-        {isLoading ? (
-          <p className="text-sm text-muted-foreground">Loading…</p>
-        ) : (
-          <div className="rounded border border-slate-200 bg-white divide-y divide-slate-100">
-            {members.map((m) => {
-              const display = m.email ?? m.user_id;
-              const isOwner = m.role === "owner";
-              return (
-                <div
-                  key={m.user_id}
-                  className="flex items-center justify-between px-4 py-3 gap-4"
+        <div className="space-y-10 min-w-0">
+          <section className="space-y-4">
+            <h2 className="text-xl font-medium text-slate-900">General settings</h2>
+            <form onSubmit={onRenameWorkspace}>
+              <div className="rounded-lg border border-slate-200 bg-white divide-y divide-slate-200">
+                <SettingRow
+                  label="Workspace name"
+                  description="Displayed throughout the app."
                 >
-                  <span className="text-sm text-slate-700 flex-1 truncate">
-                    {display}
-                  </span>
-                  {isOwner ? (
-                    <span className="text-xs font-medium text-amber-600 bg-amber-50 px-2 py-0.5 rounded">
-                      owner
-                    </span>
-                  ) : (
-                    <select
-                      className="rounded border border-slate-300 bg-white px-2 py-1 text-sm"
-                      value={m.role}
-                      onChange={(e) =>
-                        onChangeRole(m.user_id, e.target.value as WorkspaceRole)
-                      }
-                      disabled={updateRoleMutation.isPending}
-                    >
-                      <option value="admin">admin</option>
-                      <option value="member">member</option>
-                    </select>
-                  )}
+                  <Input
+                    value={wsName}
+                    onChange={(e) => setWsName(e.target.value)}
+                    maxLength={100}
+                    disabled={!isOwner}
+                  />
+                </SettingRow>
+                <div className="flex items-center justify-between p-4">
                   {!isOwner && (
+                    <p className="text-xs text-slate-500">
+                      Only the workspace owner can rename.
+                    </p>
+                  )}
+                  <Button
+                    type="submit"
+                    disabled={
+                      !isOwner ||
+                      updateWsMutation.isPending ||
+                      !wsName.trim() ||
+                      wsName === currentWs?.name
+                    }
+                    className="ml-auto"
+                  >
+                    {updateWsMutation.isPending ? "Saving…" : "Save changes"}
+                  </Button>
+                </div>
+              </div>
+            </form>
+          </section>
+
+          <section className="space-y-4">
+            <h2 className="text-xl font-medium text-slate-900">Members</h2>
+            <div className="rounded-lg border border-slate-200 bg-white">
+              <form onSubmit={onInvite} className="flex gap-2 p-4 border-b border-slate-200">
+                <Input
+                  type="email"
+                  className="flex-1"
+                  placeholder="Invite by email…"
+                  value={inviteEmail}
+                  onChange={(e) => setInviteEmail(e.target.value)}
+                  required
+                />
+                <Button
+                  type="submit"
+                  disabled={inviteMutation.isPending || !inviteEmail.trim()}
+                >
+                  {inviteMutation.isPending ? "Inviting…" : "Invite"}
+                </Button>
+              </form>
+
+              <div className="px-4 py-2 grid grid-cols-[1fr_140px_80px] gap-4 text-xs uppercase text-slate-400 font-medium border-b border-slate-200">
+                <span>Member</span>
+                <span>Role</span>
+                <span />
+              </div>
+
+              {isLoading ? (
+                <p className="px-4 py-4 text-sm text-slate-500">Loading…</p>
+              ) : (
+                <div className="divide-y divide-slate-100">
+                  {members.map((m) => {
+                    const display = m.email ?? m.user_id;
+                    const memberIsOwner = m.role === "owner";
+                    return (
+                      <div
+                        key={m.user_id}
+                        className="grid grid-cols-[1fr_140px_80px] gap-4 items-center px-4 py-3"
+                      >
+                        <span className="text-sm text-slate-700 truncate">
+                          {display}
+                        </span>
+                        {memberIsOwner ? (
+                          <span className="text-xs font-medium text-amber-700 bg-amber-50 px-2 py-0.5 rounded w-fit">
+                            Owner
+                          </span>
+                        ) : (
+                          <select
+                            className="rounded border border-slate-300 bg-white px-2 py-1 text-sm w-fit"
+                            value={m.role}
+                            onChange={(e) =>
+                              onChangeRole(m.user_id, e.target.value as WorkspaceRole)
+                            }
+                            disabled={updateRoleMutation.isPending}
+                          >
+                            <option value="admin">Admin</option>
+                            <option value="member">Member</option>
+                          </select>
+                        )}
+                        {!memberIsOwner ? (
+                          <button
+                            type="button"
+                            className="text-xs text-red-600 hover:underline justify-self-end"
+                            onClick={() => onRemove(m.user_id, display)}
+                            disabled={removeMutation.isPending}
+                          >
+                            Remove
+                          </button>
+                        ) : (
+                          <span />
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </section>
+
+          <section className="space-y-4">
+            <h2 className="text-xl font-medium text-red-700">Danger zone</h2>
+            <div className="rounded-lg border border-red-200 bg-white">
+              <SettingRow
+                label="Delete workspace"
+                description="Permanently delete this workspace and everything in it. This cannot be undone."
+              >
+                {isOwner ? (
+                  <div className="flex justify-end">
                     <Button
                       type="button"
                       variant="outline"
-                      size="sm"
-                      className="text-red-600 hover:bg-red-50 shrink-0"
-                      onClick={() => onRemove(m.user_id, display)}
-                      disabled={removeMutation.isPending}
+                      onClick={onDeleteWorkspace}
+                      disabled={deleteWsMutation.isPending}
+                      className="border-red-300 text-red-700 hover:bg-red-50"
                     >
-                      Remove
+                      {deleteWsMutation.isPending ? "Deleting…" : "Delete workspace"}
                     </Button>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </section>
-
-      <section className="space-y-3 border-t border-red-200 pt-8">
-        <h2 className="text-lg font-semibold text-red-700">Danger zone</h2>
-        {isOwner ? (
-          <div className="rounded border border-red-200 bg-red-50 p-4 space-y-2">
-            <p className="text-sm text-slate-700">
-              Delete this workspace and everything in it. This cannot be
-              undone.
-            </p>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={onDeleteWorkspace}
-              disabled={deleteWsMutation.isPending}
-              className="border-red-300 text-red-700 hover:bg-red-100"
-            >
-              {deleteWsMutation.isPending ? "Deleting…" : "Delete workspace"}
-            </Button>
-          </div>
-        ) : (
-          <p className="text-xs text-muted-foreground">
-            Only the workspace owner can delete this workspace.
-          </p>
-        )}
-      </section>
+                  </div>
+                ) : (
+                  <p className="text-sm text-slate-500">
+                    Only the workspace owner can delete this workspace.
+                  </p>
+                )}
+              </SettingRow>
+            </div>
+          </section>
         </div>
       </div>
+    </div>
+  );
+}
+
+function SettingRow({
+  label,
+  description,
+  children,
+}: {
+  label: string;
+  description?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="grid grid-cols-[280px_1fr] items-start gap-6 p-5">
+      <div>
+        <div className="font-medium text-slate-900">{label}</div>
+        {description && (
+          <p className="mt-1 text-sm text-slate-500">{description}</p>
+        )}
+      </div>
+      <div className="min-w-0">{children}</div>
     </div>
   );
 }

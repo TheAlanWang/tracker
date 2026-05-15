@@ -118,17 +118,27 @@ export function WorkspaceLayout() {
       <header className="border-b border-slate-200 bg-white">
         <div className="px-6 py-3 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            {/* Workspace switcher */}
+            {/* Workspace switcher — on settings/profile pages, the workspace
+                name acts as a "back to workspace" link instead of opening the
+                dropdown (the user is intentionally out of the workspace flow). */}
             <div className="relative" ref={wsMenuRef}>
               <button
                 type="button"
-                onClick={() => setWsMenuOpen((v) => !v)}
+                onClick={() => {
+                  if (hideSidebar) {
+                    navigate(`/w/${wsSlug}`);
+                  } else {
+                    setWsMenuOpen((v) => !v);
+                  }
+                }}
                 className="flex items-center gap-1 font-semibold text-slate-900 hover:text-slate-700"
+                title={hideSidebar ? `Back to ${currentWs?.name}` : "Switch workspace"}
               >
                 {currentWs?.name ?? "tracker"}
-                <span className="text-slate-400 text-xs">▾</span>
+                {!hideSidebar && <span className="text-slate-400 text-xs">▾</span>}
+                {hideSidebar && <span className="text-slate-400 text-xs">↩</span>}
               </button>
-              {wsMenuOpen && (
+              {!hideSidebar && wsMenuOpen && (
                 <div className="absolute left-0 top-full mt-1 w-56 rounded-md border border-slate-200 bg-white shadow-lg z-20 py-1">
                   <button
                     type="button"
@@ -215,16 +225,12 @@ export function WorkspaceLayout() {
               <button
                 type="button"
                 onClick={() => setProfileMenuOpen((v) => !v)}
-                className="flex items-center gap-2 rounded px-2 py-1.5 text-sm text-slate-700 hover:bg-slate-100"
-                title="Account menu"
+                className="rounded-full hover:opacity-80"
+                title={me?.display_name ?? me?.email ?? "Account menu"}
               >
-                <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-slate-200 text-xs font-medium text-slate-700">
+                <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-slate-200 text-sm font-medium text-slate-700">
                   {(me?.display_name ?? me?.email ?? "?").slice(0, 1).toUpperCase()}
                 </span>
-                <span className="text-xs text-slate-600 hidden sm:inline">
-                  {me?.display_name ?? me?.email}
-                </span>
-                <span className="text-slate-400 text-xs">▾</span>
               </button>
               {profileMenuOpen && (
                 <div className="absolute right-0 top-full mt-1 w-48 rounded-md border border-slate-200 bg-white shadow-lg z-20 py-1">
