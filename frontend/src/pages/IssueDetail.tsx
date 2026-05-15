@@ -12,6 +12,7 @@ import {
   useUpdateIssue,
 } from "@/features/issues/api";
 import { useProjects } from "@/features/projects/api";
+import { useSprints } from "@/features/sprints/api";
 import { useWorkspaces } from "@/features/workspaces/api";
 
 const STATUSES: IssueStatus[] = [
@@ -48,6 +49,8 @@ export default function IssueDetail() {
 
   const updateMutation = useUpdateIssue(issue?.id ?? "");
   const deleteMutation = useDeleteIssue();
+
+  const { data: sprints = [] } = useSprints(currentProject?.id ?? "");
 
   const [titleDraft, setTitleDraft] = useState("");
   const [descDraft, setDescDraft] = useState("");
@@ -180,6 +183,28 @@ export default function IssueDetail() {
               save("due_date", e.target.value === "" ? null : e.target.value)
             }
           />
+        </div>
+
+        <div className="space-y-1">
+          <p className="text-xs font-medium uppercase text-muted-foreground">
+            Sprint
+          </p>
+          <select
+            className="w-full rounded border border-slate-300 bg-white px-2 py-1 text-sm"
+            value={issue.sprint_id ?? ""}
+            onChange={(e) =>
+              save("sprint_id", e.target.value === "" ? null : e.target.value)
+            }
+          >
+            <option value="">Backlog (no sprint)</option>
+            {sprints
+              .filter((s) => s.status !== "completed")
+              .map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name} {s.status === "active" ? "(active)" : ""}
+                </option>
+              ))}
+          </select>
         </div>
 
         <div className="space-y-1">
