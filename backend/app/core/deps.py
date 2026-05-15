@@ -1,8 +1,10 @@
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from supabase import Client
 
 from app.core.config import Settings, get_settings
 from app.core.security import InvalidTokenError, verify_supabase_jwt
+from app.db.supabase import get_supabase_admin as _get_supabase_admin
 
 bearer_scheme = HTTPBearer(auto_error=False)
 
@@ -24,3 +26,7 @@ def get_current_user_id(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail=str(exc),
         ) from exc
+
+
+def get_supabase_admin() -> Client:
+    return _get_supabase_admin()
