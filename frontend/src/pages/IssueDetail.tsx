@@ -22,7 +22,7 @@ import {
   IssueStatus,
   useDeleteIssue,
   useIssue,
-  useIssues,
+  useResolveIdentifier,
   useUpdateIssue,
 } from "@/features/issues/api";
 import { useMembers } from "@/features/members/api";
@@ -77,11 +77,11 @@ export default function IssueDetail() {
   const { data: projects = [] } = useProjects(currentWs?.id ?? "");
   const currentProject = projects.find((p) => p.key === pKey);
 
-  // Resolve identifier → issue via the project's list, then fetch the
-  // canonical record via /issues/{id}.
-  const { data: issuesList = [] } = useIssues(currentProject?.id ?? "");
-  const issueFromList = issuesList.find((i) => i.identifier === identifier);
-  const { data: issue } = useIssue(issueFromList?.id ?? "");
+  // Resolve identifier → issue_id via the /resolve endpoint (single roundtrip,
+  // not dependent on the issue list being loaded), then fetch canonical record.
+  const { data: resolved, isLoading: resolving, isError: resolveError } =
+    useResolveIdentifier(identifier ?? "");
+  const { data: issue } = useIssue(resolved?.issue_id ?? "");
 
   const updateMutation = useUpdateIssue(issue?.id ?? "");
   const deleteMutation = useDeleteIssue();
@@ -150,7 +150,21 @@ export default function IssueDetail() {
     }
   }
 
-  if (!issue) {
+  if (resolveError) {
+    return (
+      <div className="space-y-2">
+        <p className="text-slate-700">Issue {identifier} not found.</p>
+        <button
+          type="button"
+          onClick={() => navigate(`/w/${wsSlug}/p/${pKey}/list`)}
+          className="text-sm text-blue-600 hover:underline"
+        >
+          ← Back to {pKey}
+        </button>
+      </div>
+    );
+  }
+  if (resolving || !issue) {
     return <p className="text-muted-foreground">Loading…</p>;
   }
 

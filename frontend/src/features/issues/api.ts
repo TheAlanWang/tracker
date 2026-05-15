@@ -106,6 +106,27 @@ export function useIssue(issueId: string) {
   });
 }
 
+export type ResolvedIdentifier = {
+  workspace_slug: string;
+  project_key: string;
+  issue_id: string;
+  identifier: string;
+};
+
+export function useResolveIdentifier(identifier: string) {
+  return useQuery<ResolvedIdentifier>({
+    queryKey: ["resolve", identifier],
+    queryFn: async () => {
+      const { data } = await apiClient.get<ResolvedIdentifier>(
+        `/resolve/identifier/${identifier}`,
+      );
+      return data;
+    },
+    enabled: !!identifier,
+    retry: false,
+  });
+}
+
 export function useCreateIssue(projectId: string) {
   const qc = useQueryClient();
   return useMutation({
