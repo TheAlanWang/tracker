@@ -217,6 +217,16 @@ export function WorkspaceLayout() {
   );
 }
 
+function deriveProjectKey(name: string): string {
+  // Strip non-letters, take first letter of each word; fall back to first 3 letters.
+  const words = name.trim().split(/\s+/).filter((w) => /[A-Za-z]/.test(w));
+  if (words.length >= 2) {
+    return words.slice(0, 4).map((w) => w[0].toUpperCase()).join("");
+  }
+  const single = (words[0] ?? "").toUpperCase().replace(/[^A-Z]/g, "");
+  return single.slice(0, 3);
+}
+
 function SidebarNav({ wsSlug, currentWsId }: { wsSlug: string; currentWsId: string }) {
   const navigate = useNavigate();
   const { pKey: activePKey } = useParams();
@@ -224,19 +234,37 @@ function SidebarNav({ wsSlug, currentWsId }: { wsSlug: string; currentWsId: stri
   const createMutation = useCreateProject(currentWsId);
   const deleteMutation = useDeleteProject(currentWsId);
 
-  const [showForm, setShowForm] = useState(false);
+  const [showModal, setShowModal] = useState(false);
   const [name, setName] = useState("");
-  const [key, setKey] = useState("");
+  const derivedKey = deriveProjectKey(name);
+
+  // Close modal on Esc
+  useEffect(() => {
+    if (!showModal) return;
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setShowModal(false);
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [showModal]);
+
+  function openModal() {
+    setName("");
+    setShowModal(true);
+  }
 
   async function onCreate(e: React.FormEvent) {
     e.preventDefault();
     if (!currentWsId) return;
+    if (derivedKey.length < 2) {
+      toast.error("Project name needs at least 2 letters");
+      return;
+    }
     try {
-      const p = await createMutation.mutateAsync({ name, key: key.toUpperCase() });
+      const p = await createMutation.mutateAsync({ name, key: derivedKey });
       toast.success(`Created ${p.name}`);
-      setShowForm(false);
+      setShowModal(false);
       setName("");
-      setKey("");
       navigate(`/w/${wsSlug}/p/${p.key}/board`);
     } catch (err) {
       const detail =
@@ -292,50 +320,71 @@ function SidebarNav({ wsSlug, currentWsId }: { wsSlug: string; currentWsId: stri
         <span className="text-xs uppercase text-slate-400 font-medium">Projects</span>
         <button
           type="button"
-          onClick={() => setShowForm((v) => !v)}
+          onClick={openModal}
           className="text-slate-500 hover:text-slate-900 text-base leading-none"
           title="New project"
         >
-          {showForm ? "−" : "+"}
+          +
         </button>
       </div>
 
-      {showForm && (
-        <form onSubmit={onCreate} className="space-y-2 px-2 pb-2">
-          <div className="space-y-1">
-            <Label htmlFor="sidebar-proj-name" className="text-xs">Name</Label>
-            <Input
-              id="sidebar-proj-name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
-              minLength={1}
-              maxLength={100}
-              placeholder="Backend"
-              className="h-7 text-xs"
-            />
+      {showModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/30"
+          onClick={() => setShowModal(false)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-sm rounded-lg bg-white shadow-xl p-5 space-y-4"
+          >
+            <h2 className="text-lg font-semibold text-slate-900">New project</h2>
+            <form onSubmit={onCreate} className="space-y-3">
+              <div className="space-y-1">
+                <Label htmlFor="modal-proj-name">Name</Label>
+                <Input
+                  id="modal-proj-name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  required
+                  minLength={1}
+                  maxLength={100}
+                  placeholder="Backend"
+                  autoFocus
+                />
+                {derivedKey.length >= 2 && (
+                  <p className="text-xs text-muted-foreground">
+                    Issues will be named{" "}
+                    <span className="font-mono text-slate-700">{derivedKey}-1</span>,{" "}
+                    <span className="font-mono text-slate-700">{derivedKey}-2</span>, …
+                  </p>
+                )}
+                {name.length > 0 && derivedKey.length < 2 && (
+                  <p className="text-xs text-red-500">
+                    Name needs at least 2 letters.
+                  </p>
+                )}
+              </div>
+              <div className="flex justify-end gap-2 pt-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setShowModal(false)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={createMutation.isPending || derivedKey.length < 2}
+                >
+                  {createMutation.isPending ? "Creating…" : "Create"}
+                </Button>
+              </div>
+            </form>
           </div>
-          <div className="space-y-1">
-            <Label htmlFor="sidebar-proj-key" className="text-xs">Key</Label>
-            <Input
-              id="sidebar-proj-key"
-              value={key}
-              onChange={(e) => setKey(e.target.value.toUpperCase())}
-              required
-              minLength={2}
-              maxLength={10}
-              pattern="[A-Z][A-Z0-9]*"
-              placeholder="BE"
-              className="h-7 text-xs font-mono"
-            />
-          </div>
-          <Button type="submit" size="sm" className="w-full" disabled={createMutation.isPending}>
-            {createMutation.isPending ? "Creating…" : "Create"}
-          </Button>
-        </form>
+        </div>
       )}
 
-      {projects.length === 0 && !showForm && (
+      {projects.length === 0 && (
         <p className="px-2 text-xs text-slate-400 italic">No projects yet</p>
       )}
 
