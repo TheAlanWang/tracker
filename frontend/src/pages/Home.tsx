@@ -1,40 +1,33 @@
-import { toast } from "sonner";
+import { useEffect } from "react";
+import { Navigate, useNavigate } from "react-router-dom";
 
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { supabase } from "@/lib/supabase";
+
+const LAST_WORKSPACE_KEY = "tracker.lastWorkspaceSlug";
 
 export default function Home() {
-  const { data: me, isLoading, error } = useCurrentUser();
+  const { data: me, isLoading } = useCurrentUser();
+  const navigate = useNavigate();
 
-  async function handleSignOut() {
-    const { error } = await supabase.auth.signOut();
-    if (error) toast.error(error.message);
+  useEffect(() => {
+    if (!me) return;
+    if (me.workspaces.length === 0) {
+      navigate("/onboarding", { replace: true });
+      return;
+    }
+    const stored = localStorage.getItem(LAST_WORKSPACE_KEY);
+    const target = me.workspaces.find((w) => w.slug === stored) ?? me.workspaces[0];
+    navigate(`/w/${target.slug}`, { replace: true });
+  }, [me, navigate]);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p>Loading…</p>
+      </div>
+    );
   }
 
-  return (
-    <div className="min-h-screen p-8 bg-slate-50">
-      <Card className="max-w-md mx-auto">
-        <CardHeader>
-          <CardTitle>Welcome to tracker</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {isLoading && <p>Loading…</p>}
-          {error && (
-            <p className="text-red-600">Failed to load profile: {error.message}</p>
-          )}
-          {me && (
-            <div className="space-y-1">
-              <p className="text-sm text-muted-foreground">Signed in as</p>
-              <p className="font-medium">{me.email ?? me.id}</p>
-            </div>
-          )}
-          <Button onClick={handleSignOut} variant="outline" className="w-full">
-            Sign out
-          </Button>
-        </CardContent>
-      </Card>
-    </div>
-  );
+  // While effect is firing, return nothing
+  return null;
 }
