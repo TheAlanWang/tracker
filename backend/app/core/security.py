@@ -1,3 +1,5 @@
+import time
+
 import jwt
 from jwt import InvalidTokenError as PyJWTInvalidTokenError
 from jwt import PyJWKClient
@@ -50,6 +52,25 @@ def verify_and_decode_supabase_jwt(token: str, jwt_secret: str) -> dict:
             )
     except PyJWTInvalidTokenError as exc:
         raise InvalidTokenError(str(exc)) from exc
+
+
+def mint_service_jwt_for_user(user_id: str, jwt_secret: str, ttl_seconds: int = 600) -> str:
+    """Mint a short-lived service_role JWT that's also bound to a user.
+
+    Used by the backend to call Supabase such that:
+      - role=service_role → PostgREST bypasses RLS
+      - sub=user_id       → triggers see auth.uid() = user_id (real actor)
+
+    Signed with the same HS256 secret PostgREST verifies against.
+    """
+    now = int(time.time())
+    payload = {
+        "role": "service_role",
+        "sub": user_id,
+        "iat": now,
+        "exp": now + ttl_seconds,
+    }
+    return jwt.encode(payload, jwt_secret, algorithm="HS256")
 
 
 def verify_supabase_jwt(token: str, jwt_secret: str) -> str:

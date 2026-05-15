@@ -144,14 +144,15 @@ def update_task(
     task_id: str,
     payload: TaskUpdate,
 ) -> TaskResponse:
-    current = get_task(supabase, user_id=user_id, task_id=task_id)
+    # Membership check via get_task; activity log is written by the
+    # log_task_change DB trigger (auth.uid() = user_id via injected JWT).
+    get_task(supabase, user_id=user_id, task_id=task_id)
 
     updates = payload.model_dump(exclude_unset=True)
-    # Serialize date to ISO string for Postgres
     if "due_date" in updates and updates["due_date"] is not None:
         updates["due_date"] = updates["due_date"].isoformat()
     if not updates:
-        return current
+        return get_task(supabase, user_id=user_id, task_id=task_id)
 
     updated = (
         supabase.table("tasks")

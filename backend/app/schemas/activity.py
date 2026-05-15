@@ -10,6 +10,7 @@ ActivityAction = Literal[
     "sprint_changed",
     "commented",
     "created",
+    "updated",
 ]
 
 
