@@ -185,18 +185,6 @@ export default function WorkspaceSettings() {
               disabled={!isOwner}
             />
           </div>
-          <div className="space-y-1">
-            <Label htmlFor="ws-slug">URL slug</Label>
-            <Input
-              id="ws-slug"
-              value={currentWs?.slug ?? ""}
-              readOnly
-              className="bg-slate-50 text-muted-foreground cursor-default font-mono"
-            />
-            <p className="text-xs text-muted-foreground">
-              Used in URLs. Cannot be changed (would break existing links).
-            </p>
-          </div>
           {isOwner ? (
             <Button
               type="submit"

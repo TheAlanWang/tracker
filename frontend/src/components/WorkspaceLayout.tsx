@@ -95,26 +95,44 @@ export function WorkspaceLayout() {
               </button>
               {wsMenuOpen && (
                 <div className="absolute left-0 top-full mt-1 w-56 rounded-md border border-slate-200 bg-white shadow-lg z-20 py-1">
-                  <div className="px-3 py-1 text-xs uppercase text-slate-400">
-                    Switch workspace
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setWsMenuOpen(false);
+                      navigate(`/w/${wsSlug}/settings`);
+                    }}
+                    className="w-full text-left px-3 py-1.5 text-sm hover:bg-slate-50 flex items-center gap-2"
+                  >
+                    <span>⚙</span>
+                    <span>Workspace settings</span>
+                  </button>
+
+                  <div className="border-t border-slate-100 mt-1 pt-1">
+                    <div className="px-3 py-1 text-xs uppercase text-slate-400">
+                      Switch workspace
+                    </div>
+                    {workspaces.map((w) => (
+                      <button
+                        key={w.id}
+                        type="button"
+                        onClick={() => {
+                          setWsMenuOpen(false);
+                          navigate(`/w/${w.slug}`);
+                        }}
+                        className={
+                          w.id === currentWs?.id
+                            ? "w-full text-left px-3 py-1.5 text-sm bg-slate-50 font-medium flex items-center justify-between"
+                            : "w-full text-left px-3 py-1.5 text-sm hover:bg-slate-50 flex items-center justify-between"
+                        }
+                      >
+                        <span>{w.name}</span>
+                        {w.id === currentWs?.id && (
+                          <span className="text-slate-400 text-xs">✓</span>
+                        )}
+                      </button>
+                    ))}
                   </div>
-                  {workspaces.map((w) => (
-                    <button
-                      key={w.id}
-                      type="button"
-                      onClick={() => {
-                        setWsMenuOpen(false);
-                        navigate(`/w/${w.slug}`);
-                      }}
-                      className={
-                        w.id === currentWs?.id
-                          ? "w-full text-left px-3 py-1.5 text-sm bg-slate-50 font-medium"
-                          : "w-full text-left px-3 py-1.5 text-sm hover:bg-slate-50"
-                      }
-                    >
-                      {w.name}
-                    </button>
-                  ))}
+
                   <div className="border-t border-slate-100 mt-1 pt-1">
                     <button
                       type="button"
@@ -305,13 +323,6 @@ function SidebarNav({ wsSlug, currentWsId }: { wsSlug: string; currentWsId: stri
         onClick={() => navigate(`/w/${wsSlug}/my-issues`)}
       >
         My tasks
-      </button>
-      <button
-        type="button"
-        className="block w-full text-left rounded px-2 py-1 hover:bg-slate-100"
-        onClick={() => navigate(`/w/${wsSlug}/settings`)}
-      >
-        Settings
       </button>
 
       <hr className="my-3" />
