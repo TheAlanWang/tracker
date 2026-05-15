@@ -25,6 +25,7 @@ import {
   useIssues,
   useUpdateIssue,
 } from "@/features/issues/api";
+import { useMembers } from "@/features/members/api";
 import { useProjects } from "@/features/projects/api";
 import { useSprints } from "@/features/sprints/api";
 import { useWorkspaces } from "@/features/workspaces/api";
@@ -104,6 +105,8 @@ export default function IssueDetail() {
   const [commentDraft, setCommentDraft] = useState("");
 
   const { data: activity = [] } = useIssueActivity(issue?.id ?? "");
+
+  const { data: members = [] } = useMembers(currentWs?.id ?? "");
 
   const { data: workspaceLabels = [] } = useLabels(currentWs?.id ?? "");
   const { data: attachedLabels = [] } = useIssueLabels(issue?.id ?? "");
@@ -420,6 +423,26 @@ export default function IssueDetail() {
               </div>
             </details>
           )}
+        </div>
+
+        <div className="space-y-1">
+          <p className="text-xs font-medium uppercase text-muted-foreground">
+            Assignee
+          </p>
+          <select
+            className="w-full rounded border border-slate-300 bg-white px-2 py-1 text-sm"
+            value={issue.assignee_id ?? ""}
+            onChange={(e) =>
+              save("assignee_id", e.target.value === "" ? null : e.target.value)
+            }
+          >
+            <option value="">Unassigned</option>
+            {members.map((m) => (
+              <option key={m.user_id} value={m.user_id}>
+                {m.email ?? m.user_id}
+              </option>
+            ))}
+          </select>
         </div>
 
         <div className="space-y-1">
