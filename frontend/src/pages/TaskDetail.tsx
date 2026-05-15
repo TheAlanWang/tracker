@@ -253,7 +253,7 @@ export default function TaskDetail() {
 
   return (
     <div className="space-y-4 max-w-6xl">
-      <div className="flex items-center justify-between sticky top-0 bg-slate-50 -mx-8 px-8 py-2 z-10 border-b border-transparent data-[dirty=true]:border-amber-200" data-dirty={dirty}>
+      <div className="flex items-center justify-between">
         <button
           type="button"
           onClick={() => navigate(`/w/${wsSlug}/p/${pKey}/board`)}
