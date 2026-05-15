@@ -170,3 +170,50 @@ def test_list_issues_with_sprint_filter(client, make_token):
         )
         assert r.status_code == 200
         assert captured["sprint"] == "null"
+
+
+def test_move_issue_200(client, make_token):
+    with patch(
+        "app.routers.issues.move_issue",
+        return_value=_r(status="in_progress", position=1500.0),
+    ):
+        token = make_token(sub="u-1")
+        response = client.post(
+            "/issues/i-1/move",
+            json={"status": "in_progress", "position": 1500.0},
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert response.status_code == 200
+        body = response.json()
+        assert body["status"] == "in_progress"
+        assert body["position"] == 1500.0
+
+
+def test_move_issue_403(client, make_token):
+    from app.services.issues import IssuePermissionError
+    with patch(
+        "app.routers.issues.move_issue",
+        side_effect=IssuePermissionError("i-1"),
+    ):
+        token = make_token(sub="outsider")
+        response = client.post(
+            "/issues/i-1/move",
+            json={"status": "done", "position": 0.0},
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert response.status_code == 403
+
+
+def test_move_issue_404(client, make_token):
+    from app.services.issues import IssueNotFoundError
+    with patch(
+        "app.routers.issues.move_issue",
+        side_effect=IssueNotFoundError("missing"),
+    ):
+        token = make_token(sub="u-1")
+        response = client.post(
+            "/issues/missing/move",
+            json={"status": "todo", "position": 0.0},
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert response.status_code == 404

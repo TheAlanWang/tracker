@@ -12,6 +12,7 @@ from app.services.issues import (
     delete_issue,
     get_issue,
     list_issues,
+    move_issue,
     update_issue,
 )
 
@@ -413,3 +414,93 @@ def test_list_issues_filters_by_sprint_id(mock_supabase):
 
     result = list_issues(mock_supabase, user_id="u-1", project_id="p-1", sprint="s-1")
     assert len(result) == 1
+
+
+def test_move_issue_happy_path(mock_supabase):
+    """move_issue: fetches issue, checks membership, updates status+position."""
+    issues_chain_fetch = MagicMock()
+    issues_chain_fetch.select.return_value.eq.return_value.single.return_value.execute.return_value.data = (
+        _issue_row(status="backlog", position=0.0)
+    )
+    members_chain = MagicMock()
+    members_chain.select.return_value.eq.return_value.eq.return_value.execute.return_value.data = [
+        {"role": "member"}
+    ]
+    issues_chain_update = MagicMock()
+    issues_chain_update.update.return_value.eq.return_value.execute.return_value.data = [
+        _issue_row(status="in_progress", position=1500.0)
+    ]
+
+    call_count = {"issues": 0}
+
+    def table_router(name):
+        if name == "issues":
+            call_count["issues"] += 1
+            return issues_chain_fetch if call_count["issues"] == 1 else issues_chain_update
+        if name == "workspace_members":
+            return members_chain
+        raise AssertionError(f"unexpected table: {name}")
+
+    mock_supabase.table.side_effect = table_router
+
+    result = move_issue(
+        mock_supabase,
+        user_id="u-1",
+        issue_id="i-1",
+        status="in_progress",
+        position=1500.0,
+    )
+    assert result.status == "in_progress"
+    assert result.position == 1500.0
+    update_args = issues_chain_update.update.call_args[0][0]
+    assert update_args == {"status": "in_progress", "position": 1500.0}
+
+
+def test_move_issue_not_found(mock_supabase):
+    """move_issue: raises IssueNotFoundError when issue does not exist."""
+    issues_chain = MagicMock()
+    issues_chain.select.return_value.eq.return_value.single.return_value.execute.return_value.data = None
+
+    def table_router(name):
+        if name == "issues":
+            return issues_chain
+        raise AssertionError(f"unexpected table: {name}")
+
+    mock_supabase.table.side_effect = table_router
+
+    with pytest.raises(IssueNotFoundError):
+        move_issue(
+            mock_supabase,
+            user_id="u-1",
+            issue_id="missing",
+            status="todo",
+            position=0.0,
+        )
+
+
+def test_move_issue_non_member_raises(mock_supabase):
+    """move_issue: raises IssuePermissionError when caller is not a workspace member."""
+    issues_chain = MagicMock()
+    issues_chain.select.return_value.eq.return_value.single.return_value.execute.return_value.data = (
+        _issue_row()
+    )
+    members_chain = MagicMock()
+    members_chain.select.return_value.eq.return_value.eq.return_value.execute.return_value.data = []
+
+    def table_router(name):
+        if name == "issues":
+            return issues_chain
+        if name == "workspace_members":
+            return members_chain
+        raise AssertionError(f"unexpected table: {name}")
+
+    mock_supabase.table.side_effect = table_router
+
+    with pytest.raises(IssuePermissionError):
+        move_issue(
+            mock_supabase,
+            user_id="outsider",
+            issue_id="i-1",
+            status="done",
+            position=9999.0,
+        )

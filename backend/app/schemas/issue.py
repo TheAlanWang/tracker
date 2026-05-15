@@ -50,3 +50,8 @@ class IssueResponse(BaseModel):
     position: float
     created_at: datetime
     updated_at: datetime
+
+
+class IssueMove(BaseModel):
+    status: IssueStatus
+    position: float

@@ -4,6 +4,7 @@ from supabase import Client
 from app.core.deps import get_current_user_id, get_supabase_admin
 from app.schemas.issue import (
     IssueCreate,
+    IssueMove,
     IssueResponse,
     IssueStatus,
     IssueUpdate,
@@ -16,6 +17,7 @@ from app.services.issues import (
     delete_issue,
     get_issue,
     list_issues,
+    move_issue,
     update_issue,
 )
 
@@ -105,6 +107,27 @@ def delete(
 ):
     try:
         delete_issue(supabase, user_id=user_id, issue_id=i_id)
+    except IssuePermissionError as exc:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN) from exc
+    except IssueNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND) from exc
+
+
+@router.post("/issues/{i_id}/move", response_model=IssueResponse)
+def move(
+    i_id: str,
+    payload: IssueMove,
+    user_id: str = Depends(get_current_user_id),
+    supabase: Client = Depends(get_supabase_admin),
+):
+    try:
+        return move_issue(
+            supabase,
+            user_id=user_id,
+            issue_id=i_id,
+            status=payload.status,
+            position=payload.position,
+        )
     except IssuePermissionError as exc:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN) from exc
     except IssueNotFoundError as exc:

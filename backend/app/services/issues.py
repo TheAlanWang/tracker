@@ -169,3 +169,33 @@ def delete_issue(
     # Reuse get_issue's not-found + membership checks
     get_issue(supabase, user_id=user_id, issue_id=issue_id)
     supabase.table("issues").delete().eq("id", issue_id).execute()
+
+
+def move_issue(
+    supabase: Client,
+    *,
+    user_id: str,
+    issue_id: str,
+    status: str,
+    position: float,
+) -> IssueResponse:
+    row = (
+        supabase.table("issues")
+        .select("*")
+        .eq("id", issue_id)
+        .single()
+        .execute()
+        .data
+    )
+    if not row:
+        raise IssueNotFoundError(issue_id)
+    if not _is_member(supabase, user_id=user_id, workspace_id=row["workspace_id"]):
+        raise IssuePermissionError(issue_id)
+    updated = (
+        supabase.table("issues")
+        .update({"status": status, "position": position})
+        .eq("id", issue_id)
+        .execute()
+        .data[0]
+    )
+    return IssueResponse(**updated)
