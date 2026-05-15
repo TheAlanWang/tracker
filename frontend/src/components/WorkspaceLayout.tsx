@@ -17,12 +17,19 @@ import {
   useCreateWorkspace,
   useWorkspaces,
 } from "@/features/workspaces/api";
-import { slugifyWorkspace } from "@/pages/Onboarding";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useCommandPaletteStore } from "@/lib/commandPaletteStore";
 import { supabase } from "@/lib/supabase";
 
 const LAST_WORKSPACE_KEY = "tracker.lastWorkspaceSlug";
+
+function slugifyWorkspace(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 50);
+}
 
 export function WorkspaceLayout() {
   const { wsSlug } = useParams();

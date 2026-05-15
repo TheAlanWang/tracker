@@ -1,12 +1,13 @@
-import { useNavigate, useParams } from "react-router-dom";
+import { useState } from "react";
+import { useParams } from "react-router-dom";
 
-import { useTasks } from "@/features/tasks/api";
+import { TaskQuickEdit } from "@/components/TaskQuickEdit";
+import { Task, useTasks } from "@/features/tasks/api";
 import { useProjects } from "@/features/projects/api";
 import { useWorkspaces } from "@/features/workspaces/api";
 
 export default function Backlog() {
   const { wsSlug, pKey } = useParams();
-  const navigate = useNavigate();
 
   const { data: workspaces = [] } = useWorkspaces();
   const currentWs = workspaces.find((w) => w.slug === wsSlug);
@@ -17,6 +18,8 @@ export default function Backlog() {
     currentProject?.id ?? "",
     { status: "backlog" },
   );
+
+  const [activeTask, setActiveTask] = useState<Task | null>(null);
 
   if (!currentProject) return null;
 
@@ -48,9 +51,7 @@ export default function Backlog() {
                 <tr
                   key={i.id}
                   className="cursor-pointer border-t border-slate-100 hover:bg-slate-50"
-                  onClick={() =>
-                    navigate(`/w/${wsSlug}/p/${pKey}/tasks/${i.identifier}`)
-                  }
+                  onClick={() => setActiveTask(i)}
                 >
                   <td className="px-3 py-2 font-mono text-xs text-slate-600">
                     {i.identifier}
@@ -64,6 +65,14 @@ export default function Backlog() {
           </table>
         </div>
       )}
+
+      <TaskQuickEdit
+        task={activeTask}
+        open={!!activeTask}
+        onClose={() => setActiveTask(null)}
+        wsSlug={wsSlug ?? ""}
+        pKey={pKey ?? ""}
+      />
     </div>
   );
 }

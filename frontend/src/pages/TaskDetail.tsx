@@ -252,12 +252,11 @@ export default function TaskDetail() {
               className="min-h-[8rem] w-full cursor-text rounded border border-slate-200 bg-white p-2"
             >
               {descDraft.trim() ? (
-                <ReactMarkdown
-                  remarkPlugins={[remarkGfm]}
-                  className="prose prose-sm max-w-none"
-                >
-                  {descDraft}
-                </ReactMarkdown>
+                <div className="prose prose-sm max-w-none">
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                    {descDraft}
+                  </ReactMarkdown>
+                </div>
               ) : (
                 <span className="text-sm text-muted-foreground">
                   Click to add a description…
@@ -294,7 +293,9 @@ export default function TaskDetail() {
                   Delete
                 </button>
               </div>
-              <ReactMarkdown remarkPlugins={[remarkGfm]} className="prose prose-sm max-w-none mt-1">{c.body}</ReactMarkdown>
+              <div className="prose prose-sm max-w-none mt-1">
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>{c.body}</ReactMarkdown>
+              </div>
             </div>
           ))}
           <form onSubmit={onPostComment} className="space-y-2">

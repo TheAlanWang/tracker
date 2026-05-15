@@ -75,7 +75,7 @@ export default function WorkspaceSettings() {
       if (remaining.length > 0) {
         navigate(`/w/${remaining[0].slug}`, { replace: true });
       } else {
-        navigate("/onboarding", { replace: true });
+        navigate("/", { replace: true });
       }
     } catch (err) {
       const detail =
@@ -154,13 +154,9 @@ export default function WorkspaceSettings() {
               {w.name}
             </button>
           ))}
-          <button
-            type="button"
-            onClick={() => navigate("/onboarding")}
-            className="block w-full text-left rounded px-2 py-1.5 text-sm text-blue-600 hover:bg-blue-50 mt-2"
-          >
-            + New workspace
-          </button>
+          <p className="text-xs text-slate-400 mt-3 px-2">
+            Use the workspace dropdown (top-left) to create a new one.
+          </p>
         </aside>
 
         {/* Right column: settings for the selected workspace */}

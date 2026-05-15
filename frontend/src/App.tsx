@@ -14,7 +14,6 @@ import TaskDetail from "@/pages/TaskDetail";
 import TaskList from "@/pages/TaskList";
 import Login from "@/pages/Login";
 import MyIssues from "@/pages/MyIssues";
-import Onboarding from "@/pages/Onboarding";
 import ProfileSettings from "@/pages/ProfileSettings";
 import ProjectSettings from "@/pages/ProjectSettings";
 import SprintDetail from "@/pages/SprintDetail";
@@ -28,14 +27,6 @@ export default function App() {
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/auth/callback" element={<AuthCallback />} />
-        <Route
-          path="/onboarding"
-          element={
-            <ProtectedRoute>
-              <Onboarding />
-            </ProtectedRoute>
-          }
-        />
         <Route
           path="/"
           element={
