@@ -73,3 +73,15 @@ export function useDetachLabel(issueId: string) {
     },
   });
 }
+
+export function useDeleteLabel(workspaceId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (labelId: string) => {
+      await apiClient.delete(`/labels/${labelId}`);
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["workspaces", workspaceId, "labels"] });
+    },
+  });
+}

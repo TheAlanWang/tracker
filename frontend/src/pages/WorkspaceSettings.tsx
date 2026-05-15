@@ -4,6 +4,11 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import {
+  useCreateLabel,
+  useDeleteLabel,
+  useLabels,
+} from "@/features/labels/api";
+import {
   type WorkspaceRole,
   useInviteMember,
   useMembers,
@@ -23,7 +28,13 @@ export default function WorkspaceSettings() {
   const updateRoleMutation = useUpdateMemberRole(wsId);
   const removeMutation = useRemoveMember(wsId);
 
+  const { data: labels = [], isLoading: labelsLoading } = useLabels(wsId);
+  const createLabelMutation = useCreateLabel(wsId);
+  const deleteLabelMutation = useDeleteLabel(wsId);
+
   const [inviteEmail, setInviteEmail] = useState("");
+  const [labelName, setLabelName] = useState("");
+  const [labelColor, setLabelColor] = useState("#6366f1");
 
   async function onInvite(e: React.FormEvent) {
     e.preventDefault();
@@ -48,6 +59,38 @@ export default function WorkspaceSettings() {
       const detail =
         (err as { response?: { data?: { detail?: string } } }).response?.data
           ?.detail ?? "Failed to update role";
+      toast.error(detail);
+    }
+  }
+
+  async function onAddLabel(e: React.FormEvent) {
+    e.preventDefault();
+    if (!labelName.trim()) return;
+    try {
+      await createLabelMutation.mutateAsync({
+        name: labelName.trim(),
+        color: labelColor,
+      });
+      toast.success(`Label "${labelName.trim()}" created`);
+      setLabelName("");
+      setLabelColor("#6366f1");
+    } catch (err) {
+      const detail =
+        (err as { response?: { data?: { detail?: string } } }).response?.data
+          ?.detail ?? "Failed to create label";
+      toast.error(detail);
+    }
+  }
+
+  async function onDeleteLabel(labelId: string, name: string) {
+    if (!confirm(`Delete label "${name}"?`)) return;
+    try {
+      await deleteLabelMutation.mutateAsync(labelId);
+      toast.success("Label deleted");
+    } catch (err) {
+      const detail =
+        (err as { response?: { data?: { detail?: string } } }).response?.data
+          ?.detail ?? "Failed to delete label";
       toast.error(detail);
     }
   }
@@ -143,6 +186,74 @@ export default function WorkspaceSettings() {
             })}
           </div>
         )}
+      </section>
+
+      <section className="space-y-4">
+        <h2 className="text-lg font-semibold text-slate-800">Labels</h2>
+
+        {labelsLoading ? (
+          <p className="text-sm text-muted-foreground">Loading…</p>
+        ) : (
+          <div className="rounded border border-slate-200 bg-white divide-y divide-slate-100">
+            {labels.length === 0 ? (
+              <p className="px-4 py-3 text-sm text-muted-foreground">
+                No labels yet.
+              </p>
+            ) : (
+              labels.map((label) => (
+                <div
+                  key={label.id}
+                  className="flex items-center justify-between px-4 py-3 gap-4"
+                >
+                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                    <span
+                      className="inline-block h-3 w-3 rounded-full shrink-0"
+                      style={{ backgroundColor: label.color }}
+                    />
+                    <span className="text-sm text-slate-700 truncate">
+                      {label.name}
+                    </span>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="text-red-600 hover:bg-red-50 shrink-0"
+                    onClick={() => onDeleteLabel(label.id, label.name)}
+                    disabled={deleteLabelMutation.isPending}
+                  >
+                    Delete
+                  </Button>
+                </div>
+              ))
+            )}
+          </div>
+        )}
+
+        <form onSubmit={onAddLabel} className="flex gap-2 items-center">
+          <input
+            type="text"
+            className="flex-1 rounded border border-slate-300 bg-white px-3 py-1.5 text-sm"
+            placeholder="Label name"
+            value={labelName}
+            onChange={(e) => setLabelName(e.target.value)}
+            required
+          />
+          <input
+            type="color"
+            className="h-8 w-10 cursor-pointer rounded border border-slate-300 bg-white p-0.5"
+            value={labelColor}
+            onChange={(e) => setLabelColor(e.target.value)}
+            title="Pick a color"
+          />
+          <Button
+            type="submit"
+            size="sm"
+            disabled={createLabelMutation.isPending || !labelName.trim()}
+          >
+            {createLabelMutation.isPending ? "Adding…" : "Add"}
+          </Button>
+        </form>
       </section>
     </div>
   );
