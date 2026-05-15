@@ -1,0 +1,76 @@
+import { Outlet, useNavigate, useParams } from "react-router-dom";
+import { toast } from "sonner";
+import { useEffect } from "react";
+
+import { Button } from "@/components/ui/button";
+import { useWorkspaces } from "@/features/workspaces/api";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { supabase } from "@/lib/supabase";
+
+const LAST_WORKSPACE_KEY = "tracker.lastWorkspaceSlug";
+
+export function WorkspaceLayout() {
+  const { wsSlug } = useParams();
+  const navigate = useNavigate();
+  const { data: workspaces = [] } = useWorkspaces();
+  const { data: me } = useCurrentUser();
+
+  const currentWs = workspaces.find((w) => w.slug === wsSlug);
+
+  useEffect(() => {
+    if (wsSlug) localStorage.setItem(LAST_WORKSPACE_KEY, wsSlug);
+  }, [wsSlug]);
+
+  useEffect(() => {
+    if (workspaces.length > 0 && !currentWs) {
+      // The slug in the URL doesn't match any workspace; bounce to home.
+      navigate("/", { replace: true });
+    }
+  }, [workspaces, currentWs, navigate]);
+
+  async function signOut() {
+    const { error } = await supabase.auth.signOut();
+    if (error) toast.error(error.message);
+  }
+
+  return (
+    <div className="min-h-screen flex bg-slate-50">
+      <aside className="w-60 border-r border-slate-200 bg-white p-4 flex flex-col">
+        <div className="flex flex-col">
+          <span className="text-xs uppercase text-muted-foreground">
+            Workspace
+          </span>
+          <span className="font-medium text-slate-900">
+            {currentWs?.name ?? "…"}
+          </span>
+        </div>
+        <hr className="my-4" />
+        <nav className="flex-1 space-y-1 text-sm">
+          <button
+            type="button"
+            className="block w-full text-left rounded px-2 py-1 hover:bg-slate-100"
+            onClick={() => navigate(`/w/${wsSlug}`)}
+          >
+            Projects
+          </button>
+        </nav>
+        <hr className="my-4" />
+        <div className="text-xs text-muted-foreground space-y-1">
+          <div>{me?.email}</div>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="w-full"
+            onClick={signOut}
+          >
+            Sign out
+          </Button>
+        </div>
+      </aside>
+      <main className="flex-1 p-8">
+        <Outlet />
+      </main>
+    </div>
+  );
+}
