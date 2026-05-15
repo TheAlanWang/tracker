@@ -67,6 +67,7 @@ export default function App() {
           <Route path="settings" element={<WorkspaceSettings />} />
           <Route path="profile" element={<ProfileSettings />} />
           <Route path="p/:pKey/tasks/:identifier" element={<TaskDetail />} />
+          <Route path="p/:pKey/settings" element={<ProjectSettings />} />
           <Route path="p/:pKey" element={<ProjectLayout />}>
             <Route index element={<Navigate to="board" replace />} />
             <Route path="board" element={<Board />} />
@@ -74,7 +75,6 @@ export default function App() {
             <Route path="backlog" element={<Backlog />} />
             <Route path="sprints" element={<SprintList />} />
             <Route path="sprints/:sprintId" element={<SprintDetail />} />
-            <Route path="settings" element={<ProjectSettings />} />
           </Route>
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
