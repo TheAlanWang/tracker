@@ -11,8 +11,8 @@ import Browse from "@/pages/Browse";
 import Dashboard from "@/pages/Dashboard";
 import Home from "@/pages/Home";
 import Inbox from "@/pages/Inbox";
-import IssueDetail from "@/pages/IssueDetail";
-import IssueList from "@/pages/IssueList";
+import TaskDetail from "@/pages/TaskDetail";
+import TaskList from "@/pages/TaskList";
 import Login from "@/pages/Login";
 import MyIssues from "@/pages/MyIssues";
 import Onboarding from "@/pages/Onboarding";
@@ -75,11 +75,11 @@ export default function App() {
           <Route path="inbox" element={<Inbox />} />
           <Route path="my-issues" element={<MyIssues />} />
           <Route path="settings" element={<WorkspaceSettings />} />
-          <Route path="p/:pKey/issues/:identifier" element={<IssueDetail />} />
+          <Route path="p/:pKey/tasks/:identifier" element={<TaskDetail />} />
           <Route path="p/:pKey" element={<ProjectLayout />}>
             <Route index element={<Navigate to="board" replace />} />
             <Route path="board" element={<Board />} />
-            <Route path="list" element={<IssueList />} />
+            <Route path="list" element={<TaskList />} />
             <Route path="backlog" element={<Backlog />} />
             <Route path="sprints" element={<SprintList />} />
             <Route path="sprints/:sprintId" element={<SprintDetail />} />

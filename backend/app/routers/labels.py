@@ -4,7 +4,7 @@ from supabase import Client
 from app.core.deps import get_current_user_id, get_supabase_admin
 from app.schemas.label import LabelCreate, LabelResponse
 from app.services.labels import (
-    IssueNotFoundError,
+    TaskNotFoundError,
     LabelNameExistsError,
     LabelNotFoundError,
     LabelPermissionError,
@@ -12,7 +12,7 @@ from app.services.labels import (
     create_label,
     delete_label,
     detach_label,
-    list_issue_labels,
+    list_task_labels,
     list_labels,
 )
 
@@ -67,51 +67,51 @@ def delete(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND) from exc
 
 
-@router.get("/issues/{i_id}/labels", response_model=list[LabelResponse])
-def list_issue_(
-    i_id: str,
+@router.get("/tasks/{t_id}/labels", response_model=list[LabelResponse])
+def list_task_(
+    t_id: str,
     user_id: str = Depends(get_current_user_id),
     supabase: Client = Depends(get_supabase_admin),
 ):
     try:
-        return list_issue_labels(supabase, user_id=user_id, issue_id=i_id)
+        return list_task_labels(supabase, user_id=user_id, task_id=t_id)
     except LabelPermissionError as exc:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN) from exc
-    except IssueNotFoundError as exc:
+    except TaskNotFoundError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND) from exc
 
 
 @router.post(
-    "/issues/{i_id}/labels/{l_id}",
+    "/tasks/{t_id}/labels/{l_id}",
     status_code=status.HTTP_204_NO_CONTENT,
 )
 def attach(
-    i_id: str,
+    t_id: str,
     l_id: str,
     user_id: str = Depends(get_current_user_id),
     supabase: Client = Depends(get_supabase_admin),
 ):
     try:
-        attach_label(supabase, user_id=user_id, issue_id=i_id, label_id=l_id)
+        attach_label(supabase, user_id=user_id, task_id=t_id, label_id=l_id)
     except LabelPermissionError as exc:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN) from exc
-    except (IssueNotFoundError, LabelNotFoundError) as exc:
+    except (TaskNotFoundError, LabelNotFoundError) as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND) from exc
 
 
 @router.delete(
-    "/issues/{i_id}/labels/{l_id}",
+    "/tasks/{t_id}/labels/{l_id}",
     status_code=status.HTTP_204_NO_CONTENT,
 )
 def detach(
-    i_id: str,
+    t_id: str,
     l_id: str,
     user_id: str = Depends(get_current_user_id),
     supabase: Client = Depends(get_supabase_admin),
 ):
     try:
-        detach_label(supabase, user_id=user_id, issue_id=i_id, label_id=l_id)
+        detach_label(supabase, user_id=user_id, task_id=t_id, label_id=l_id)
     except LabelPermissionError as exc:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN) from exc
-    except IssueNotFoundError as exc:
+    except TaskNotFoundError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND) from exc

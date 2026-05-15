@@ -15,7 +15,7 @@ ActivityAction = Literal[
 
 class ActivityResponse(BaseModel):
     id: str
-    issue_id: str
+    task_id: str
     actor_id: str | None
     action: ActivityAction
     payload: dict

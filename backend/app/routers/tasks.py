@@ -2,31 +2,31 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from supabase import Client
 
 from app.core.deps import get_current_user_id, get_supabase_admin
-from app.schemas.issue import (
-    IssueCreate,
-    IssueMove,
-    IssueResponse,
-    IssueStatus,
-    IssueUpdate,
+from app.schemas.task import (
+    TaskCreate,
+    TaskMove,
+    TaskResponse,
+    TaskStatus,
+    TaskUpdate,
 )
-from app.services.issues import (
-    IssueNotFoundError,
-    IssuePermissionError,
+from app.services.tasks import (
+    TaskNotFoundError,
+    TaskPermissionError,
     ProjectNotFoundError,
-    create_issue,
-    delete_issue,
-    get_issue,
-    list_issues,
-    list_workspace_issues,
-    move_issue,
-    update_issue,
+    create_task,
+    delete_task,
+    get_task,
+    list_tasks,
+    list_workspace_tasks,
+    move_task,
+    update_task,
 )
 
-router = APIRouter(tags=["issues"])
+router = APIRouter(tags=["tasks"])
 
 
 @router.get(
-    "/workspaces/{ws_id}/issues", response_model=list[IssueResponse]
+    "/workspaces/{ws_id}/tasks", response_model=list[TaskResponse]
 )
 def list_workspace(
     ws_id: str,
@@ -35,121 +35,121 @@ def list_workspace(
     supabase: Client = Depends(get_supabase_admin),
 ):
     try:
-        return list_workspace_issues(
+        return list_workspace_tasks(
             supabase,
             user_id=user_id,
             workspace_id=ws_id,
             assignee_id=assignee_id,
         )
-    except IssuePermissionError as exc:
+    except TaskPermissionError as exc:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN) from exc
 
 
 @router.get(
-    "/projects/{p_id}/issues", response_model=list[IssueResponse]
+    "/projects/{p_id}/tasks", response_model=list[TaskResponse]
 )
 def list_(
     p_id: str,
     # Aliased so the URL param is `?status=` but the local name is `status_filter`,
     # avoiding the shadow with the FastAPI `status` module.
-    status_filter: IssueStatus | None = Query(None, alias="status"),
+    status_filter: TaskStatus | None = Query(None, alias="status"),
     sprint: str | None = Query(None),
     user_id: str = Depends(get_current_user_id),
     supabase: Client = Depends(get_supabase_admin),
 ):
     try:
-        return list_issues(
+        return list_tasks(
             supabase, user_id=user_id, project_id=p_id,
             status=status_filter, sprint=sprint,
         )
-    except IssuePermissionError as exc:
+    except TaskPermissionError as exc:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN) from exc
     except ProjectNotFoundError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND) from exc
 
 
 @router.post(
-    "/projects/{p_id}/issues",
-    response_model=IssueResponse,
+    "/projects/{p_id}/tasks",
+    response_model=TaskResponse,
     status_code=status.HTTP_201_CREATED,
 )
 def create(
     p_id: str,
-    payload: IssueCreate,
+    payload: TaskCreate,
     user_id: str = Depends(get_current_user_id),
     supabase: Client = Depends(get_supabase_admin),
 ):
     try:
-        return create_issue(
+        return create_task(
             supabase, user_id=user_id, project_id=p_id, payload=payload
         )
-    except IssuePermissionError as exc:
+    except TaskPermissionError as exc:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN) from exc
     except ProjectNotFoundError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND) from exc
 
 
-@router.get("/issues/{i_id}", response_model=IssueResponse)
+@router.get("/tasks/{t_id}", response_model=TaskResponse)
 def get(
-    i_id: str,
+    t_id: str,
     user_id: str = Depends(get_current_user_id),
     supabase: Client = Depends(get_supabase_admin),
 ):
     try:
-        return get_issue(supabase, user_id=user_id, issue_id=i_id)
-    except IssuePermissionError as exc:
+        return get_task(supabase, user_id=user_id, task_id=t_id)
+    except TaskPermissionError as exc:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN) from exc
-    except IssueNotFoundError as exc:
+    except TaskNotFoundError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND) from exc
 
 
-@router.patch("/issues/{i_id}", response_model=IssueResponse)
+@router.patch("/tasks/{t_id}", response_model=TaskResponse)
 def update(
-    i_id: str,
-    payload: IssueUpdate,
+    t_id: str,
+    payload: TaskUpdate,
     user_id: str = Depends(get_current_user_id),
     supabase: Client = Depends(get_supabase_admin),
 ):
     try:
-        return update_issue(
-            supabase, user_id=user_id, issue_id=i_id, payload=payload
+        return update_task(
+            supabase, user_id=user_id, task_id=t_id, payload=payload
         )
-    except IssuePermissionError as exc:
+    except TaskPermissionError as exc:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN) from exc
-    except IssueNotFoundError as exc:
+    except TaskNotFoundError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND) from exc
 
 
-@router.delete("/issues/{i_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/tasks/{t_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete(
-    i_id: str,
+    t_id: str,
     user_id: str = Depends(get_current_user_id),
     supabase: Client = Depends(get_supabase_admin),
 ):
     try:
-        delete_issue(supabase, user_id=user_id, issue_id=i_id)
-    except IssuePermissionError as exc:
+        delete_task(supabase, user_id=user_id, task_id=t_id)
+    except TaskPermissionError as exc:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN) from exc
-    except IssueNotFoundError as exc:
+    except TaskNotFoundError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND) from exc
 
 
-@router.post("/issues/{i_id}/move", response_model=IssueResponse)
+@router.post("/tasks/{t_id}/move", response_model=TaskResponse)
 def move(
-    i_id: str,
-    payload: IssueMove,
+    t_id: str,
+    payload: TaskMove,
     user_id: str = Depends(get_current_user_id),
     supabase: Client = Depends(get_supabase_admin),
 ):
     try:
-        return move_issue(
+        return move_task(
             supabase,
             user_id=user_id,
-            issue_id=i_id,
+            task_id=t_id,
             status=payload.status,
             position=payload.position,
         )
-    except IssuePermissionError as exc:
+    except TaskPermissionError as exc:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN) from exc
-    except IssueNotFoundError as exc:
+    except TaskNotFoundError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND) from exc

@@ -17,7 +17,7 @@ from app.services.projects import (
 def _proj_row(**over):
     base = {
         "id": "p-1", "workspace_id": "ws-1", "name": "Backend",
-        "key": "BE", "next_issue_number": 1, "description": None,
+        "key": "BE", "next_task_number": 1, "description": None,
         "created_at": "2026-05-14T00:00:00Z", "updated_at": "2026-05-14T00:00:00Z",
     }
     base.update(over)

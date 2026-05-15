@@ -4,7 +4,7 @@ import { apiClient } from "@/api/client";
 
 export type Comment = {
   id: string;
-  issue_id: string;
+  task_id: string;
   author_id: string | null;
   body: string;
   created_at: string;
@@ -14,34 +14,34 @@ export type Comment = {
 export type CommentCreate = { body: string };
 export type CommentUpdate = { body: string };
 
-export function useComments(issueId: string) {
+export function useComments(taskId: string) {
   return useQuery<Comment[]>({
-    queryKey: ["issues", issueId, "comments"],
+    queryKey: ["tasks", taskId, "comments"],
     queryFn: async () => {
-      const { data } = await apiClient.get<Comment[]>(`/issues/${issueId}/comments`);
+      const { data } = await apiClient.get<Comment[]>(`/tasks/${taskId}/comments`);
       return data;
     },
-    enabled: !!issueId,
+    enabled: !!taskId,
   });
 }
 
-export function useCreateComment(issueId: string) {
+export function useCreateComment(taskId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (payload: CommentCreate) => {
       const { data } = await apiClient.post<Comment>(
-        `/issues/${issueId}/comments`,
+        `/tasks/${taskId}/comments`,
         payload,
       );
       return data;
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["issues", issueId, "comments"] });
+      qc.invalidateQueries({ queryKey: ["tasks", taskId, "comments"] });
     },
   });
 }
 
-export function useUpdateComment(issueId: string) {
+export function useUpdateComment(taskId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (args: { commentId: string; body: string }) => {
@@ -52,19 +52,19 @@ export function useUpdateComment(issueId: string) {
       return data;
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["issues", issueId, "comments"] });
+      qc.invalidateQueries({ queryKey: ["tasks", taskId, "comments"] });
     },
   });
 }
 
-export function useDeleteComment(issueId: string) {
+export function useDeleteComment(taskId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (commentId: string) => {
       await apiClient.delete(`/comments/${commentId}`);
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["issues", issueId, "comments"] });
+      qc.invalidateQueries({ queryKey: ["tasks", taskId, "comments"] });
     },
   });
 }

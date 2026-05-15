@@ -130,7 +130,7 @@ export function useCompleteSprint() {
       return data;
     },
     onSuccess: () => {
-      // Both sprint list and issues lists in the project are affected
+      // Both sprint list and tasks lists in the project are affected
       qc.invalidateQueries({ queryKey: ["projects"] });
       qc.invalidateQueries({ queryKey: ["sprints"] });
     },

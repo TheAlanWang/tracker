@@ -1,4 +1,4 @@
-"""Label business logic. Workspace-scoped + per-issue attach/detach."""
+"""Label business logic. Workspace-scoped + per-task attach/detach."""
 
 from postgrest.exceptions import APIError
 from supabase import Client
@@ -22,7 +22,7 @@ class LabelNameExistsError(LabelError):
     pass
 
 
-class IssueNotFoundError(LabelError):
+class TaskNotFoundError(LabelError):
     pass
 
 
@@ -93,26 +93,26 @@ def delete_label(supabase: Client, *, user_id: str, label_id: str) -> None:
     supabase.table("labels").delete().eq("id", label_id).execute()
 
 
-def list_issue_labels(
-    supabase: Client, *, user_id: str, issue_id: str
+def list_task_labels(
+    supabase: Client, *, user_id: str, task_id: str
 ) -> list[LabelResponse]:
-    issue = (
-        supabase.table("issues")
+    task = (
+        supabase.table("tasks")
         .select("workspace_id")
-        .eq("id", issue_id)
+        .eq("id", task_id)
         .single()
         .execute()
         .data
     )
-    if not issue:
-        raise IssueNotFoundError(issue_id)
-    if not _is_member(supabase, user_id=user_id, workspace_id=issue["workspace_id"]):
-        raise LabelPermissionError(issue_id)
+    if not task:
+        raise TaskNotFoundError(task_id)
+    if not _is_member(supabase, user_id=user_id, workspace_id=task["workspace_id"]):
+        raise LabelPermissionError(task_id)
     # Two-query approach: get label_ids via join table, then fetch labels
     rels = (
-        supabase.table("issue_labels")
+        supabase.table("task_labels")
         .select("label_id")
-        .eq("issue_id", issue_id)
+        .eq("task_id", task_id)
         .execute()
         .data
     )
@@ -131,20 +131,20 @@ def list_issue_labels(
 
 
 def attach_label(
-    supabase: Client, *, user_id: str, issue_id: str, label_id: str
+    supabase: Client, *, user_id: str, task_id: str, label_id: str
 ) -> None:
-    issue = (
-        supabase.table("issues")
+    task = (
+        supabase.table("tasks")
         .select("workspace_id")
-        .eq("id", issue_id)
+        .eq("id", task_id)
         .single()
         .execute()
         .data
     )
-    if not issue:
-        raise IssueNotFoundError(issue_id)
-    if not _is_member(supabase, user_id=user_id, workspace_id=issue["workspace_id"]):
-        raise LabelPermissionError(issue_id)
+    if not task:
+        raise TaskNotFoundError(task_id)
+    if not _is_member(supabase, user_id=user_id, workspace_id=task["workspace_id"]):
+        raise LabelPermissionError(task_id)
     # Verify label belongs to same workspace
     label = (
         supabase.table("labels")
@@ -154,11 +154,11 @@ def attach_label(
         .execute()
         .data
     )
-    if not label or label["workspace_id"] != issue["workspace_id"]:
+    if not label or label["workspace_id"] != task["workspace_id"]:
         raise LabelNotFoundError(label_id)
     try:
-        supabase.table("issue_labels").insert({
-            "issue_id": issue_id,
+        supabase.table("task_labels").insert({
+            "task_id": task_id,
             "label_id": label_id,
         }).execute()
     except APIError as exc:
@@ -169,24 +169,24 @@ def attach_label(
 
 
 def detach_label(
-    supabase: Client, *, user_id: str, issue_id: str, label_id: str
+    supabase: Client, *, user_id: str, task_id: str, label_id: str
 ) -> None:
-    issue = (
-        supabase.table("issues")
+    task = (
+        supabase.table("tasks")
         .select("workspace_id")
-        .eq("id", issue_id)
+        .eq("id", task_id)
         .single()
         .execute()
         .data
     )
-    if not issue:
-        raise IssueNotFoundError(issue_id)
-    if not _is_member(supabase, user_id=user_id, workspace_id=issue["workspace_id"]):
-        raise LabelPermissionError(issue_id)
+    if not task:
+        raise TaskNotFoundError(task_id)
+    if not _is_member(supabase, user_id=user_id, workspace_id=task["workspace_id"]):
+        raise LabelPermissionError(task_id)
     (
-        supabase.table("issue_labels")
+        supabase.table("task_labels")
         .delete()
-        .eq("issue_id", issue_id)
+        .eq("task_id", task_id)
         .eq("label_id", label_id)
         .execute()
     )

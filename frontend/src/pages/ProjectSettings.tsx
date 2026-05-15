@@ -111,7 +111,7 @@ export default function ProjectSettings() {
       <section className="space-y-3 border-t border-slate-200 pt-6">
         <h2 className="text-base font-semibold text-red-600">Danger zone</h2>
         <p className="text-sm text-muted-foreground">
-          Deleting this project will permanently remove all its issues and cannot
+          Deleting this project will permanently remove all its tasks and cannot
           be undone.
         </p>
         <Button

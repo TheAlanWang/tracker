@@ -1,6 +1,6 @@
 import { useNavigate, useParams } from "react-router-dom";
 
-import { useIssues } from "@/features/issues/api";
+import { useTasks } from "@/features/tasks/api";
 import { useProjects } from "@/features/projects/api";
 import { useWorkspaces } from "@/features/workspaces/api";
 
@@ -13,7 +13,7 @@ export default function Backlog() {
   const { data: projects = [] } = useProjects(currentWs?.id ?? "");
   const currentProject = projects.find((p) => p.key === pKey);
 
-  const { data: issues = [], isLoading } = useIssues(
+  const { data: issues = [], isLoading } = useTasks(
     currentProject?.id ?? "",
     { status: "backlog" },
   );
@@ -49,7 +49,7 @@ export default function Backlog() {
                   key={i.id}
                   className="cursor-pointer border-t border-slate-100 hover:bg-slate-50"
                   onClick={() =>
-                    navigate(`/w/${wsSlug}/p/${pKey}/issues/${i.identifier}`)
+                    navigate(`/w/${wsSlug}/p/${pKey}/tasks/${i.identifier}`)
                   }
                 >
                   <td className="px-3 py-2 font-mono text-xs text-slate-600">

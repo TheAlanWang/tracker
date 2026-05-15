@@ -23,14 +23,14 @@ export function useLabels(workspaceId: string) {
   });
 }
 
-export function useIssueLabels(issueId: string) {
+export function useTaskLabels(taskId: string) {
   return useQuery<Label[]>({
-    queryKey: ["issues", issueId, "labels"],
+    queryKey: ["tasks", taskId, "labels"],
     queryFn: async () => {
-      const { data } = await apiClient.get<Label[]>(`/issues/${issueId}/labels`);
+      const { data } = await apiClient.get<Label[]>(`/tasks/${taskId}/labels`);
       return data;
     },
-    enabled: !!issueId,
+    enabled: !!taskId,
   });
 }
 
@@ -50,26 +50,26 @@ export function useCreateLabel(workspaceId: string) {
   });
 }
 
-export function useAttachLabel(issueId: string) {
+export function useAttachLabel(taskId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (labelId: string) => {
-      await apiClient.post(`/issues/${issueId}/labels/${labelId}`);
+      await apiClient.post(`/tasks/${taskId}/labels/${labelId}`);
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["issues", issueId, "labels"] });
+      qc.invalidateQueries({ queryKey: ["tasks", taskId, "labels"] });
     },
   });
 }
 
-export function useDetachLabel(issueId: string) {
+export function useDetachLabel(taskId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (labelId: string) => {
-      await apiClient.delete(`/issues/${issueId}/labels/${labelId}`);
+      await apiClient.delete(`/tasks/${taskId}/labels/${labelId}`);
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["issues", issueId, "labels"] });
+      qc.invalidateQueries({ queryKey: ["tasks", taskId, "labels"] });
     },
   });
 }

@@ -73,7 +73,7 @@ export default function Inbox() {
     if (identifier) {
       // identifier format: "KEY-N" — need project key
       const projectKey = identifier.split("-")[0];
-      navigate(`/w/${wsSlug}/p/${projectKey}/issues/${identifier}`);
+      navigate(`/w/${wsSlug}/p/${projectKey}/tasks/${identifier}`);
     }
   }
 

@@ -9,7 +9,7 @@ import { addRecent, getRecents, type RecentItem } from "@/lib/recents";
 
 const TYPE_LABEL: Record<SearchResult["type"], string> = {
   project: "Projects",
-  issue: "Issues",
+  task: "Tasks",
   label: "Labels",
 };
 
@@ -65,7 +65,7 @@ export function CommandPalette() {
           <Command.Input
             value={query}
             onValueChange={setQuery}
-            placeholder="Search projects, issues, labels…"
+            placeholder="Search projects, tasks, labels…"
             className="w-full px-4 py-3 text-sm outline-none border-b border-slate-200 bg-white placeholder:text-slate-400"
           />
           <Command.List className="max-h-[60vh] overflow-y-auto p-2">
@@ -94,7 +94,7 @@ export function CommandPalette() {
 
             {/* Search results grouped by type */}
             {query.trim() !== "" &&
-              (["project", "issue", "label"] as const).map((type) => {
+              (["project", "task", "label"] as const).map((type) => {
                 const items = byType[type];
                 if (!items || items.length === 0) return null;
                 return (

@@ -1,6 +1,6 @@
 import { useNavigate, useParams } from "react-router-dom";
 
-import { useWorkspaceIssues } from "@/features/issues/api";
+import { useWorkspaceTasks } from "@/features/tasks/api";
 import { useWorkspaces } from "@/features/workspaces/api";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 
@@ -30,19 +30,19 @@ export default function MyIssues() {
   const currentWs = workspaces.find((w) => w.slug === wsSlug);
   const wsId = currentWs?.id ?? "";
 
-  const { data: issues = [], isLoading } = useWorkspaceIssues(wsId, {
+  const { data: issues = [], isLoading } = useWorkspaceTasks(wsId, {
     assigneeId: me?.id,
   });
 
   return (
     <div className="space-y-6 max-w-5xl">
-      <h1 className="text-2xl font-bold text-slate-900">My Issues</h1>
+      <h1 className="text-2xl font-bold text-slate-900">My Tasks</h1>
 
       {isLoading && <p className="text-muted-foreground">Loading…</p>}
 
       {!isLoading && issues.length === 0 && (
         <p className="text-muted-foreground">
-          No issues assigned to you in this workspace.
+          No tasks assigned to you in this workspace.
         </p>
       )}
 
@@ -68,7 +68,7 @@ export default function MyIssues() {
                     className="cursor-pointer border-t border-slate-100 hover:bg-slate-50"
                     onClick={() =>
                       navigate(
-                        `/w/${wsSlug}/p/${pKey}/issues/${issue.identifier}`,
+                        `/w/${wsSlug}/p/${pKey}/tasks/${issue.identifier}`,
                       )
                     }
                   >

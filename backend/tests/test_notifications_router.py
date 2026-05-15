@@ -8,7 +8,7 @@ def _n(**over):
         id="n-1",
         user_id="u-1",
         type="assigned",
-        issue_id="i-1",
+        task_id="i-1",
         actor_id="u-2",
         payload={"identifier": "P-1", "title": "Fix"},
         read_at=None,

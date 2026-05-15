@@ -5,7 +5,7 @@ import remarkGfm from "remark-gfm";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
-import { type Activity, useIssueActivity } from "@/features/activity/api";
+import { type Activity, useTaskActivity } from "@/features/activity/api";
 import {
   useComments,
   useCreateComment,
@@ -14,23 +14,23 @@ import {
 import {
   useAttachLabel,
   useDetachLabel,
-  useIssueLabels,
+  useTaskLabels,
   useLabels,
 } from "@/features/labels/api";
 import {
-  IssuePriority,
-  IssueStatus,
-  useDeleteIssue,
-  useIssue,
+  TaskPriority,
+  TaskStatus,
+  useDeleteTask,
+  useTask,
   useResolveIdentifier,
-  useUpdateIssue,
-} from "@/features/issues/api";
+  useUpdateTask,
+} from "@/features/tasks/api";
 import { useMembers } from "@/features/members/api";
 import { useProjects } from "@/features/projects/api";
 import { useSprints } from "@/features/sprints/api";
 import { useWorkspaces } from "@/features/workspaces/api";
 
-const STATUSES: IssueStatus[] = [
+const STATUSES: TaskStatus[] = [
   "backlog",
   "todo",
   "in_progress",
@@ -39,7 +39,7 @@ const STATUSES: IssueStatus[] = [
   "cancelled",
 ];
 
-const PRIORITIES: IssuePriority[] = [
+const PRIORITIES: TaskPriority[] = [
   "no_priority",
   "urgent",
   "high",
@@ -62,13 +62,13 @@ function formatActivity(a: Activity): string {
     case "commented":
       return `${actor} commented`;
     case "created":
-      return `${actor} created this issue`;
+      return `${actor} created this task`;
     default:
       return `${actor} made a change`;
   }
 }
 
-export default function IssueDetail() {
+export default function TaskDetail() {
   const { wsSlug, pKey, identifier } = useParams();
   const navigate = useNavigate();
 
@@ -77,18 +77,18 @@ export default function IssueDetail() {
   const { data: projects = [] } = useProjects(currentWs?.id ?? "");
   const currentProject = projects.find((p) => p.key === pKey);
 
-  // Resolve identifier → issue_id via the /resolve endpoint (single roundtrip,
-  // not dependent on the issue list being loaded), then fetch canonical record.
+  // Resolve identifier → task_id via the /resolve endpoint (single roundtrip,
+  // not dependent on the task list being loaded), then fetch canonical record.
   const { data: resolved, isLoading: resolving, isError: resolveError } =
     useResolveIdentifier(identifier ?? "");
   const {
     data: issue,
     isLoading: issueLoading,
     isError: issueError,
-  } = useIssue(resolved?.issue_id ?? "");
+  } = useTask(resolved?.task_id ?? "");
 
-  const updateMutation = useUpdateIssue(issue?.id ?? "");
-  const deleteMutation = useDeleteIssue();
+  const updateMutation = useUpdateTask(issue?.id ?? "");
+  const deleteMutation = useDeleteTask();
 
   const { data: sprints = [] } = useSprints(currentProject?.id ?? "");
 
@@ -108,12 +108,12 @@ export default function IssueDetail() {
   const deleteCommentMutation = useDeleteComment(issue?.id ?? "");
   const [commentDraft, setCommentDraft] = useState("");
 
-  const { data: activity = [] } = useIssueActivity(issue?.id ?? "");
+  const { data: activity = [] } = useTaskActivity(issue?.id ?? "");
 
   const { data: members = [] } = useMembers(currentWs?.id ?? "");
 
   const { data: workspaceLabels = [] } = useLabels(currentWs?.id ?? "");
-  const { data: attachedLabels = [] } = useIssueLabels(issue?.id ?? "");
+  const { data: attachedLabels = [] } = useTaskLabels(issue?.id ?? "");
   const attachLabelMutation = useAttachLabel(issue?.id ?? "");
   const detachLabelMutation = useDetachLabel(issue?.id ?? "");
 
@@ -158,7 +158,7 @@ export default function IssueDetail() {
     return (
       <div className="space-y-2">
         <p className="text-slate-700">
-          Issue {identifier} could not be loaded
+          Task {identifier} could not be loaded
           {resolveError ? " (not found)" : ""}
           {issueError ? " (access denied)" : ""}.
         </p>
@@ -199,7 +199,7 @@ export default function IssueDetail() {
     if (!confirm(`Delete ${issue.identifier}?`)) return;
     try {
       await deleteMutation.mutateAsync(issue.id);
-      toast.success("Issue deleted");
+      toast.success("Task deleted");
       navigate(`/w/${wsSlug}/p/${pKey}/list`);
     } catch (err) {
       const detail =
@@ -272,7 +272,7 @@ export default function IssueDetail() {
           disabled={deleteMutation.isPending}
           className="text-red-600 hover:bg-red-50"
         >
-          Delete issue
+          Delete task
         </Button>
 
         <section className="space-y-3 pt-6 border-t border-slate-200">
@@ -339,7 +339,7 @@ export default function IssueDetail() {
           <select
             className="w-full rounded border border-slate-300 bg-white px-2 py-1 text-sm"
             value={issue.status}
-            onChange={(e) => save("status", e.target.value as IssueStatus)}
+            onChange={(e) => save("status", e.target.value as TaskStatus)}
           >
             {STATUSES.map((s) => (
               <option key={s} value={s}>
@@ -356,7 +356,7 @@ export default function IssueDetail() {
           <select
             className="w-full rounded border border-slate-300 bg-white px-2 py-1 text-sm"
             value={issue.priority}
-            onChange={(e) => save("priority", e.target.value as IssuePriority)}
+            onChange={(e) => save("priority", e.target.value as TaskPriority)}
           >
             {PRIORITIES.map((p) => (
               <option key={p} value={p}>

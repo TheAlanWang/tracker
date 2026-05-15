@@ -4,7 +4,7 @@ from datetime import date, timedelta
 
 from supabase import Client
 
-from app.schemas.dashboard import DashboardIssue, DashboardResponse, DashboardSprint
+from app.schemas.dashboard import DashboardTask, DashboardResponse, DashboardSprint
 
 
 def get_dashboard(supabase: Client, *, user_id: str) -> DashboardResponse:
@@ -47,9 +47,9 @@ def get_dashboard(supabase: Client, *, user_id: str) -> DashboardResponse:
     proj_ws_map: dict[str, str] = {r["id"]: r["workspace_id"] for r in proj_rows}
     proj_ids = list(proj_key_map.keys())
 
-    # 4. Assigned to me: issues WHERE assignee_id=user_id AND workspace_id IN ws_ids ORDER BY updated_at DESC LIMIT 20
+    # 4. Assigned to me: tasks WHERE assignee_id=user_id AND workspace_id IN ws_ids ORDER BY updated_at DESC LIMIT 20
     assigned_rows = (
-        supabase.table("issues")
+        supabase.table("tasks")
         .select("id, identifier, title, status, project_id, due_date, updated_at")
         .eq("assignee_id", user_id)
         .in_("workspace_id", ws_ids)
@@ -59,11 +59,11 @@ def get_dashboard(supabase: Client, *, user_id: str) -> DashboardResponse:
         .data
     )
 
-    # 5. Due this week: issues WHERE assignee_id=user_id AND due_date BETWEEN today AND today+7 ORDER BY due_date ASC LIMIT 20
+    # 5. Due this week: tasks WHERE assignee_id=user_id AND due_date BETWEEN today AND today+7 ORDER BY due_date ASC LIMIT 20
     today = date.today()
     week_end = today + timedelta(days=7)
     due_rows = (
-        supabase.table("issues")
+        supabase.table("tasks")
         .select("id, identifier, title, status, project_id, due_date, updated_at")
         .eq("assignee_id", user_id)
         .gte("due_date", today.isoformat())
@@ -88,10 +88,10 @@ def get_dashboard(supabase: Client, *, user_id: str) -> DashboardResponse:
             .data
         )
 
-    def _enrich_issue(row: dict) -> DashboardIssue:
+    def _enrich_task(row: dict) -> DashboardTask:
         pid = row["project_id"]
         wid = proj_ws_map.get(pid, "")
-        return DashboardIssue(
+        return DashboardTask(
             id=row["id"],
             identifier=row["identifier"],
             title=row["title"],
@@ -115,7 +115,7 @@ def get_dashboard(supabase: Client, *, user_id: str) -> DashboardResponse:
         )
 
     return DashboardResponse(
-        assigned_to_me=[_enrich_issue(r) for r in assigned_rows],
+        assigned_to_me=[_enrich_task(r) for r in assigned_rows],
         active_sprints=[_enrich_sprint(r) for r in active_sprint_rows],
-        due_this_week=[_enrich_issue(r) for r in due_rows],
+        due_this_week=[_enrich_task(r) for r in due_rows],
     )

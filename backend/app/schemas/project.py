@@ -19,7 +19,7 @@ class ProjectResponse(BaseModel):
     workspace_id: str
     name: str
     key: str
-    next_issue_number: int
+    next_task_number: int
     description: str | None
     created_at: datetime
     updated_at: datetime

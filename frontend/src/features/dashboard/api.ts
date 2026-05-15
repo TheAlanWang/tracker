@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 
 import { apiClient } from "@/api/client";
 
-export type DashboardIssue = {
+export type DashboardTask = {
   id: string;
   identifier: string;
   title: string;
@@ -23,9 +23,9 @@ export type DashboardSprint = {
 };
 
 export type Dashboard = {
-  assigned_to_me: DashboardIssue[];
+  assigned_to_me: DashboardTask[];
   active_sprints: DashboardSprint[];
-  due_this_week: DashboardIssue[];
+  due_this_week: DashboardTask[];
 };
 
 export function useDashboard() {

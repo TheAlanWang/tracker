@@ -12,15 +12,15 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  IssueStatus,
-  useCreateIssue,
-  useIssues,
-} from "@/features/issues/api";
+  TaskStatus,
+  useCreateTask,
+  useTasks,
+} from "@/features/tasks/api";
 import { useProjects } from "@/features/projects/api";
-import { useProjectIssuesRealtime } from "@/features/realtime/useProjectIssuesRealtime";
+import { useProjectTasksRealtime } from "@/features/realtime/useProjectTasksRealtime";
 import { useWorkspaces } from "@/features/workspaces/api";
 
-const STATUS_LABELS: Record<IssueStatus | "all", string> = {
+const STATUS_LABELS: Record<TaskStatus | "all", string> = {
   all: "All",
   backlog: "Backlog",
   todo: "Todo",
@@ -30,7 +30,7 @@ const STATUS_LABELS: Record<IssueStatus | "all", string> = {
   cancelled: "Cancelled",
 };
 
-const STATUS_OPTIONS: (IssueStatus | "all")[] = [
+const STATUS_OPTIONS: (TaskStatus | "all")[] = [
   "all",
   "backlog",
   "todo",
@@ -48,7 +48,7 @@ const PRIORITY_LABELS = {
   low: "Low",
 } as const;
 
-export default function IssueList() {
+export default function TaskList() {
   const { wsSlug, pKey } = useParams();
   const navigate = useNavigate();
 
@@ -56,43 +56,43 @@ export default function IssueList() {
   const currentWs = workspaces.find((w) => w.slug === wsSlug);
   const { data: projects = [] } = useProjects(currentWs?.id ?? "");
   const currentProject = projects.find((p) => p.key === pKey);
-  useProjectIssuesRealtime(currentProject?.id);
+  useProjectTasksRealtime(currentProject?.id);
 
-  const [statusFilter, setStatusFilter] = useState<IssueStatus | "all">("all");
+  const [statusFilter, setStatusFilter] = useState<TaskStatus | "all">("all");
   const {
-    data: issues = [],
+    data: tasks = [],
     isLoading,
-  } = useIssues(currentProject?.id ?? "", {
+  } = useTasks(currentProject?.id ?? "", {
     status: statusFilter === "all" ? undefined : statusFilter,
   });
 
-  const createMutation = useCreateIssue(currentProject?.id ?? "");
+  const createMutation = useCreateTask(currentProject?.id ?? "");
   const [showForm, setShowForm] = useState(false);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
 
-  const sortedIssues = useMemo(
+  const sortedTasks = useMemo(
     () =>
-      [...issues].sort(
+      [...tasks].sort(
         (a, b) =>
           new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
       ),
-    [issues],
+    [tasks],
   );
 
   async function onCreate(e: React.FormEvent) {
     e.preventDefault();
     if (!currentProject) return;
     try {
-      const issue = await createMutation.mutateAsync({ title, description });
-      toast.success(`Created ${issue.identifier}`);
+      const task = await createMutation.mutateAsync({ title, description });
+      toast.success(`Created ${task.identifier}`);
       setShowForm(false);
       setTitle("");
       setDescription("");
     } catch (err) {
       const detail =
         (err as { response?: { data?: { detail?: string } } }).response?.data
-          ?.detail ?? "Failed to create issue";
+          ?.detail ?? "Failed to create task";
       toast.error(detail);
     }
   }
@@ -107,7 +107,7 @@ export default function IssueList() {
             className="rounded border border-slate-300 bg-white px-2 py-1 text-sm"
             value={statusFilter}
             onChange={(e) =>
-              setStatusFilter(e.target.value as IssueStatus | "all")
+              setStatusFilter(e.target.value as TaskStatus | "all")
             }
           >
             {STATUS_OPTIONS.map((s) => (
@@ -117,7 +117,7 @@ export default function IssueList() {
             ))}
           </select>
           <Button onClick={() => setShowForm((v) => !v)}>
-            {showForm ? "Cancel" : "New issue"}
+            {showForm ? "Cancel" : "New task"}
           </Button>
         </div>
       </div>
@@ -125,14 +125,14 @@ export default function IssueList() {
       {showForm && (
         <Card>
           <CardHeader>
-            <CardTitle>New issue</CardTitle>
+            <CardTitle>New task</CardTitle>
           </CardHeader>
           <CardContent>
             <form onSubmit={onCreate} className="space-y-4">
               <div className="space-y-1">
-                <Label htmlFor="issue-title">Title</Label>
+                <Label htmlFor="task-title">Title</Label>
                 <Input
-                  id="issue-title"
+                  id="task-title"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   required
@@ -142,9 +142,9 @@ export default function IssueList() {
                 />
               </div>
               <div className="space-y-1">
-                <Label htmlFor="issue-desc">Description</Label>
+                <Label htmlFor="task-desc">Description</Label>
                 <textarea
-                  id="issue-desc"
+                  id="task-desc"
                   className="w-full rounded border border-slate-300 bg-white p-2 text-sm"
                   rows={4}
                   value={description}
@@ -160,13 +160,13 @@ export default function IssueList() {
         </Card>
       )}
 
-      {isLoading && <p>Loading issues…</p>}
-      {!isLoading && sortedIssues.length === 0 && (
+      {isLoading && <p>Loading tasks…</p>}
+      {!isLoading && sortedTasks.length === 0 && (
         <p className="text-muted-foreground">
-          No issues yet. Click "New issue" to create one.
+          No tasks yet. Click "New task" to create one.
         </p>
       )}
-      {sortedIssues.length > 0 && (
+      {sortedTasks.length > 0 && (
         <div className="overflow-hidden rounded border border-slate-200 bg-white">
           <table className="w-full text-sm">
             <thead className="border-b border-slate-200 bg-slate-50">
@@ -179,28 +179,28 @@ export default function IssueList() {
               </tr>
             </thead>
             <tbody>
-              {sortedIssues.map((i) => (
+              {sortedTasks.map((t) => (
                 <tr
-                  key={i.id}
+                  key={t.id}
                   className="cursor-pointer border-t border-slate-100 hover:bg-slate-50"
                   onClick={() =>
-                    navigate(`/w/${wsSlug}/p/${pKey}/issues/${i.identifier}`)
+                    navigate(`/w/${wsSlug}/p/${pKey}/tasks/${t.identifier}`)
                   }
                 >
                   <td className="px-3 py-2 font-mono text-xs text-slate-600">
-                    {i.identifier}
+                    {t.identifier}
                   </td>
-                  <td className="px-3 py-2">{i.title}</td>
+                  <td className="px-3 py-2">{t.title}</td>
                   <td className="px-3 py-2">
                     <span className="rounded bg-slate-100 px-2 py-0.5 text-xs">
-                      {STATUS_LABELS[i.status]}
+                      {STATUS_LABELS[t.status]}
                     </span>
                   </td>
                   <td className="px-3 py-2 text-xs">
-                    {PRIORITY_LABELS[i.priority]}
+                    {PRIORITY_LABELS[t.priority]}
                   </td>
                   <td className="px-3 py-2 text-xs text-muted-foreground">
-                    {new Date(i.created_at).toLocaleDateString()}
+                    {new Date(t.created_at).toLocaleDateString()}
                   </td>
                 </tr>
               ))}

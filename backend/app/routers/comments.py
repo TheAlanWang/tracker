@@ -6,7 +6,7 @@ from app.schemas.comment import CommentCreate, CommentResponse, CommentUpdate
 from app.services.comments import (
     CommentNotFoundError,
     CommentPermissionError,
-    IssueNotFoundError,
+    TaskNotFoundError,
     create_comment,
     delete_comment,
     list_comments,
@@ -16,36 +16,36 @@ from app.services.comments import (
 router = APIRouter(tags=["comments"])
 
 
-@router.get("/issues/{i_id}/comments", response_model=list[CommentResponse])
+@router.get("/tasks/{t_id}/comments", response_model=list[CommentResponse])
 def list_(
-    i_id: str,
+    t_id: str,
     user_id: str = Depends(get_current_user_id),
     supabase: Client = Depends(get_supabase_admin),
 ):
     try:
-        return list_comments(supabase, user_id=user_id, issue_id=i_id)
+        return list_comments(supabase, user_id=user_id, task_id=t_id)
     except CommentPermissionError as exc:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN) from exc
-    except IssueNotFoundError as exc:
+    except TaskNotFoundError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND) from exc
 
 
 @router.post(
-    "/issues/{i_id}/comments",
+    "/tasks/{t_id}/comments",
     response_model=CommentResponse,
     status_code=status.HTTP_201_CREATED,
 )
 def create(
-    i_id: str,
+    t_id: str,
     payload: CommentCreate,
     user_id: str = Depends(get_current_user_id),
     supabase: Client = Depends(get_supabase_admin),
 ):
     try:
-        return create_comment(supabase, user_id=user_id, issue_id=i_id, payload=payload)
+        return create_comment(supabase, user_id=user_id, task_id=t_id, payload=payload)
     except CommentPermissionError as exc:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN) from exc
-    except IssueNotFoundError as exc:
+    except TaskNotFoundError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND) from exc
 
 

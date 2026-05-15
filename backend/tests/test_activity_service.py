@@ -4,15 +4,15 @@ import pytest
 
 from app.services.activity import (
     ActivityPermissionError,
-    IssueNotFoundError,
-    list_issue_activity,
+    TaskNotFoundError,
+    list_task_activity,
 )
 
 
 def _activity_row(**over):
     base = {
         "id": "a-1",
-        "issue_id": "i-1",
+        "task_id": "i-1",
         "actor_id": "u-1",
         "action": "status_changed",
         "payload": {"from": "backlog", "to": "in_progress"},
@@ -22,7 +22,7 @@ def _activity_row(**over):
     return base
 
 
-def _issue_row(**over):
+def _task_row(**over):
     base = {"id": "i-1", "workspace_id": "ws-1", "project_id": "p-1"}
     base.update(over)
     return base
@@ -34,8 +34,8 @@ def mock_supabase():
 
 
 def test_list_activity_member_ok(mock_supabase):
-    issues_chain = MagicMock()
-    issues_chain.select.return_value.eq.return_value.single.return_value.execute.return_value.data = _issue_row()
+    tasks_chain = MagicMock()
+    tasks_chain.select.return_value.eq.return_value.single.return_value.execute.return_value.data = _task_row()
     members_chain = MagicMock()
     members_chain.select.return_value.eq.return_value.eq.return_value.execute.return_value.data = [{"role": "member"}]
     activity_chain = MagicMock()
@@ -45,8 +45,8 @@ def test_list_activity_member_ok(mock_supabase):
     ]
 
     def table_router(name):
-        if name == "issues":
-            return issues_chain
+        if name == "tasks":
+            return tasks_chain
         if name == "workspace_members":
             return members_chain
         if name == "activity_log":
@@ -55,21 +55,21 @@ def test_list_activity_member_ok(mock_supabase):
 
     mock_supabase.table.side_effect = table_router
 
-    result = list_issue_activity(mock_supabase, user_id="u-1", issue_id="i-1")
+    result = list_task_activity(mock_supabase, user_id="u-1", task_id="i-1")
     assert len(result) == 2
     assert result[0].action == "status_changed"
 
 
-def test_list_activity_issue_not_found(mock_supabase):
-    issues_chain = MagicMock()
-    issues_chain.select.return_value.eq.return_value.single.return_value.execute.return_value.data = None
+def test_list_activity_task_not_found(mock_supabase):
+    tasks_chain = MagicMock()
+    tasks_chain.select.return_value.eq.return_value.single.return_value.execute.return_value.data = None
 
     def table_router(name):
-        if name == "issues":
-            return issues_chain
+        if name == "tasks":
+            return tasks_chain
         raise AssertionError(f"unexpected: {name}")
 
     mock_supabase.table.side_effect = table_router
 
-    with pytest.raises(IssueNotFoundError):
-        list_issue_activity(mock_supabase, user_id="u-1", issue_id="missing")
+    with pytest.raises(TaskNotFoundError):
+        list_task_activity(mock_supabase, user_id="u-1", task_id="missing")

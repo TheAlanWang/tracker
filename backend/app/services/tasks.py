@@ -1,4 +1,4 @@
-"""Issue business logic.
+"""Task business logic.
 
 Service functions take an admin Supabase client and the acting user_id.
 Membership against the project's workspace is verified explicitly before
@@ -7,26 +7,26 @@ any write. RLS is defense-in-depth.
 
 from supabase import Client
 
-from app.schemas.issue import (
-    IssueCreate,
-    IssueResponse,
-    IssueUpdate,
+from app.schemas.task import (
+    TaskCreate,
+    TaskResponse,
+    TaskUpdate,
 )
 
 
-class IssueError(Exception):
+class TaskError(Exception):
     pass
 
 
-class IssueNotFoundError(IssueError):
+class TaskNotFoundError(TaskError):
     pass
 
 
-class IssuePermissionError(IssueError):
+class TaskPermissionError(TaskError):
     pass
 
 
-class ProjectNotFoundError(IssueError):
+class ProjectNotFoundError(TaskError):
     pass
 
 
@@ -53,23 +53,23 @@ def _fetch_project(supabase: Client, project_id: str) -> dict | None:
     )
 
 
-def create_issue(
+def create_task(
     supabase: Client,
     *,
     user_id: str,
     project_id: str,
-    payload: IssueCreate,
-) -> IssueResponse:
+    payload: TaskCreate,
+) -> TaskResponse:
     project = _fetch_project(supabase, project_id)
     if not project:
         raise ProjectNotFoundError(project_id)
     if not _is_member(
         supabase, user_id=user_id, workspace_id=project["workspace_id"]
     ):
-        raise IssuePermissionError(project_id)
+        raise TaskPermissionError(project_id)
 
     result = supabase.rpc(
-        "create_issue_with_identifier",
+        "create_task_with_identifier",
         {
             "p_workspace_id": project["workspace_id"],
             "p_project_id": project_id,
@@ -83,27 +83,27 @@ def create_issue(
         },
     ).execute()
 
-    return IssueResponse(**result.data)
+    return TaskResponse(**result.data)
 
 
-def list_issues(
+def list_tasks(
     supabase: Client,
     *,
     user_id: str,
     project_id: str,
     status: str | None = None,
     sprint: str | None = None,
-) -> list[IssueResponse]:
+) -> list[TaskResponse]:
     project = _fetch_project(supabase, project_id)
     if not project:
         raise ProjectNotFoundError(project_id)
     if not _is_member(
         supabase, user_id=user_id, workspace_id=project["workspace_id"]
     ):
-        raise IssuePermissionError(project_id)
+        raise TaskPermissionError(project_id)
 
     query = (
-        supabase.table("issues")
+        supabase.table("tasks")
         .select("*")
         .eq("project_id", project_id)
     )
@@ -114,37 +114,37 @@ def list_issues(
     elif sprint:
         query = query.eq("sprint_id", sprint)
     rows = query.order("created_at", desc=True).limit(200).execute().data
-    return [IssueResponse(**r) for r in rows]
+    return [TaskResponse(**r) for r in rows]
 
 
-def get_issue(
-    supabase: Client, *, user_id: str, issue_id: str
-) -> IssueResponse:
+def get_task(
+    supabase: Client, *, user_id: str, task_id: str
+) -> TaskResponse:
     row = (
-        supabase.table("issues")
+        supabase.table("tasks")
         .select("*")
-        .eq("id", issue_id)
+        .eq("id", task_id)
         .single()
         .execute()
         .data
     )
     if not row:
-        raise IssueNotFoundError(issue_id)
+        raise TaskNotFoundError(task_id)
     if not _is_member(
         supabase, user_id=user_id, workspace_id=row["workspace_id"]
     ):
-        raise IssuePermissionError(issue_id)
-    return IssueResponse(**row)
+        raise TaskPermissionError(task_id)
+    return TaskResponse(**row)
 
 
-def update_issue(
+def update_task(
     supabase: Client,
     *,
     user_id: str,
-    issue_id: str,
-    payload: IssueUpdate,
-) -> IssueResponse:
-    current = get_issue(supabase, user_id=user_id, issue_id=issue_id)
+    task_id: str,
+    payload: TaskUpdate,
+) -> TaskResponse:
+    current = get_task(supabase, user_id=user_id, task_id=task_id)
 
     updates = payload.model_dump(exclude_unset=True)
     # Serialize date to ISO string for Postgres
@@ -154,35 +154,35 @@ def update_issue(
         return current
 
     updated = (
-        supabase.table("issues")
+        supabase.table("tasks")
         .update(updates)
-        .eq("id", issue_id)
+        .eq("id", task_id)
         .execute()
         .data[0]
     )
-    return IssueResponse(**updated)
+    return TaskResponse(**updated)
 
 
-def delete_issue(
-    supabase: Client, *, user_id: str, issue_id: str
+def delete_task(
+    supabase: Client, *, user_id: str, task_id: str
 ) -> None:
-    # Reuse get_issue's not-found + membership checks
-    get_issue(supabase, user_id=user_id, issue_id=issue_id)
-    supabase.table("issues").delete().eq("id", issue_id).execute()
+    # Reuse get_task's not-found + membership checks
+    get_task(supabase, user_id=user_id, task_id=task_id)
+    supabase.table("tasks").delete().eq("id", task_id).execute()
 
 
-def list_workspace_issues(
+def list_workspace_tasks(
     supabase: Client,
     *,
     user_id: str,
     workspace_id: str,
     assignee_id: str | None = None,
-) -> list[IssueResponse]:
+) -> list[TaskResponse]:
     if not _is_member(supabase, user_id=user_id, workspace_id=workspace_id):
-        raise IssuePermissionError(workspace_id)
+        raise TaskPermissionError(workspace_id)
 
     query = (
-        supabase.table("issues")
+        supabase.table("tasks")
         .select("*")
         .eq("workspace_id", workspace_id)
     )
@@ -190,34 +190,34 @@ def list_workspace_issues(
         query = query.eq("assignee_id", assignee_id)
 
     rows = query.order("updated_at", desc=True).limit(200).execute().data
-    return [IssueResponse(**r) for r in rows]
+    return [TaskResponse(**r) for r in rows]
 
 
-def move_issue(
+def move_task(
     supabase: Client,
     *,
     user_id: str,
-    issue_id: str,
+    task_id: str,
     status: str,
     position: float,
-) -> IssueResponse:
+) -> TaskResponse:
     row = (
-        supabase.table("issues")
+        supabase.table("tasks")
         .select("*")
-        .eq("id", issue_id)
+        .eq("id", task_id)
         .single()
         .execute()
         .data
     )
     if not row:
-        raise IssueNotFoundError(issue_id)
+        raise TaskNotFoundError(task_id)
     if not _is_member(supabase, user_id=user_id, workspace_id=row["workspace_id"]):
-        raise IssuePermissionError(issue_id)
+        raise TaskPermissionError(task_id)
     updated = (
-        supabase.table("issues")
+        supabase.table("tasks")
         .update({"status": status, "position": position})
-        .eq("id", issue_id)
+        .eq("id", task_id)
         .execute()
         .data[0]
     )
-    return IssueResponse(**updated)
+    return TaskResponse(**updated)

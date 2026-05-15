@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { apiClient } from "@/api/client";
 
 export type SearchResult = {
-  type: "project" | "issue" | "label";
+  type: "project" | "task" | "label";
   id: string;
   label: string;
   sublabel: string | null;

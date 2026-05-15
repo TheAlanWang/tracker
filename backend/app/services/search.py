@@ -58,9 +58,9 @@ def search(
             for r in rows
         ]
 
-    def _search_issues() -> list[SearchResult]:
+    def _search_tasks() -> list[SearchResult]:
         rows = (
-            supabase.table("issues")
+            supabase.table("tasks")
             .select("id, identifier, title, project_id")
             .eq("workspace_id", workspace_id)
             .or_(f"identifier.ilike.%{q}%,title.ilike.%{q}%")
@@ -87,11 +87,11 @@ def search(
             identifier = r["identifier"]
             results.append(
                 SearchResult(
-                    type="issue",
+                    type="task",
                     id=r["id"],
                     label=r["title"],
                     sublabel=identifier,
-                    href=f"{base}/p/{proj_key}/issues/{identifier}",
+                    href=f"{base}/p/{proj_key}/tasks/{identifier}",
                 )
             )
         return results
@@ -121,7 +121,7 @@ def search(
     with ThreadPoolExecutor(max_workers=3) as pool:
         futures = {
             pool.submit(_search_projects): "projects",
-            pool.submit(_search_issues): "issues",
+            pool.submit(_search_tasks): "tasks",
             pool.submit(_search_labels): "labels",
         }
         for future in as_completed(futures):
@@ -130,6 +130,6 @@ def search(
 
     results: list[SearchResult] = []
     results += buckets.get("projects", [])
-    results += buckets.get("issues", [])
+    results += buckets.get("tasks", [])
     results += buckets.get("labels", [])
     return results

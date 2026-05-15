@@ -3,7 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
-import { useIssues } from "@/features/issues/api";
+import { useTasks } from "@/features/tasks/api";
 import {
   useCompleteSprint,
   useDeleteSprint,
@@ -17,7 +17,7 @@ export default function SprintDetail() {
   const navigate = useNavigate();
 
   const { data: sprint } = useSprint(sprintId ?? "");
-  const { data: issues = [] } = useIssues(sprint?.project_id ?? "", {
+  const { data: issues = [] } = useTasks(sprint?.project_id ?? "", {
     sprint: sprintId,
   });
 
@@ -52,7 +52,7 @@ export default function SprintDetail() {
     if (!sprint) return;
     if (
       !confirm(
-        `Complete ${sprint.name}? Unfinished issues will roll over to the next planned sprint, or to the backlog.`,
+        `Complete ${sprint.name}? Unfinished tasks will roll over to the next planned sprint, or to the backlog.`,
       )
     )
       return;
@@ -60,9 +60,9 @@ export default function SprintDetail() {
       const result = await completeMutation.mutateAsync(sprint.id);
       toast.success(
         result.rolled_over_to
-          ? `Completed. ${result.count} issues rolled over.`
+          ? `Completed. ${result.count} tasks rolled over.`
           : result.count
-            ? `Completed. ${result.count} unfinished issues moved to backlog.`
+            ? `Completed. ${result.count} unfinished tasks moved to backlog.`
             : `Completed.`,
       );
     } catch (err) {
@@ -132,10 +132,10 @@ export default function SprintDetail() {
 
       <section className="space-y-2">
         <h2 className="text-sm font-semibold uppercase text-muted-foreground">
-          Issues ({issues.length})
+          Tasks ({issues.length})
         </h2>
         {issues.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No issues assigned.</p>
+          <p className="text-sm text-muted-foreground">No tasks assigned.</p>
         ) : (
           <div className="overflow-hidden rounded border border-slate-200 bg-white">
             <table className="w-full text-sm">
@@ -152,7 +152,7 @@ export default function SprintDetail() {
                     key={i.id}
                     className="cursor-pointer border-t border-slate-100 hover:bg-slate-50"
                     onClick={() =>
-                      navigate(`/w/${wsSlug}/p/${pKey}/issues/${i.identifier}`)
+                      navigate(`/w/${wsSlug}/p/${pKey}/tasks/${i.identifier}`)
                     }
                   >
                     <td className="px-3 py-2 font-mono text-xs text-slate-600">

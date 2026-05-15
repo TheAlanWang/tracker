@@ -3,7 +3,7 @@ import { toast } from "sonner";
 
 import { apiClient } from "@/api/client";
 
-export type IssueStatus =
+export type TaskStatus =
   | "backlog"
   | "todo"
   | "in_progress"
@@ -11,14 +11,14 @@ export type IssueStatus =
   | "done"
   | "cancelled";
 
-export type IssuePriority =
+export type TaskPriority =
   | "no_priority"
   | "urgent"
   | "high"
   | "medium"
   | "low";
 
-export type Issue = {
+export type Task = {
   id: string;
   workspace_id: string;
   project_id: string;
@@ -27,8 +27,8 @@ export type Issue = {
   identifier: string;
   title: string;
   description: string;
-  status: IssueStatus;
-  priority: IssuePriority;
+  status: TaskStatus;
+  priority: TaskPriority;
   assignee_id: string | null;
   reporter_id: string | null;
   due_date: string | null; // ISO date
@@ -37,37 +37,37 @@ export type Issue = {
   updated_at: string;
 };
 
-export type IssueCreate = {
+export type TaskCreate = {
   title: string;
   description?: string;
-  status?: IssueStatus;
-  priority?: IssuePriority;
+  status?: TaskStatus;
+  priority?: TaskPriority;
   assignee_id?: string | null;
   due_date?: string | null;
 };
 
-export type IssueUpdate = Partial<{
+export type TaskUpdate = Partial<{
   title: string;
   description: string;
-  status: IssueStatus;
-  priority: IssuePriority;
+  status: TaskStatus;
+  priority: TaskPriority;
   assignee_id: string | null;
   due_date: string | null;
   sprint_id: string | null;
 }>;
 
-export function useWorkspaceIssues(
+export function useWorkspaceTasks(
   workspaceId: string,
   opts: { assigneeId?: string } = {},
 ) {
-  return useQuery<Issue[]>({
-    queryKey: ["workspaces", workspaceId, "issues", opts],
+  return useQuery<Task[]>({
+    queryKey: ["workspaces", workspaceId, "tasks", opts],
     queryFn: async () => {
       const params = new URLSearchParams();
       if (opts.assigneeId) params.set("assignee_id", opts.assigneeId);
       const qs = params.toString();
-      const { data } = await apiClient.get<Issue[]>(
-        `/workspaces/${workspaceId}/issues${qs ? `?${qs}` : ""}`,
+      const { data } = await apiClient.get<Task[]>(
+        `/workspaces/${workspaceId}/tasks${qs ? `?${qs}` : ""}`,
       );
       return data;
     },
@@ -75,19 +75,19 @@ export function useWorkspaceIssues(
   });
 }
 
-export function useIssues(
+export function useTasks(
   projectId: string,
-  opts: { status?: IssueStatus; sprint?: string | "null" } = {},
+  opts: { status?: TaskStatus; sprint?: string | "null" } = {},
 ) {
-  return useQuery<Issue[]>({
-    queryKey: ["projects", projectId, "issues", opts],
+  return useQuery<Task[]>({
+    queryKey: ["projects", projectId, "tasks", opts],
     queryFn: async () => {
       const params = new URLSearchParams();
       if (opts.status) params.set("status", opts.status);
       if (opts.sprint) params.set("sprint", opts.sprint);
       const qs = params.toString();
-      const { data } = await apiClient.get<Issue[]>(
-        `/projects/${projectId}/issues${qs ? `?${qs}` : ""}`,
+      const { data } = await apiClient.get<Task[]>(
+        `/projects/${projectId}/tasks${qs ? `?${qs}` : ""}`,
       );
       return data;
     },
@@ -95,21 +95,21 @@ export function useIssues(
   });
 }
 
-export function useIssue(issueId: string) {
-  return useQuery<Issue>({
-    queryKey: ["issues", issueId],
+export function useTask(taskId: string) {
+  return useQuery<Task>({
+    queryKey: ["tasks", taskId],
     queryFn: async () => {
-      const { data } = await apiClient.get<Issue>(`/issues/${issueId}`);
+      const { data } = await apiClient.get<Task>(`/tasks/${taskId}`);
       return data;
     },
-    enabled: !!issueId,
+    enabled: !!taskId,
   });
 }
 
 export type ResolvedIdentifier = {
   workspace_slug: string;
   project_key: string;
-  issue_id: string;
+  task_id: string;
   identifier: string;
 };
 
@@ -127,85 +127,85 @@ export function useResolveIdentifier(identifier: string) {
   });
 }
 
-export function useCreateIssue(projectId: string) {
+export function useCreateTask(projectId: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (payload: IssueCreate) => {
-      const { data } = await apiClient.post<Issue>(
-        `/projects/${projectId}/issues`,
+    mutationFn: async (payload: TaskCreate) => {
+      const { data } = await apiClient.post<Task>(
+        `/projects/${projectId}/tasks`,
         payload,
       );
       return data;
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["projects", projectId, "issues"] });
+      qc.invalidateQueries({ queryKey: ["projects", projectId, "tasks"] });
     },
   });
 }
 
-export function useUpdateIssue(issueId: string) {
+export function useUpdateTask(taskId: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (payload: IssueUpdate) => {
-      const { data } = await apiClient.patch<Issue>(
-        `/issues/${issueId}`,
+    mutationFn: async (payload: TaskUpdate) => {
+      const { data } = await apiClient.patch<Task>(
+        `/tasks/${taskId}`,
         payload,
       );
       return data;
     },
-    onSuccess: (issue) => {
-      qc.setQueryData(["issues", issueId], issue);
-      // Invalidate any list this issue might appear in
+    onSuccess: (task) => {
+      qc.setQueryData(["tasks", taskId], task);
+      // Invalidate any list this task might appear in
       qc.invalidateQueries({
-        queryKey: ["projects", issue.project_id, "issues"],
+        queryKey: ["projects", task.project_id, "tasks"],
       });
     },
   });
 }
 
-export function useDeleteIssue() {
+export function useDeleteTask() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (issueId: string) => {
-      await apiClient.delete(`/issues/${issueId}`);
+    mutationFn: async (taskId: string) => {
+      await apiClient.delete(`/tasks/${taskId}`);
     },
     onSuccess: () => {
-      // Issues lists across projects might need invalidating, but in Plan 3
+      // Task lists across projects might need invalidating, but in Plan 3
       // the delete is always called from within a project context.
       qc.invalidateQueries({ queryKey: ["projects"] });
     },
   });
 }
 
-export function useMoveIssue(projectId: string) {
+export function useMoveTask(projectId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (args: {
-      issueId: string;
-      status: IssueStatus;
+      taskId: string;
+      status: TaskStatus;
       position: number;
     }) => {
-      const { data } = await apiClient.post<Issue>(
-        `/issues/${args.issueId}/move`,
+      const { data } = await apiClient.post<Task>(
+        `/tasks/${args.taskId}/move`,
         { status: args.status, position: args.position },
       );
       return data;
     },
     onMutate: async (args) => {
-      // Snapshot all issues queries for this project (any status filter variant)
-      await qc.cancelQueries({ queryKey: ["projects", projectId, "issues"] });
-      const snapshot = qc.getQueriesData<Issue[]>({
-        queryKey: ["projects", projectId, "issues"],
+      // Snapshot all tasks queries for this project (any status filter variant)
+      await qc.cancelQueries({ queryKey: ["projects", projectId, "tasks"] });
+      const snapshot = qc.getQueriesData<Task[]>({
+        queryKey: ["projects", projectId, "tasks"],
       });
-      // Update each cached list: mutate the issue in place
-      qc.setQueriesData<Issue[]>(
-        { queryKey: ["projects", projectId, "issues"] },
+      // Update each cached list: mutate the task in place
+      qc.setQueriesData<Task[]>(
+        { queryKey: ["projects", projectId, "tasks"] },
         (old) => {
           if (!old) return old;
-          return old.map((i) =>
-            i.id === args.issueId
-              ? { ...i, status: args.status, position: args.position }
-              : i,
+          return old.map((t) =>
+            t.id === args.taskId
+              ? { ...t, status: args.status, position: args.position }
+              : t,
           );
         },
       );
@@ -213,10 +213,10 @@ export function useMoveIssue(projectId: string) {
     },
     onError: (_err, _args, ctx) => {
       ctx?.snapshot.forEach(([key, data]) => qc.setQueryData(key, data));
-      toast.error("Failed to move issue");
+      toast.error("Failed to move task");
     },
     onSettled: () => {
-      qc.invalidateQueries({ queryKey: ["projects", projectId, "issues"] });
+      qc.invalidateQueries({ queryKey: ["projects", projectId, "tasks"] });
     },
   });
 }

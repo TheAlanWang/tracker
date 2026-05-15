@@ -2,7 +2,7 @@ from datetime import date, datetime
 from pydantic import BaseModel
 
 
-class DashboardIssue(BaseModel):
+class DashboardTask(BaseModel):
     id: str
     identifier: str
     title: str
@@ -23,6 +23,6 @@ class DashboardSprint(BaseModel):
 
 
 class DashboardResponse(BaseModel):
-    assigned_to_me: list[DashboardIssue]
+    assigned_to_me: list[DashboardTask]
     active_sprints: list[DashboardSprint]
-    due_this_week: list[DashboardIssue]
+    due_this_week: list[DashboardTask]

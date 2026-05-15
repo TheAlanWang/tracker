@@ -2,16 +2,16 @@ import { useNavigate } from "react-router-dom";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
-  type DashboardIssue,
+  type DashboardTask,
   type DashboardSprint,
   useDashboard,
 } from "@/features/dashboard/api";
 
-function IssueRow({
+function TaskRow({
   issue,
   onClick,
 }: {
-  issue: DashboardIssue;
+  issue: DashboardTask;
   onClick: () => void;
 }) {
   return (
@@ -90,17 +90,17 @@ export default function Dashboard() {
         <CardContent className="p-2">
           {assigned.length === 0 ? (
             <p className="text-sm text-muted-foreground px-3 py-2">
-              No issues assigned to you
+              No tasks assigned to you
             </p>
           ) : (
             <div className="divide-y divide-slate-100">
               {assigned.map((issue) => (
-                <IssueRow
+                <TaskRow
                   key={issue.id}
                   issue={issue}
                   onClick={() =>
                     navigate(
-                      `/w/${issue.workspace_slug}/p/${issue.project_key}/issues/${issue.identifier}`,
+                      `/w/${issue.workspace_slug}/p/${issue.project_key}/tasks/${issue.identifier}`,
                     )
                   }
                 />
@@ -118,17 +118,17 @@ export default function Dashboard() {
         <CardContent className="p-2">
           {dueThisWeek.length === 0 ? (
             <p className="text-sm text-muted-foreground px-3 py-2">
-              No issues due this week
+              No tasks due this week
             </p>
           ) : (
             <div className="divide-y divide-slate-100">
               {dueThisWeek.map((issue) => (
-                <IssueRow
+                <TaskRow
                   key={issue.id}
                   issue={issue}
                   onClick={() =>
                     navigate(
-                      `/w/${issue.workspace_slug}/p/${issue.project_key}/issues/${issue.identifier}`,
+                      `/w/${issue.workspace_slug}/p/${issue.project_key}/tasks/${issue.identifier}`,
                     )
                   }
                 />

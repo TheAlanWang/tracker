@@ -13,7 +13,7 @@ class CommentUpdate(BaseModel):
 
 class CommentResponse(BaseModel):
     id: str
-    issue_id: str
+    task_id: str
     author_id: str | None
     body: str
     created_at: datetime

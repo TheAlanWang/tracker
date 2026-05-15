@@ -276,7 +276,7 @@ function SidebarNav({ wsSlug, currentWsId }: { wsSlug: string; currentWsId: stri
 
   async function onDelete(e: React.MouseEvent, projectId: string, projectName: string) {
     e.stopPropagation();
-    if (!confirm(`Delete project "${projectName}"? Deletes all its issues and sprints.`)) return;
+    if (!confirm(`Delete project "${projectName}"? Deletes all its tasks and sprints.`)) return;
     try {
       await deleteMutation.mutateAsync(projectId);
       toast.success(`Deleted ${projectName}`);
@@ -304,7 +304,7 @@ function SidebarNav({ wsSlug, currentWsId }: { wsSlug: string; currentWsId: stri
         className="block w-full text-left rounded px-2 py-1 hover:bg-slate-100"
         onClick={() => navigate(`/w/${wsSlug}/my-issues`)}
       >
-        My issues
+        My tasks
       </button>
       <button
         type="button"

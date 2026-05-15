@@ -1,4 +1,4 @@
-"""Comment business logic. Membership derived via comment→issue→workspace_id."""
+"""Comment business logic. Membership derived via comment→task→workspace_id."""
 
 from supabase import Client
 
@@ -17,7 +17,7 @@ class CommentPermissionError(CommentError):
     pass
 
 
-class IssueNotFoundError(CommentError):
+class TaskNotFoundError(CommentError):
     pass
 
 
@@ -33,34 +33,34 @@ def _is_member(supabase: Client, *, user_id: str, workspace_id: str) -> bool:
     return bool(rows)
 
 
-def _fetch_issue(supabase: Client, issue_id: str) -> dict | None:
+def _fetch_task(supabase: Client, task_id: str) -> dict | None:
     return (
-        supabase.table("issues")
+        supabase.table("tasks")
         .select("*")
-        .eq("id", issue_id)
+        .eq("id", task_id)
         .single()
         .execute()
         .data
     )
 
 
-def _ensure_member_via_issue(supabase: Client, user_id: str, issue_id: str) -> dict:
-    issue = _fetch_issue(supabase, issue_id)
-    if not issue:
-        raise IssueNotFoundError(issue_id)
-    if not _is_member(supabase, user_id=user_id, workspace_id=issue["workspace_id"]):
-        raise CommentPermissionError(issue_id)
-    return issue
+def _ensure_member_via_task(supabase: Client, user_id: str, task_id: str) -> dict:
+    task = _fetch_task(supabase, task_id)
+    if not task:
+        raise TaskNotFoundError(task_id)
+    if not _is_member(supabase, user_id=user_id, workspace_id=task["workspace_id"]):
+        raise CommentPermissionError(task_id)
+    return task
 
 
 def list_comments(
-    supabase: Client, *, user_id: str, issue_id: str
+    supabase: Client, *, user_id: str, task_id: str
 ) -> list[CommentResponse]:
-    _ensure_member_via_issue(supabase, user_id, issue_id)
+    _ensure_member_via_task(supabase, user_id, task_id)
     rows = (
         supabase.table("comments")
         .select("*")
-        .eq("issue_id", issue_id)
+        .eq("task_id", task_id)
         .order("created_at")
         .execute()
         .data
@@ -69,13 +69,13 @@ def list_comments(
 
 
 def create_comment(
-    supabase: Client, *, user_id: str, issue_id: str, payload: CommentCreate
+    supabase: Client, *, user_id: str, task_id: str, payload: CommentCreate
 ) -> CommentResponse:
-    _ensure_member_via_issue(supabase, user_id, issue_id)
+    _ensure_member_via_task(supabase, user_id, task_id)
     row = (
         supabase.table("comments")
         .insert({
-            "issue_id": issue_id,
+            "task_id": task_id,
             "author_id": user_id,
             "body": payload.body,
         })

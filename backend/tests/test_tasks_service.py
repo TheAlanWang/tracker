@@ -2,21 +2,21 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from app.schemas.issue import IssueCreate, IssueUpdate
-from app.services.issues import (
-    IssueNotFoundError,
-    IssuePermissionError,
+from app.schemas.task import TaskCreate, TaskUpdate
+from app.services.tasks import (
+    TaskNotFoundError,
+    TaskPermissionError,
     ProjectNotFoundError,
-    create_issue,
-    delete_issue,
-    get_issue,
-    list_issues,
-    move_issue,
-    update_issue,
+    create_task,
+    delete_task,
+    get_task,
+    list_tasks,
+    move_task,
+    update_task,
 )
 
 
-def _issue_row(**over):
+def _task_row(**over):
     base = {
         "id": "i-1",
         "workspace_id": "ws-1",
@@ -24,7 +24,7 @@ def _issue_row(**over):
         "sprint_id": None,
         "parent_id": None,
         "identifier": "BE-1",
-        "title": "Test issue",
+        "title": "Test task",
         "description": "",
         "status": "backlog",
         "priority": "no_priority",
@@ -45,7 +45,7 @@ def _project_row(**over):
         "workspace_id": "ws-1",
         "name": "Backend",
         "key": "BE",
-        "next_issue_number": 1,
+        "next_task_number": 1,
         "description": None,
         "created_at": "2026-05-14T00:00:00Z",
         "updated_at": "2026-05-14T00:00:00Z",
@@ -59,7 +59,7 @@ def mock_supabase():
     return MagicMock()
 
 
-def test_create_issue_calls_rpc_with_membership_check(mock_supabase):
+def test_create_task_calls_rpc_with_membership_check(mock_supabase):
     """Service: verify membership → fetch project → call RPC → return."""
     members_chain = MagicMock()
     members_chain.select.return_value.eq.return_value.eq.return_value.execute.return_value.data = [
@@ -78,27 +78,27 @@ def test_create_issue_calls_rpc_with_membership_check(mock_supabase):
         raise AssertionError(f"unexpected table: {name}")
 
     mock_supabase.table.side_effect = table_router
-    mock_supabase.rpc.return_value.execute.return_value.data = _issue_row()
+    mock_supabase.rpc.return_value.execute.return_value.data = _task_row()
 
-    result = create_issue(
+    result = create_task(
         mock_supabase,
         user_id="u-1",
         project_id="p-1",
-        payload=IssueCreate(title="Test issue"),
+        payload=TaskCreate(title="Test task"),
     )
 
     assert result.identifier == "BE-1"
     mock_supabase.rpc.assert_called_once()
     args, kwargs = mock_supabase.rpc.call_args
-    assert args[0] == "create_issue_with_identifier"
+    assert args[0] == "create_task_with_identifier"
     rpc_args = args[1]
     assert rpc_args["p_reporter_id"] == "u-1"
     assert rpc_args["p_workspace_id"] == "ws-1"
     assert rpc_args["p_project_id"] == "p-1"
-    assert rpc_args["p_title"] == "Test issue"
+    assert rpc_args["p_title"] == "Test task"
 
 
-def test_create_issue_non_member_raises(mock_supabase):
+def test_create_task_non_member_raises(mock_supabase):
     project_chain = MagicMock()
     project_chain.select.return_value.eq.return_value.single.return_value.execute.return_value.data = (
         _project_row()
@@ -115,17 +115,17 @@ def test_create_issue_non_member_raises(mock_supabase):
 
     mock_supabase.table.side_effect = table_router
 
-    with pytest.raises(IssuePermissionError):
-        create_issue(
+    with pytest.raises(TaskPermissionError):
+        create_task(
             mock_supabase,
             user_id="u-1",
             project_id="p-1",
-            payload=IssueCreate(title="Test"),
+            payload=TaskCreate(title="Test"),
         )
     mock_supabase.rpc.assert_not_called()
 
 
-def test_list_issues_no_filter(mock_supabase):
+def test_list_tasks_no_filter(mock_supabase):
     project_chain = MagicMock()
     project_chain.select.return_value.eq.return_value.single.return_value.execute.return_value.data = (
         _project_row()
@@ -134,9 +134,9 @@ def test_list_issues_no_filter(mock_supabase):
     members_chain.select.return_value.eq.return_value.eq.return_value.execute.return_value.data = [
         {"role": "member"}
     ]
-    issues_chain = MagicMock()
-    issues_chain.select.return_value.eq.return_value.order.return_value.limit.return_value.execute.return_value.data = [
-        _issue_row()
+    tasks_chain = MagicMock()
+    tasks_chain.select.return_value.eq.return_value.order.return_value.limit.return_value.execute.return_value.data = [
+        _task_row()
     ]
 
     def table_router(name):
@@ -144,44 +144,44 @@ def test_list_issues_no_filter(mock_supabase):
             return project_chain
         if name == "workspace_members":
             return members_chain
-        if name == "issues":
-            return issues_chain
+        if name == "tasks":
+            return tasks_chain
         raise AssertionError(f"unexpected table: {name}")
 
     mock_supabase.table.side_effect = table_router
 
-    result = list_issues(mock_supabase, user_id="u-1", project_id="p-1")
+    result = list_tasks(mock_supabase, user_id="u-1", project_id="p-1")
     assert len(result) == 1
 
 
-def test_list_issues_filters_by_sprint_null(mock_supabase):
-    """sprint='null' filters issues with sprint_id IS NULL (backlog)."""
+def test_list_tasks_filters_by_sprint_null(mock_supabase):
+    """sprint='null' filters tasks with sprint_id IS NULL (backlog)."""
     project_chain = MagicMock()
     project_chain.select.return_value.eq.return_value.single.return_value.execute.return_value.data = _project_row()
     members_chain = MagicMock()
     members_chain.select.return_value.eq.return_value.eq.return_value.execute.return_value.data = [{"role": "member"}]
-    issues_chain = MagicMock()
-    issues_chain.select.return_value.eq.return_value.is_.return_value.order.return_value.limit.return_value.execute.return_value.data = [
-        _issue_row(sprint_id=None)
+    tasks_chain = MagicMock()
+    tasks_chain.select.return_value.eq.return_value.is_.return_value.order.return_value.limit.return_value.execute.return_value.data = [
+        _task_row(sprint_id=None)
     ]
 
     def table_router(name):
         if name == "projects": return project_chain
         if name == "workspace_members": return members_chain
-        if name == "issues": return issues_chain
+        if name == "tasks": return tasks_chain
         raise AssertionError(f"unexpected: {name}")
     mock_supabase.table.side_effect = table_router
 
-    result = list_issues(mock_supabase, user_id="u-1", project_id="p-1", sprint="null")
+    result = list_tasks(mock_supabase, user_id="u-1", project_id="p-1", sprint="null")
     assert len(result) == 1
     # Verify .is_("sprint_id", None) was called
-    issues_chain.select.return_value.eq.return_value.is_.assert_called_with("sprint_id", "null")
+    tasks_chain.select.return_value.eq.return_value.is_.assert_called_with("sprint_id", "null")
 
 
-def test_get_issue_member_ok(mock_supabase):
-    issues_chain = MagicMock()
-    issues_chain.select.return_value.eq.return_value.single.return_value.execute.return_value.data = (
-        _issue_row()
+def test_get_task_member_ok(mock_supabase):
+    tasks_chain = MagicMock()
+    tasks_chain.select.return_value.eq.return_value.single.return_value.execute.return_value.data = (
+        _task_row()
     )
     members_chain = MagicMock()
     members_chain.select.return_value.eq.return_value.eq.return_value.execute.return_value.data = [
@@ -189,61 +189,61 @@ def test_get_issue_member_ok(mock_supabase):
     ]
 
     def table_router(name):
-        if name == "issues":
-            return issues_chain
+        if name == "tasks":
+            return tasks_chain
         if name == "workspace_members":
             return members_chain
         raise AssertionError(f"unexpected table: {name}")
 
     mock_supabase.table.side_effect = table_router
 
-    result = get_issue(mock_supabase, user_id="u-1", issue_id="i-1")
+    result = get_task(mock_supabase, user_id="u-1", task_id="i-1")
     assert result.id == "i-1"
 
 
-def test_update_issue_partial_only(mock_supabase):
+def test_update_task_partial_only(mock_supabase):
     """PATCH with only title set should only update title."""
-    issues_chain_fetch = MagicMock()
-    issues_chain_fetch.select.return_value.eq.return_value.single.return_value.execute.return_value.data = (
-        _issue_row()
+    tasks_chain_fetch = MagicMock()
+    tasks_chain_fetch.select.return_value.eq.return_value.single.return_value.execute.return_value.data = (
+        _task_row()
     )
     members_chain = MagicMock()
     members_chain.select.return_value.eq.return_value.eq.return_value.execute.return_value.data = [
         {"role": "member"}
     ]
-    issues_chain_update = MagicMock()
-    issues_chain_update.update.return_value.eq.return_value.execute.return_value.data = [
-        _issue_row(title="Updated")
+    tasks_chain_update = MagicMock()
+    tasks_chain_update.update.return_value.eq.return_value.execute.return_value.data = [
+        _task_row(title="Updated")
     ]
 
-    call_count = {"issues": 0}
+    call_count = {"tasks": 0}
 
     def table_router(name):
-        if name == "issues":
-            call_count["issues"] += 1
-            return issues_chain_fetch if call_count["issues"] == 1 else issues_chain_update
+        if name == "tasks":
+            call_count["tasks"] += 1
+            return tasks_chain_fetch if call_count["tasks"] == 1 else tasks_chain_update
         if name == "workspace_members":
             return members_chain
         raise AssertionError(f"unexpected table: {name}")
 
     mock_supabase.table.side_effect = table_router
 
-    result = update_issue(
+    result = update_task(
         mock_supabase,
         user_id="u-1",
-        issue_id="i-1",
-        payload=IssueUpdate(title="Updated"),
+        task_id="i-1",
+        payload=TaskUpdate(title="Updated"),
     )
     assert result.title == "Updated"
     # Verify the update call only included `title`
-    update_args = issues_chain_update.update.call_args[0][0]
+    update_args = tasks_chain_update.update.call_args[0][0]
     assert update_args == {"title": "Updated"}
 
 
-def test_update_issue_empty_payload_returns_unchanged(mock_supabase):
-    issues_chain = MagicMock()
-    issues_chain.select.return_value.eq.return_value.single.return_value.execute.return_value.data = (
-        _issue_row()
+def test_update_task_empty_payload_returns_unchanged(mock_supabase):
+    tasks_chain = MagicMock()
+    tasks_chain.select.return_value.eq.return_value.single.return_value.execute.return_value.data = (
+        _task_row()
     )
     members_chain = MagicMock()
     members_chain.select.return_value.eq.return_value.eq.return_value.execute.return_value.data = [
@@ -251,19 +251,19 @@ def test_update_issue_empty_payload_returns_unchanged(mock_supabase):
     ]
 
     def table_router(name):
-        if name == "issues":
-            return issues_chain
+        if name == "tasks":
+            return tasks_chain
         if name == "workspace_members":
             return members_chain
         raise AssertionError(f"unexpected table: {name}")
 
     mock_supabase.table.side_effect = table_router
 
-    result = update_issue(
+    result = update_task(
         mock_supabase,
         user_id="u-1",
-        issue_id="i-1",
-        payload=IssueUpdate(),  # nothing set
+        task_id="i-1",
+        payload=TaskUpdate(),  # nothing set
     )
     assert result.id == "i-1"
     # No .update(...) chain should have been invoked
@@ -273,29 +273,29 @@ def test_update_issue_empty_payload_returns_unchanged(mock_supabase):
     assert update_calls == []
 
 
-def test_delete_issue_happy_path(mock_supabase):
-    issues_chain_fetch = MagicMock()
-    issues_chain_fetch.select.return_value.eq.return_value.single.return_value.execute.return_value.data = (
-        _issue_row()
+def test_delete_task_happy_path(mock_supabase):
+    tasks_chain_fetch = MagicMock()
+    tasks_chain_fetch.select.return_value.eq.return_value.single.return_value.execute.return_value.data = (
+        _task_row()
     )
     members_chain = MagicMock()
     members_chain.select.return_value.eq.return_value.eq.return_value.execute.return_value.data = [
         {"role": "member"}
     ]
-    issues_chain_delete = MagicMock()
-    issues_chain_delete.delete.return_value.eq.return_value.execute.return_value.data = []
+    tasks_chain_delete = MagicMock()
+    tasks_chain_delete.delete.return_value.eq.return_value.execute.return_value.data = []
 
-    call_count = {"issues": 0}
+    call_count = {"tasks": 0}
 
     def table_router(name):
-        if name == "issues":
-            call_count["issues"] += 1
-            return issues_chain_fetch if call_count["issues"] == 1 else issues_chain_delete
+        if name == "tasks":
+            call_count["tasks"] += 1
+            return tasks_chain_fetch if call_count["tasks"] == 1 else tasks_chain_delete
         if name == "workspace_members":
             return members_chain
         raise AssertionError(f"unexpected table: {name}")
 
     mock_supabase.table.side_effect = table_router
 
-    result = delete_issue(mock_supabase, user_id="u-1", issue_id="i-1")
+    result = delete_task(mock_supabase, user_id="u-1", task_id="i-1")
     assert result is None

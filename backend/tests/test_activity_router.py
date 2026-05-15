@@ -6,7 +6,7 @@ from app.schemas.activity import ActivityResponse
 def _a(**over):
     base = dict(
         id="a-1",
-        issue_id="i-1",
+        task_id="i-1",
         actor_id="u-1",
         action="status_changed",
         payload={"from": "backlog", "to": "in_progress"},
@@ -18,12 +18,12 @@ def _a(**over):
 
 def test_list_activity_200(client, make_token):
     with patch(
-        "app.routers.activity.list_issue_activity",
+        "app.routers.activity.list_task_activity",
         return_value=[_a(), _a(id="a-2", action="commented")],
     ):
         token = make_token(sub="u-1")
         r = client.get(
-            "/issues/i-1/activity",
+            "/tasks/i-1/activity",
             headers={"Authorization": f"Bearer {token}"},
         )
         assert r.status_code == 200

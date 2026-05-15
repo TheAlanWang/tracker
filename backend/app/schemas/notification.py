@@ -10,7 +10,7 @@ class NotificationResponse(BaseModel):
     id: str
     user_id: str
     type: NotificationType
-    issue_id: str
+    task_id: str
     actor_id: str | None
     payload: dict
     read_at: datetime | None

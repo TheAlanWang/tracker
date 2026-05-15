@@ -14,16 +14,16 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { useNavigate, useParams } from "react-router-dom";
 
-import { Issue, IssueStatus, useIssues, useMoveIssue } from "@/features/issues/api";
+import { Task, TaskStatus, useTasks, useMoveTask } from "@/features/tasks/api";
 import { useProjects } from "@/features/projects/api";
-import { useProjectIssuesRealtime } from "@/features/realtime/useProjectIssuesRealtime";
+import { useProjectTasksRealtime } from "@/features/realtime/useProjectTasksRealtime";
 import { useWorkspaces } from "@/features/workspaces/api";
 
-// Board shows only active work statuses. New issues default to "backlog"
-// (see IssueCreate.status default) and live in the /backlog page until
-// someone moves them to "todo". "cancelled" issues are hidden from the
+// Board shows only active work statuses. New tasks default to "backlog"
+// (see TaskCreate.status default) and live in the /backlog page until
+// someone moves them to "todo". "cancelled" tasks are hidden from the
 // board too — they remain visible in the List view.
-const COLUMNS: { status: IssueStatus; label: string }[] = [
+const COLUMNS: { status: TaskStatus; label: string }[] = [
   { status: "todo", label: "Todo" },
   { status: "in_progress", label: "In progress" },
   { status: "in_review", label: "In review" },
@@ -35,7 +35,7 @@ function SortableCard({
   wsSlug,
   pKey,
 }: {
-  issue: Issue;
+  issue: Task;
   wsSlug: string;
   pKey: string;
 }) {
@@ -62,7 +62,7 @@ function SortableCard({
       {...listeners}
       onClick={() => {
         if (!isDragging) {
-          navigate(`/w/${wsSlug}/p/${pKey}/issues/${issue.identifier}`);
+          navigate(`/w/${wsSlug}/p/${pKey}/tasks/${issue.identifier}`);
         }
       }}
     >
@@ -80,8 +80,8 @@ function Column({
   wsSlug,
   pKey,
 }: {
-  col: { status: IssueStatus; label: string };
-  items: Issue[];
+  col: { status: TaskStatus; label: string };
+  items: Task[];
   wsSlug: string;
   pKey: string;
 }) {
@@ -122,15 +122,15 @@ export default function Board() {
   const currentWs = workspaces.find((w) => w.slug === wsSlug);
   const { data: projects = [] } = useProjects(currentWs?.id ?? "");
   const currentProject = projects.find((p) => p.key === pKey);
-  const { data: issues = [] } = useIssues(currentProject?.id ?? "");
-  const moveMutation = useMoveIssue(currentProject?.id ?? "");
-  useProjectIssuesRealtime(currentProject?.id);
+  const { data: issues = [] } = useTasks(currentProject?.id ?? "");
+  const moveMutation = useMoveTask(currentProject?.id ?? "");
+  useProjectTasksRealtime(currentProject?.id);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
   );
 
-  function issuesByStatus(s: IssueStatus) {
+  function issuesByStatus(s: TaskStatus) {
     return issues
       .filter((i) => i.status === s)
       .sort((a, b) => a.position - b.position);
@@ -147,7 +147,7 @@ export default function Board() {
     const dragged = findIssue(String(active.id));
     if (!dragged) return;
 
-    let newStatus: IssueStatus = dragged.status;
+    let newStatus: TaskStatus = dragged.status;
     let newPosition = dragged.position;
 
     const overId = String(over.id);
@@ -187,7 +187,7 @@ export default function Board() {
       }
     } else if (COLUMNS.some((c) => c.status === overId)) {
       // Dropped on empty column container
-      newStatus = overId as IssueStatus;
+      newStatus = overId as TaskStatus;
       if (newStatus === dragged.status) return;
       const column = issuesByStatus(newStatus);
       newPosition =
@@ -201,7 +201,7 @@ export default function Board() {
     }
 
     moveMutation.mutate({
-      issueId: dragged.id,
+      taskId: dragged.id,
       status: newStatus,
       position: newPosition,
     });

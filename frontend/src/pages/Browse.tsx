@@ -6,7 +6,7 @@ import { apiClient } from "@/api/client";
 type ResolveResponse = {
   workspace_slug: string;
   project_key: string;
-  issue_id: string;
+  task_id: string;
   identifier: string;
 };
 
@@ -25,7 +25,7 @@ export default function Browse() {
       .get<ResolveResponse>(`/resolve/identifier/${identifier}`)
       .then(({ data }) => {
         navigate(
-          `/w/${data.workspace_slug}/p/${data.project_key}/issues/${data.identifier}`,
+          `/w/${data.workspace_slug}/p/${data.project_key}/tasks/${data.identifier}`,
           { replace: true },
         );
       })
@@ -37,7 +37,7 @@ export default function Browse() {
   if (notFound) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center gap-4">
-        <p className="text-lg font-medium text-slate-700">Issue not found</p>
+        <p className="text-lg font-medium text-slate-700">Task not found</p>
         <a href="/" className="text-sm text-blue-600 hover:underline">
           Back to home
         </a>

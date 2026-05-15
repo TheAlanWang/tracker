@@ -12,22 +12,22 @@ export type ActivityAction =
 
 export type Activity = {
   id: string;
-  issue_id: string;
+  task_id: string;
   actor_id: string | null;
   action: ActivityAction;
   payload: Record<string, unknown>;
   created_at: string;
 };
 
-export function useIssueActivity(issueId: string) {
+export function useTaskActivity(taskId: string) {
   return useQuery<Activity[]>({
-    queryKey: ["issues", issueId, "activity"],
+    queryKey: ["tasks", taskId, "activity"],
     queryFn: async () => {
       const { data } = await apiClient.get<Activity[]>(
-        `/issues/${issueId}/activity`,
+        `/tasks/${taskId}/activity`,
       );
       return data;
     },
-    enabled: !!issueId,
+    enabled: !!taskId,
   });
 }

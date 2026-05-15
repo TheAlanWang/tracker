@@ -4,7 +4,7 @@ from pydantic import BaseModel
 
 
 class SearchResult(BaseModel):
-    type: Literal["project", "issue", "label"]
+    type: Literal["project", "task", "label"]
     id: str
     label: str
     sublabel: str | None = None

@@ -32,7 +32,7 @@ def test_attach_label_204(client, make_token):
     with patch("app.routers.labels.attach_label", return_value=None):
         token = make_token(sub="u-1")
         r = client.post(
-            "/issues/i-1/labels/l-1",
+            "/tasks/i-1/labels/l-1",
             headers={"Authorization": f"Bearer {token}"},
         )
         assert r.status_code == 204

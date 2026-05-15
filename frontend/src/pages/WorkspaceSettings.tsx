@@ -75,7 +75,7 @@ export default function WorkspaceSettings() {
     if (!currentWs) return;
     if (
       !confirm(
-        `Delete workspace "${currentWs.name}"? This permanently removes all its projects, issues, sprints, comments, and labels.`,
+        `Delete workspace "${currentWs.name}"? This permanently removes all its projects, tasks, sprints, comments, and labels.`,
       )
     )
       return;

@@ -12,7 +12,7 @@ router = APIRouter(tags=["resolve"])
 class ResolveResponse(BaseModel):
     workspace_slug: str
     project_key: str
-    issue_id: str
+    task_id: str
     identifier: str
 
 
@@ -35,9 +35,9 @@ def resolve_identifier(
 
     ws_ids = [r["workspace_id"] for r in member_rows]
 
-    # Find the issue by identifier within those workspaces
-    issue_row = (
-        supabase.table("issues")
+    # Find the task by identifier within those workspaces
+    task_row = (
+        supabase.table("tasks")
         .select("id, identifier, workspace_id, project_id")
         .eq("identifier", identifier)
         .in_("workspace_id", ws_ids)
@@ -45,16 +45,16 @@ def resolve_identifier(
         .execute()
         .data
     )
-    if not issue_row:
+    if not task_row:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
 
-    issue = issue_row[0]
+    task = task_row[0]
 
     # Fetch workspace slug
     ws_row = (
         supabase.table("workspaces")
         .select("slug")
-        .eq("id", issue["workspace_id"])
+        .eq("id", task["workspace_id"])
         .single()
         .execute()
         .data
@@ -66,7 +66,7 @@ def resolve_identifier(
     proj_row = (
         supabase.table("projects")
         .select("key")
-        .eq("id", issue["project_id"])
+        .eq("id", task["project_id"])
         .single()
         .execute()
         .data
@@ -77,6 +77,6 @@ def resolve_identifier(
     return ResolveResponse(
         workspace_slug=ws_row["slug"],
         project_key=proj_row["key"],
-        issue_id=issue["id"],
-        identifier=issue["identifier"],
+        task_id=task["id"],
+        identifier=task["identifier"],
     )

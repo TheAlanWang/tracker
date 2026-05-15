@@ -1,6 +1,6 @@
 from unittest.mock import patch
 
-from app.schemas.issue import IssueResponse
+from app.schemas.task import TaskResponse
 
 
 def _r(**over):
@@ -23,25 +23,25 @@ def _r(**over):
         updated_at="2026-05-14T00:00:00Z",
     )
     base.update(over)
-    return IssueResponse(**base)
+    return TaskResponse(**base)
 
 
-def test_list_issues_200(client, make_token):
-    with patch("app.routers.issues.list_issues", return_value=[_r()]):
+def test_list_tasks_200(client, make_token):
+    with patch("app.routers.tasks.list_tasks", return_value=[_r()]):
         token = make_token(sub="u-1")
         response = client.get(
-            "/projects/p-1/issues",
+            "/projects/p-1/tasks",
             headers={"Authorization": f"Bearer {token}"},
         )
         assert response.status_code == 200
         assert len(response.json()) == 1
 
 
-def test_create_issue_201(client, make_token):
-    with patch("app.routers.issues.create_issue", return_value=_r(title="New")):
+def test_create_task_201(client, make_token):
+    with patch("app.routers.tasks.create_task", return_value=_r(title="New")):
         token = make_token(sub="u-1")
         response = client.post(
-            "/projects/p-1/issues",
+            "/projects/p-1/tasks",
             json={"title": "New"},
             headers={"Authorization": f"Bearer {token}"},
         )
@@ -49,38 +49,38 @@ def test_create_issue_201(client, make_token):
         assert response.json()["identifier"] == "BE-1"
 
 
-def test_create_issue_403(client, make_token):
-    from app.services.issues import IssuePermissionError
+def test_create_task_403(client, make_token):
+    from app.services.tasks import TaskPermissionError
     with patch(
-        "app.routers.issues.create_issue",
-        side_effect=IssuePermissionError("p-1"),
+        "app.routers.tasks.create_task",
+        side_effect=TaskPermissionError("p-1"),
     ):
         token = make_token(sub="outsider")
         response = client.post(
-            "/projects/p-1/issues",
+            "/projects/p-1/tasks",
             json={"title": "X"},
             headers={"Authorization": f"Bearer {token}"},
         )
         assert response.status_code == 403
 
 
-def test_get_issue_200(client, make_token):
-    with patch("app.routers.issues.get_issue", return_value=_r()):
+def test_get_task_200(client, make_token):
+    with patch("app.routers.tasks.get_task", return_value=_r()):
         token = make_token(sub="u-1")
         response = client.get(
-            "/issues/i-1", headers={"Authorization": f"Bearer {token}"}
+            "/tasks/i-1", headers={"Authorization": f"Bearer {token}"}
         )
         assert response.status_code == 200
 
 
-def test_move_issue_200(client, make_token):
+def test_move_task_200(client, make_token):
     with patch(
-        "app.routers.issues.move_issue",
+        "app.routers.tasks.move_task",
         return_value=_r(status="in_progress", position=1500.0),
     ):
         token = make_token(sub="u-1")
         response = client.post(
-            "/issues/i-1/move",
+            "/tasks/i-1/move",
             json={"status": "in_progress", "position": 1500.0},
             headers={"Authorization": f"Bearer {token}"},
         )

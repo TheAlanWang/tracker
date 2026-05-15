@@ -6,7 +6,7 @@ from app.schemas.comment import CommentCreate, CommentUpdate
 from app.services.comments import (
     CommentNotFoundError,
     CommentPermissionError,
-    IssueNotFoundError,
+    TaskNotFoundError,
     create_comment,
     delete_comment,
     list_comments,
@@ -17,7 +17,7 @@ from app.services.comments import (
 def _comment_row(**over):
     base = {
         "id": "c-1",
-        "issue_id": "i-1",
+        "task_id": "i-1",
         "author_id": "u-1",
         "body": "hello",
         "created_at": "2026-05-14T00:00:00Z",
@@ -27,7 +27,7 @@ def _comment_row(**over):
     return base
 
 
-def _issue_row(**over):
+def _task_row(**over):
     base = {"id": "i-1", "workspace_id": "ws-1", "project_id": "p-1"}
     base.update(over)
     return base
@@ -39,8 +39,8 @@ def mock_supabase():
 
 
 def test_list_comments_member_ok(mock_supabase):
-    issues_chain = MagicMock()
-    issues_chain.select.return_value.eq.return_value.single.return_value.execute.return_value.data = _issue_row()
+    tasks_chain = MagicMock()
+    tasks_chain.select.return_value.eq.return_value.single.return_value.execute.return_value.data = _task_row()
     members_chain = MagicMock()
     members_chain.select.return_value.eq.return_value.eq.return_value.execute.return_value.data = [{"role": "member"}]
     comments_chain = MagicMock()
@@ -49,39 +49,39 @@ def test_list_comments_member_ok(mock_supabase):
     ]
 
     def table_router(name):
-        if name == "issues": return issues_chain
+        if name == "tasks": return tasks_chain
         if name == "workspace_members": return members_chain
         if name == "comments": return comments_chain
         raise AssertionError(f"unexpected: {name}")
     mock_supabase.table.side_effect = table_router
 
-    result = list_comments(mock_supabase, user_id="u-1", issue_id="i-1")
+    result = list_comments(mock_supabase, user_id="u-1", task_id="i-1")
     assert len(result) == 2
 
 
 def test_create_comment_inserts_with_author(mock_supabase):
-    issues_chain = MagicMock()
-    issues_chain.select.return_value.eq.return_value.single.return_value.execute.return_value.data = _issue_row()
+    tasks_chain = MagicMock()
+    tasks_chain.select.return_value.eq.return_value.single.return_value.execute.return_value.data = _task_row()
     members_chain = MagicMock()
     members_chain.select.return_value.eq.return_value.eq.return_value.execute.return_value.data = [{"role": "member"}]
     comments_chain = MagicMock()
     comments_chain.insert.return_value.execute.return_value.data = [_comment_row(body="new")]
 
     def table_router(name):
-        if name == "issues": return issues_chain
+        if name == "tasks": return tasks_chain
         if name == "workspace_members": return members_chain
         if name == "comments": return comments_chain
         raise AssertionError(f"unexpected: {name}")
     mock_supabase.table.side_effect = table_router
 
     result = create_comment(
-        mock_supabase, user_id="u-1", issue_id="i-1",
+        mock_supabase, user_id="u-1", task_id="i-1",
         payload=CommentCreate(body="new"),
     )
     assert result.body == "new"
     insert_args = comments_chain.insert.call_args[0][0]
     assert insert_args == {
-        "issue_id": "i-1",
+        "task_id": "i-1",
         "author_id": "u-1",
         "body": "new",
     }

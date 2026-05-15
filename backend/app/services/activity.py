@@ -9,7 +9,7 @@ class ActivityError(Exception):
     pass
 
 
-class IssueNotFoundError(ActivityError):
+class TaskNotFoundError(ActivityError):
     pass
 
 
@@ -29,32 +29,32 @@ def _is_member(supabase: Client, *, user_id: str, workspace_id: str) -> bool:
     return bool(rows)
 
 
-def _fetch_issue(supabase: Client, issue_id: str) -> dict | None:
+def _fetch_task(supabase: Client, task_id: str) -> dict | None:
     return (
-        supabase.table("issues")
+        supabase.table("tasks")
         .select("*")
-        .eq("id", issue_id)
+        .eq("id", task_id)
         .single()
         .execute()
         .data
     )
 
 
-def list_issue_activity(
+def list_task_activity(
     supabase: Client,
     *,
     user_id: str,
-    issue_id: str,
+    task_id: str,
 ) -> list[ActivityResponse]:
-    issue = _fetch_issue(supabase, issue_id)
-    if not issue:
-        raise IssueNotFoundError(issue_id)
-    if not _is_member(supabase, user_id=user_id, workspace_id=issue["workspace_id"]):
-        raise ActivityPermissionError(issue_id)
+    task = _fetch_task(supabase, task_id)
+    if not task:
+        raise TaskNotFoundError(task_id)
+    if not _is_member(supabase, user_id=user_id, workspace_id=task["workspace_id"]):
+        raise ActivityPermissionError(task_id)
     rows = (
         supabase.table("activity_log")
         .select("*")
-        .eq("issue_id", issue_id)
+        .eq("task_id", task_id)
         .order("created_at", desc=True)
         .limit(200)
         .execute()
