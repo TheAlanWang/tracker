@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from postgrest.exceptions import APIError
 
-from app.routers import issues, me, members, projects, sprints, workspaces
+from app.routers import comments, issues, me, members, projects, sprints, workspaces
 
 app = FastAPI(title="tracker-api")
 
@@ -46,6 +46,7 @@ def health() -> dict[str, str]:
     return {"status": "ok"}
 
 
+app.include_router(comments.router)
 app.include_router(issues.router)
 app.include_router(me.router)
 app.include_router(workspaces.router)
