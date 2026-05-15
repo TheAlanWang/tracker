@@ -10,4 +10,9 @@ class WorkspaceSummary(BaseModel):
 class MeResponse(BaseModel):
     id: str
     email: str | None = None
+    display_name: str | None = None
     workspaces: list[WorkspaceSummary] = []
+
+
+class ProfileUpdate(BaseModel):
+    display_name: str | None = None

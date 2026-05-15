@@ -95,6 +95,13 @@ export function WorkspaceLayout() {
           <button
             type="button"
             className="block w-full text-left rounded px-2 py-1 hover:bg-slate-100"
+            onClick={() => navigate(`/w/${wsSlug}/my-issues`)}
+          >
+            My issues
+          </button>
+          <button
+            type="button"
+            className="block w-full text-left rounded px-2 py-1 hover:bg-slate-100"
             onClick={() => navigate(`/w/${wsSlug}/settings`)}
           >
             Settings
@@ -102,7 +109,14 @@ export function WorkspaceLayout() {
         </nav>
         <hr className="my-4" />
         <div className="text-xs text-muted-foreground space-y-1">
-          <div>{me?.email}</div>
+          <div>{me?.display_name ?? me?.email}</div>
+          <button
+            type="button"
+            className="text-xs text-blue-600 hover:underline"
+            onClick={() => navigate("/settings/profile")}
+          >
+            Profile
+          </button>
           <Button
             type="button"
             variant="outline"
