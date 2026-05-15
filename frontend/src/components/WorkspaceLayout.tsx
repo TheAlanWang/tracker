@@ -82,6 +82,13 @@ export function WorkspaceLayout() {
               </span>
             )}
           </button>
+          <button
+            type="button"
+            className="block w-full text-left rounded px-2 py-1 hover:bg-slate-100"
+            onClick={() => navigate(`/w/${wsSlug}/settings`)}
+          >
+            Settings
+          </button>
         </nav>
         <hr className="my-4" />
         <div className="text-xs text-muted-foreground space-y-1">

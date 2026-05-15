@@ -14,6 +14,7 @@ import Onboarding from "@/pages/Onboarding";
 import SprintDetail from "@/pages/SprintDetail";
 import SprintList from "@/pages/SprintList";
 import WorkspaceHome from "@/pages/WorkspaceHome";
+import WorkspaceSettings from "@/pages/WorkspaceSettings";
 
 export default function App() {
   return (
@@ -53,6 +54,7 @@ export default function App() {
           <Route path="p/:pKey/sprints" element={<SprintList />} />
           <Route path="p/:pKey/sprints/:sprintId" element={<SprintDetail />} />
           <Route path="p/:pKey/backlog" element={<Backlog />} />
+          <Route path="settings" element={<WorkspaceSettings />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
