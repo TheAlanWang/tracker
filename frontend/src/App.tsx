@@ -4,6 +4,7 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { WorkspaceLayout } from "@/components/WorkspaceLayout";
 import AuthCallback from "@/pages/AuthCallback";
 import Backlog from "@/pages/Backlog";
+import Board from "@/pages/Board";
 import Home from "@/pages/Home";
 import IssueDetail from "@/pages/IssueDetail";
 import IssueList from "@/pages/IssueList";
@@ -46,6 +47,7 @@ export default function App() {
           <Route index element={<WorkspaceHome />} />
           <Route path="p/:pKey/list" element={<IssueList />} />
           <Route path="p/:pKey/issues/:identifier" element={<IssueDetail />} />
+          <Route path="p/:pKey/board" element={<Board />} />
           <Route path="p/:pKey/sprints" element={<SprintList />} />
           <Route path="p/:pKey/sprints/:sprintId" element={<SprintDetail />} />
           <Route path="p/:pKey/backlog" element={<Backlog />} />
