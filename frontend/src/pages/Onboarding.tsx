@@ -14,7 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useCreateWorkspace } from "@/features/workspaces/api";
 
-function slugify(name: string): string {
+export function slugifyWorkspace(name: string): string {
   return name
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
@@ -25,17 +25,16 @@ function slugify(name: string): string {
 export default function Onboarding() {
   const navigate = useNavigate();
   const [name, setName] = useState("");
-  const [slug, setSlug] = useState("");
-  const [slugTouched, setSlugTouched] = useState(false);
   const createMutation = useCreateWorkspace();
 
-  function onNameChange(v: string) {
-    setName(v);
-    if (!slugTouched) setSlug(slugify(v));
-  }
+  const slug = slugifyWorkspace(name);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (slug.length < 2) {
+      toast.error("Workspace name needs at least 2 letters");
+      return;
+    }
     try {
       const ws = await createMutation.mutateAsync({ name, slug });
       toast.success(`Created workspace ${ws.name}`);
@@ -64,36 +63,18 @@ export default function Onboarding() {
               <Input
                 id="name"
                 value={name}
-                onChange={(e) => onNameChange(e.target.value)}
+                onChange={(e) => setName(e.target.value)}
                 required
                 minLength={1}
                 maxLength={100}
                 placeholder="Engineering"
+                autoFocus
               />
-            </div>
-            <div className="space-y-1">
-              <Label htmlFor="slug">URL slug</Label>
-              <Input
-                id="slug"
-                value={slug}
-                onChange={(e) => {
-                  setSlug(e.target.value);
-                  setSlugTouched(true);
-                }}
-                required
-                minLength={2}
-                maxLength={50}
-                pattern="[a-z0-9-]+"
-                placeholder="eng"
-              />
-              <p className="text-xs text-muted-foreground">
-                Used in your workspace URL: /w/{slug || "your-slug"}
-              </p>
             </div>
             <Button
               type="submit"
               className="w-full"
-              disabled={createMutation.isPending}
+              disabled={createMutation.isPending || slug.length < 2}
             >
               {createMutation.isPending ? "Creating…" : "Create workspace"}
             </Button>

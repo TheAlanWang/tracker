@@ -13,7 +13,11 @@ import {
   useProjects,
 } from "@/features/projects/api";
 import { useNotificationsRealtime } from "@/features/realtime/useNotificationsRealtime";
-import { useWorkspaces } from "@/features/workspaces/api";
+import {
+  useCreateWorkspace,
+  useWorkspaces,
+} from "@/features/workspaces/api";
+import { slugifyWorkspace } from "@/pages/Onboarding";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useCommandPaletteStore } from "@/lib/commandPaletteStore";
 import { supabase } from "@/lib/supabase";
@@ -36,6 +40,31 @@ export function WorkspaceLayout() {
   const { toggle: togglePalette } = useCommandPaletteStore();
 
   const [wsMenuOpen, setWsMenuOpen] = useState(false);
+  const [newWsModalOpen, setNewWsModalOpen] = useState(false);
+  const [newWsName, setNewWsName] = useState("");
+  const createWsMutation = useCreateWorkspace();
+
+  async function onCreateWorkspace(e: React.FormEvent) {
+    e.preventDefault();
+    const slug = slugifyWorkspace(newWsName);
+    if (slug.length < 2) {
+      toast.error("Workspace name needs at least 2 letters");
+      return;
+    }
+    try {
+      const ws = await createWsMutation.mutateAsync({ name: newWsName, slug });
+      toast.success(`Created ${ws.name}`);
+      setNewWsModalOpen(false);
+      setNewWsName("");
+      navigate(`/w/${ws.slug}`);
+    } catch (err) {
+      const detail =
+        (err as { response?: { data?: { detail?: string } } }).response?.data
+          ?.detail ?? "Failed to create workspace";
+      toast.error(detail);
+    }
+  }
+
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const wsMenuRef = useRef<HTMLDivElement>(null);
   const profileMenuRef = useRef<HTMLDivElement>(null);
@@ -142,7 +171,8 @@ export function WorkspaceLayout() {
                       type="button"
                       onClick={() => {
                         setWsMenuOpen(false);
-                        navigate("/onboarding");
+                        setNewWsName("");
+                        setNewWsModalOpen(true);
                       }}
                       className="w-full text-left px-3 py-1.5 text-sm text-blue-600 hover:bg-blue-50"
                     >
@@ -235,6 +265,53 @@ export function WorkspaceLayout() {
           <Outlet />
         </main>
       </div>
+
+      {newWsModalOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/30"
+          onClick={() => setNewWsModalOpen(false)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-sm rounded-lg bg-white shadow-xl p-5 space-y-4"
+          >
+            <h2 className="text-lg font-semibold text-slate-900">New workspace</h2>
+            <form onSubmit={onCreateWorkspace} className="space-y-3">
+              <div className="space-y-1">
+                <Label htmlFor="modal-ws-name">Name</Label>
+                <Input
+                  id="modal-ws-name"
+                  value={newWsName}
+                  onChange={(e) => setNewWsName(e.target.value)}
+                  required
+                  minLength={1}
+                  maxLength={100}
+                  placeholder="Engineering"
+                  autoFocus
+                />
+              </div>
+              <div className="flex justify-end gap-2 pt-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setNewWsModalOpen(false)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={
+                    createWsMutation.isPending ||
+                    slugifyWorkspace(newWsName).length < 2
+                  }
+                >
+                  {createWsMutation.isPending ? "Creating…" : "Create"}
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       <CommandPalette />
     </div>
