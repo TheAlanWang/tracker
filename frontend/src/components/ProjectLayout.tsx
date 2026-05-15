@@ -87,7 +87,7 @@ export function ProjectLayout() {
               setNewTaskOpen(true);
             }}
           >
-            + New task
+            + New Task
           </Button>
         </div>
         <nav className="mt-3 flex items-center gap-1">
@@ -126,8 +126,11 @@ export function ProjectLayout() {
             onClick={(e) => e.stopPropagation()}
             className="w-full max-w-md rounded-lg bg-white shadow-xl p-5 space-y-4"
           >
-            <h2 className="text-lg font-semibold text-slate-900">
-              New task in {currentProject.name}
+            <h2 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
+              <span>New Task in</span>
+              <span className="inline-flex items-center rounded-md bg-slate-100 px-2 py-0.5 text-sm font-medium text-slate-700">
+                {currentProject.name}
+              </span>
             </h2>
             <form onSubmit={onCreateTask} className="space-y-3">
               <div className="space-y-1">
@@ -170,7 +173,7 @@ export function ProjectLayout() {
                   type="submit"
                   disabled={createTaskMutation.isPending || !taskTitle.trim()}
                       >
-                  {createTaskMutation.isPending ? "Creating…" : "Create task"}
+                  {createTaskMutation.isPending ? "Creating…" : "Create Task"}
                 </Button>
               </div>
             </form>

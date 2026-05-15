@@ -436,7 +436,7 @@ function SidebarNav({ wsSlug, currentWsId }: { wsSlug: string; currentWsId: stri
         className="block w-full text-left rounded px-2 py-1 hover:bg-slate-100"
         onClick={() => navigate(`/w/${wsSlug}/my-issues`)}
       >
-        My tasks
+        My Tasks
       </button>
 
       <hr className="my-3" />
