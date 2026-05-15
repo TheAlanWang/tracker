@@ -81,7 +81,11 @@ export default function IssueDetail() {
   // not dependent on the issue list being loaded), then fetch canonical record.
   const { data: resolved, isLoading: resolving, isError: resolveError } =
     useResolveIdentifier(identifier ?? "");
-  const { data: issue } = useIssue(resolved?.issue_id ?? "");
+  const {
+    data: issue,
+    isLoading: issueLoading,
+    isError: issueError,
+  } = useIssue(resolved?.issue_id ?? "");
 
   const updateMutation = useUpdateIssue(issue?.id ?? "");
   const deleteMutation = useDeleteIssue();
@@ -150,13 +154,17 @@ export default function IssueDetail() {
     }
   }
 
-  if (resolveError) {
+  if (resolveError || issueError) {
     return (
       <div className="space-y-2">
-        <p className="text-slate-700">Issue {identifier} not found.</p>
+        <p className="text-slate-700">
+          Issue {identifier} could not be loaded
+          {resolveError ? " (not found)" : ""}
+          {issueError ? " (access denied)" : ""}.
+        </p>
         <button
           type="button"
-          onClick={() => navigate(`/w/${wsSlug}/p/${pKey}/list`)}
+          onClick={() => navigate(`/w/${wsSlug}/p/${pKey}/board`)}
           className="text-sm text-blue-600 hover:underline"
         >
           ← Back to {pKey}
@@ -164,8 +172,13 @@ export default function IssueDetail() {
       </div>
     );
   }
-  if (resolving || !issue) {
-    return <p className="text-muted-foreground">Loading…</p>;
+  if (resolving || issueLoading || !issue) {
+    return (
+      <p className="text-muted-foreground">
+        {resolving ? "Looking up " : "Loading "}
+        {identifier}…
+      </p>
+    );
   }
 
   async function save<K extends keyof typeof issue>(

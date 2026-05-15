@@ -406,10 +406,7 @@ function SidebarNav({ wsSlug, currentWsId }: { wsSlug: string; currentWsId: stri
                   : "group flex items-center justify-between rounded px-2 py-1 hover:bg-slate-100 cursor-pointer"
               }
             >
-              <div className="flex items-center gap-2 min-w-0">
-                <span className="font-mono text-xs text-slate-500 shrink-0">{p.key}</span>
-                <span className="truncate">{p.name}</span>
-              </div>
+              <span className="truncate min-w-0">{p.name}</span>
               <button
                 type="button"
                 onClick={(e) => onDelete(e, p.id, p.name)}
