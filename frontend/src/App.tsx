@@ -3,11 +3,14 @@ import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { WorkspaceLayout } from "@/components/WorkspaceLayout";
 import AuthCallback from "@/pages/AuthCallback";
+import Backlog from "@/pages/Backlog";
 import Home from "@/pages/Home";
 import IssueDetail from "@/pages/IssueDetail";
 import IssueList from "@/pages/IssueList";
 import Login from "@/pages/Login";
 import Onboarding from "@/pages/Onboarding";
+import SprintDetail from "@/pages/SprintDetail";
+import SprintList from "@/pages/SprintList";
 import WorkspaceHome from "@/pages/WorkspaceHome";
 
 export default function App() {
@@ -43,6 +46,9 @@ export default function App() {
           <Route index element={<WorkspaceHome />} />
           <Route path="p/:pKey/list" element={<IssueList />} />
           <Route path="p/:pKey/issues/:identifier" element={<IssueDetail />} />
+          <Route path="p/:pKey/sprints" element={<SprintList />} />
+          <Route path="p/:pKey/sprints/:sprintId" element={<SprintDetail />} />
+          <Route path="p/:pKey/backlog" element={<Backlog />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
