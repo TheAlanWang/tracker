@@ -5,6 +5,7 @@ import { WorkspaceLayout } from "@/components/WorkspaceLayout";
 import AuthCallback from "@/pages/AuthCallback";
 import Backlog from "@/pages/Backlog";
 import Board from "@/pages/Board";
+import Dashboard from "@/pages/Dashboard";
 import Home from "@/pages/Home";
 import Inbox from "@/pages/Inbox";
 import IssueDetail from "@/pages/IssueDetail";
@@ -35,6 +36,14 @@ export default function App() {
           element={
             <ProtectedRoute>
               <Home />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute>
+              <Dashboard />
             </ProtectedRoute>
           }
         />
