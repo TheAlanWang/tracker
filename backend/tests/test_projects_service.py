@@ -67,6 +67,35 @@ def test_list_projects_non_member_raises(mock_supabase):
 
 
 def test_get_project_non_member_raises(mock_supabase):
-    mock_supabase.table.return_value.select.return_value.eq.return_value.eq.return_value.execute.return_value.data = []
+    proj_chain = MagicMock()
+    proj_chain.select.return_value.eq.return_value.single.return_value.execute.return_value.data = _proj_row()
+
+    members_chain = MagicMock()
+    members_chain.select.return_value.eq.return_value.eq.return_value.execute.return_value.data = []
+
+    def table_router(name):
+        if name == "projects":
+            return proj_chain
+        if name == "workspace_members":
+            return members_chain
+        raise AssertionError(f"unexpected table: {name}")
+
+    mock_supabase.table.side_effect = table_router
+
     with pytest.raises(ProjectPermissionError):
         get_project(mock_supabase, user_id="u1", project_id="p-1")
+
+
+def test_get_project_not_found_raises(mock_supabase):
+    proj_chain = MagicMock()
+    proj_chain.select.return_value.eq.return_value.single.return_value.execute.return_value.data = None
+
+    def table_router(name):
+        if name == "projects":
+            return proj_chain
+        raise AssertionError(f"unexpected table: {name}")
+
+    mock_supabase.table.side_effect = table_router
+
+    with pytest.raises(ProjectNotFoundError):
+        get_project(mock_supabase, user_id="u1", project_id="missing")
