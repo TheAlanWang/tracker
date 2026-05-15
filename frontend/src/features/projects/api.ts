@@ -7,7 +7,7 @@ export type Project = {
   workspace_id: string;
   name: string;
   key: string;
-  next_issue_number: number;
+  next_task_number: number;
   description: string | null;
   created_at: string;
   updated_at: string;

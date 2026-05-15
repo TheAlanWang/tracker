@@ -6,11 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  useCreateLabel,
-  useDeleteLabel,
-  useLabels,
-} from "@/features/labels/api";
-import {
   type WorkspaceRole,
   useInviteMember,
   useMembers,
@@ -38,16 +33,10 @@ export default function WorkspaceSettings() {
   const updateRoleMutation = useUpdateMemberRole(wsId);
   const removeMutation = useRemoveMember(wsId);
 
-  const { data: labels = [], isLoading: labelsLoading } = useLabels(wsId);
-  const createLabelMutation = useCreateLabel(wsId);
-  const deleteLabelMutation = useDeleteLabel(wsId);
-
   const updateWsMutation = useUpdateWorkspace();
   const deleteWsMutation = useDeleteWorkspace();
 
   const [inviteEmail, setInviteEmail] = useState("");
-  const [labelName, setLabelName] = useState("");
-  const [labelColor, setLabelColor] = useState("#6366f1");
   const [wsName, setWsName] = useState("");
 
   useEffect(() => {
@@ -75,7 +64,7 @@ export default function WorkspaceSettings() {
     if (!currentWs) return;
     if (
       !confirm(
-        `Delete workspace "${currentWs.name}"? This permanently removes all its projects, tasks, sprints, comments, and labels.`,
+        `Delete workspace "${currentWs.name}"? This permanently removes all its projects, tasks, sprints, and comments.`,
       )
     )
       return;
@@ -123,38 +112,6 @@ export default function WorkspaceSettings() {
     }
   }
 
-  async function onAddLabel(e: React.FormEvent) {
-    e.preventDefault();
-    if (!labelName.trim()) return;
-    try {
-      await createLabelMutation.mutateAsync({
-        name: labelName.trim(),
-        color: labelColor,
-      });
-      toast.success(`Label "${labelName.trim()}" created`);
-      setLabelName("");
-      setLabelColor("#6366f1");
-    } catch (err) {
-      const detail =
-        (err as { response?: { data?: { detail?: string } } }).response?.data
-          ?.detail ?? "Failed to create label";
-      toast.error(detail);
-    }
-  }
-
-  async function onDeleteLabel(labelId: string, name: string) {
-    if (!confirm(`Delete label "${name}"?`)) return;
-    try {
-      await deleteLabelMutation.mutateAsync(labelId);
-      toast.success("Label deleted");
-    } catch (err) {
-      const detail =
-        (err as { response?: { data?: { detail?: string } } }).response?.data
-          ?.detail ?? "Failed to delete label";
-      toast.error(detail);
-    }
-  }
-
   async function onRemove(userId: string, display: string) {
     if (!confirm(`Remove ${display} from this workspace?`)) return;
     try {
@@ -169,8 +126,40 @@ export default function WorkspaceSettings() {
   }
 
   return (
-    <div className="max-w-2xl space-y-8">
-      <h1 className="text-2xl font-bold text-slate-900">Workspace Settings</h1>
+    <div className="mx-auto max-w-5xl">
+      <h1 className="text-2xl font-bold text-slate-900 mb-6">Workspace Settings</h1>
+
+      <div className="grid grid-cols-[200px_1fr] gap-8">
+        {/* Left column: workspace picker */}
+        <aside className="space-y-1">
+          <p className="text-xs uppercase text-slate-400 font-medium px-2 pb-1">
+            Workspaces
+          </p>
+          {workspaces.map((w) => (
+            <button
+              key={w.id}
+              type="button"
+              onClick={() => navigate(`/w/${w.slug}/settings`)}
+              className={
+                w.id === currentWs?.id
+                  ? "block w-full text-left rounded px-2 py-1.5 text-sm bg-slate-100 font-medium"
+                  : "block w-full text-left rounded px-2 py-1.5 text-sm hover:bg-slate-50"
+              }
+            >
+              {w.name}
+            </button>
+          ))}
+          <button
+            type="button"
+            onClick={() => navigate("/onboarding")}
+            className="block w-full text-left rounded px-2 py-1.5 text-sm text-blue-600 hover:bg-blue-50 mt-2"
+          >
+            + New workspace
+          </button>
+        </aside>
+
+        {/* Right column: settings for the selected workspace */}
+        <div className="space-y-8 min-w-0">
 
       <section className="space-y-4">
         <h2 className="text-lg font-semibold text-slate-800">General</h2>
@@ -281,74 +270,6 @@ export default function WorkspaceSettings() {
         )}
       </section>
 
-      <section className="space-y-4">
-        <h2 className="text-lg font-semibold text-slate-800">Labels</h2>
-
-        {labelsLoading ? (
-          <p className="text-sm text-muted-foreground">Loading…</p>
-        ) : (
-          <div className="rounded border border-slate-200 bg-white divide-y divide-slate-100">
-            {labels.length === 0 ? (
-              <p className="px-4 py-3 text-sm text-muted-foreground">
-                No labels yet.
-              </p>
-            ) : (
-              labels.map((label) => (
-                <div
-                  key={label.id}
-                  className="flex items-center justify-between px-4 py-3 gap-4"
-                >
-                  <div className="flex items-center gap-2 flex-1 min-w-0">
-                    <span
-                      className="inline-block h-3 w-3 rounded-full shrink-0"
-                      style={{ backgroundColor: label.color }}
-                    />
-                    <span className="text-sm text-slate-700 truncate">
-                      {label.name}
-                    </span>
-                  </div>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="text-red-600 hover:bg-red-50 shrink-0"
-                    onClick={() => onDeleteLabel(label.id, label.name)}
-                    disabled={deleteLabelMutation.isPending}
-                  >
-                    Delete
-                  </Button>
-                </div>
-              ))
-            )}
-          </div>
-        )}
-
-        <form onSubmit={onAddLabel} className="flex gap-2 items-center">
-          <input
-            type="text"
-            className="flex-1 rounded border border-slate-300 bg-white px-3 py-1.5 text-sm"
-            placeholder="Label name"
-            value={labelName}
-            onChange={(e) => setLabelName(e.target.value)}
-            required
-          />
-          <input
-            type="color"
-            className="h-8 w-10 cursor-pointer rounded border border-slate-300 bg-white p-0.5"
-            value={labelColor}
-            onChange={(e) => setLabelColor(e.target.value)}
-            title="Pick a color"
-          />
-          <Button
-            type="submit"
-            size="sm"
-            disabled={createLabelMutation.isPending || !labelName.trim()}
-          >
-            {createLabelMutation.isPending ? "Adding…" : "Add"}
-          </Button>
-        </form>
-      </section>
-
       <section className="space-y-3 border-t border-red-200 pt-8">
         <h2 className="text-lg font-semibold text-red-700">Danger zone</h2>
         {isOwner ? (
@@ -373,6 +294,8 @@ export default function WorkspaceSettings() {
           </p>
         )}
       </section>
+        </div>
+      </div>
     </div>
   );
 }
