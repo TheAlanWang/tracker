@@ -66,6 +66,13 @@ export function WorkspaceLayout() {
           <button
             type="button"
             className="block w-full text-left rounded px-2 py-1 hover:bg-slate-100"
+            onClick={() => navigate("/dashboard")}
+          >
+            Dashboard
+          </button>
+          <button
+            type="button"
+            className="block w-full text-left rounded px-2 py-1 hover:bg-slate-100"
             onClick={() => navigate(`/w/${wsSlug}`)}
           >
             Projects
