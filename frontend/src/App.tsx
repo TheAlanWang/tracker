@@ -4,6 +4,8 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { WorkspaceLayout } from "@/components/WorkspaceLayout";
 import AuthCallback from "@/pages/AuthCallback";
 import Home from "@/pages/Home";
+import IssueDetail from "@/pages/IssueDetail";
+import IssueList from "@/pages/IssueList";
 import Login from "@/pages/Login";
 import Onboarding from "@/pages/Onboarding";
 import WorkspaceHome from "@/pages/WorkspaceHome";
@@ -39,6 +41,8 @@ export default function App() {
           }
         >
           <Route index element={<WorkspaceHome />} />
+          <Route path="p/:pKey/list" element={<IssueList />} />
+          <Route path="p/:pKey/issues/:identifier" element={<IssueDetail />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

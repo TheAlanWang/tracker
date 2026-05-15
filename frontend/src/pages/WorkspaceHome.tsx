@@ -103,7 +103,7 @@ export default function WorkspaceHome() {
             key={p.id}
             type="button"
             className="text-left p-4 rounded border border-slate-200 bg-white hover:bg-slate-50"
-            onClick={() => navigate(`/w/${wsSlug}/p/${p.key}`)}
+            onClick={() => navigate(`/w/${wsSlug}/p/${p.key}/list`)}
           >
             <div className="flex items-center gap-2">
               <span className="font-mono text-xs px-1.5 py-0.5 rounded bg-slate-100 text-slate-600">
