@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from postgrest.exceptions import APIError
 
-from app.routers import issues, me, members, projects, workspaces
+from app.routers import issues, me, members, projects, sprints, workspaces
 
 app = FastAPI(title="tracker-api")
 
@@ -51,3 +51,4 @@ app.include_router(me.router)
 app.include_router(workspaces.router)
 app.include_router(members.router)
 app.include_router(projects.router)
+app.include_router(sprints.router)

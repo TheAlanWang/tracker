@@ -30,12 +30,14 @@ def list_(
     # Aliased so the URL param is `?status=` but the local name is `status_filter`,
     # avoiding the shadow with the FastAPI `status` module.
     status_filter: IssueStatus | None = Query(None, alias="status"),
+    sprint: str | None = Query(None),
     user_id: str = Depends(get_current_user_id),
     supabase: Client = Depends(get_supabase_admin),
 ):
     try:
         return list_issues(
-            supabase, user_id=user_id, project_id=p_id, status=status_filter
+            supabase, user_id=user_id, project_id=p_id,
+            status=status_filter, sprint=sprint,
         )
     except IssuePermissionError as exc:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN) from exc

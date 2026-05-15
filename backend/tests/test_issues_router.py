@@ -40,7 +40,7 @@ def test_list_issues_200(client, make_token):
 def test_list_issues_status_filter(client, make_token):
     captured = {}
 
-    def fake_list(supabase, *, user_id, project_id, status=None):
+    def fake_list(supabase, *, user_id, project_id, status=None, sprint=None):
         captured["status"] = status
         return []
 
@@ -153,3 +153,20 @@ def test_delete_issue_204(client, make_token):
             "/issues/i-1", headers={"Authorization": f"Bearer {token}"}
         )
         assert response.status_code == 204
+
+
+def test_list_issues_with_sprint_filter(client, make_token):
+    captured = {}
+
+    def fake_list(supabase, *, user_id, project_id, status=None, sprint=None):
+        captured["sprint"] = sprint
+        return []
+
+    with patch("app.routers.issues.list_issues", side_effect=fake_list):
+        token = make_token(sub="u-1")
+        r = client.get(
+            "/projects/p-1/issues?sprint=null",
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert r.status_code == 200
+        assert captured["sprint"] == "null"
