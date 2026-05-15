@@ -21,3 +21,4 @@ class MemberResponse(BaseModel):
     workspace_id: str
     role: WorkspaceRole
     created_at: datetime
+    email: str | None = None
