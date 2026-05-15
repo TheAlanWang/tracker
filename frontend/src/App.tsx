@@ -6,6 +6,7 @@ import AuthCallback from "@/pages/AuthCallback";
 import Backlog from "@/pages/Backlog";
 import Board from "@/pages/Board";
 import Home from "@/pages/Home";
+import Inbox from "@/pages/Inbox";
 import IssueDetail from "@/pages/IssueDetail";
 import IssueList from "@/pages/IssueList";
 import Login from "@/pages/Login";
@@ -45,6 +46,7 @@ export default function App() {
           }
         >
           <Route index element={<WorkspaceHome />} />
+          <Route path="inbox" element={<Inbox />} />
           <Route path="p/:pKey/list" element={<IssueList />} />
           <Route path="p/:pKey/issues/:identifier" element={<IssueDetail />} />
           <Route path="p/:pKey/board" element={<Board />} />
