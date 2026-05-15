@@ -6,7 +6,6 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { supabase } from "@/lib/supabase";
 
 const NAV_ITEMS = [
-  { to: "/dashboard", label: "Dashboard" },
   { to: "/settings/profile", label: "Profile" },
 ];
 

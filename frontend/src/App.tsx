@@ -51,7 +51,6 @@ export default function App() {
             </ProtectedRoute>
           }
         >
-          <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/settings/profile" element={<ProfileSettings />} />
         </Route>
         <Route
@@ -71,6 +70,7 @@ export default function App() {
           }
         >
           <Route index element={<WorkspaceHome />} />
+          <Route path="dashboard" element={<Dashboard />} />
           <Route path="inbox" element={<Inbox />} />
           <Route path="my-issues" element={<MyIssues />} />
           <Route path="p/:pKey/list" element={<IssueList />} />
