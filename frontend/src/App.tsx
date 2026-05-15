@@ -1,5 +1,6 @@
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 
+import { PersonalLayout } from "@/components/PersonalLayout";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { WorkspaceLayout } from "@/components/WorkspaceLayout";
 import AuthCallback from "@/pages/AuthCallback";
@@ -44,21 +45,15 @@ export default function App() {
           }
         />
         <Route
-          path="/dashboard"
           element={
             <ProtectedRoute>
-              <Dashboard />
+              <PersonalLayout />
             </ProtectedRoute>
           }
-        />
-        <Route
-          path="/settings/profile"
-          element={
-            <ProtectedRoute>
-              <ProfileSettings />
-            </ProtectedRoute>
-          }
-        />
+        >
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/settings/profile" element={<ProfileSettings />} />
+        </Route>
         <Route
           path="/browse/:identifier"
           element={
