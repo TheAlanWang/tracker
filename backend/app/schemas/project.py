@@ -5,7 +5,10 @@ from pydantic import BaseModel, Field
 
 class ProjectCreate(BaseModel):
     name: str = Field(min_length=1, max_length=100)
-    key: str = Field(min_length=2, max_length=10, pattern=r"^[A-Z][A-Z0-9]*$")
+    # Optional: backend derives a unique key from name if absent.
+    key: str | None = Field(
+        default=None, min_length=2, max_length=10, pattern=r"^[A-Z][A-Z0-9]*$"
+    )
     description: str | None = Field(default=None, max_length=1000)
 
 

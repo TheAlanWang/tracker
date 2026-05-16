@@ -118,7 +118,8 @@ def update_profile(
 
 @router.get("/me/dashboard", response_model=DashboardResponse)
 def get_dashboard_endpoint(
+    workspace_id: str | None = None,
     user_id: str = Depends(get_current_user_id),
     supabase: Client = Depends(get_supabase_admin),
 ) -> DashboardResponse:
-    return get_dashboard(supabase, user_id=user_id)
+    return get_dashboard(supabase, user_id=user_id, workspace_id=workspace_id)
