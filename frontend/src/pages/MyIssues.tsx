@@ -2,26 +2,10 @@ import { useState } from "react";
 import { useParams } from "react-router-dom";
 
 import { TaskDetailModal } from "@/components/TaskDetailModal";
-import { useWorkspaceTasks } from "@/features/tasks/api";
+import { PRIORITY_LABELS, STATUS_LABELS } from "@/features/tasks/labels";
+import { type TaskPriority, type TaskStatus, useWorkspaceTasks } from "@/features/tasks/api";
 import { useWorkspaces } from "@/features/workspaces/api";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-
-const STATUS_LABELS: Record<string, string> = {
-  backlog: "Backlog",
-  todo: "Todo",
-  in_progress: "In progress",
-  in_review: "In review",
-  done: "Done",
-  cancelled: "Cancelled",
-};
-
-const PRIORITY_LABELS: Record<string, string> = {
-  no_priority: "—",
-  urgent: "Urgent",
-  high: "High",
-  medium: "Medium",
-  low: "Low",
-};
 
 export default function MyIssues() {
   const { wsSlug } = useParams();
@@ -74,11 +58,11 @@ export default function MyIssues() {
                     <td className="px-3 py-2">{issue.title}</td>
                     <td className="px-3 py-2">
                       <span className="rounded bg-slate-100 px-2 py-0.5 text-xs">
-                        {STATUS_LABELS[issue.status] ?? issue.status}
+                        {STATUS_LABELS[issue.status as TaskStatus] ?? issue.status}
                       </span>
                     </td>
                     <td className="px-3 py-2 text-xs">
-                      {PRIORITY_LABELS[issue.priority] ?? issue.priority}
+                      {PRIORITY_LABELS[issue.priority as TaskPriority] ?? issue.priority}
                     </td>
                     <td className="px-3 py-2 text-xs text-muted-foreground">
                       {new Date(issue.updated_at).toLocaleDateString()}

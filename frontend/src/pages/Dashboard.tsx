@@ -11,6 +11,8 @@ import {
   type DashboardTask,
   useDashboard,
 } from "@/features/dashboard/api";
+import { STATUS_STYLE } from "@/features/tasks/labels";
+import { type TaskStatus } from "@/features/tasks/api";
 import { useWorkspaces } from "@/features/workspaces/api";
 
 const FIELD_LABEL: Record<string, string> = {
@@ -21,15 +23,6 @@ const FIELD_LABEL: Record<string, string> = {
   assignee_id: "assignee",
   sprint_id: "sprint",
   due_date: "due date",
-};
-
-const STATUS_STYLE: Record<string, string> = {
-  backlog: "bg-slate-100 text-slate-600",
-  todo: "bg-slate-100 text-slate-700",
-  in_progress: "bg-blue-100 text-blue-700",
-  in_review: "bg-purple-100 text-purple-700",
-  done: "bg-green-100 text-green-700",
-  cancelled: "bg-slate-100 text-slate-400",
 };
 
 function formatStatus(s: string): string {
@@ -237,7 +230,7 @@ function TaskRow({
       )}
       <span
         className={`inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide shrink-0 ${
-          STATUS_STYLE[task.status] ?? "bg-slate-100 text-slate-600"
+          STATUS_STYLE[task.status as TaskStatus] ?? "bg-slate-100 text-slate-600"
         }`}
       >
         {formatStatus(task.status)}

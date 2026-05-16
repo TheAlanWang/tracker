@@ -22,23 +22,15 @@ import {
 } from "@/features/tasks/api";
 import { useMembers } from "@/features/members/api";
 import { useSprints } from "@/features/sprints/api";
+import { PRIORITY_LABELS, STATUS_LABELS } from "@/features/tasks/labels";
 
-const STATUSES: { value: TaskStatus; label: string }[] = [
-  { value: "backlog", label: "Backlog" },
-  { value: "todo", label: "To do" },
-  { value: "in_progress", label: "In progress" },
-  { value: "in_review", label: "In review" },
-  { value: "done", label: "Done" },
-  { value: "cancelled", label: "Cancelled" },
-];
+const STATUSES: { value: TaskStatus; label: string }[] = (
+  Object.entries(STATUS_LABELS) as [TaskStatus, string][]
+).map(([value, label]) => ({ value, label }));
 
-const PRIORITIES: { value: TaskPriority; label: string }[] = [
-  { value: "no_priority", label: "No priority" },
-  { value: "urgent", label: "Urgent" },
-  { value: "high", label: "High" },
-  { value: "medium", label: "Medium" },
-  { value: "low", label: "Low" },
-];
+const PRIORITIES: { value: TaskPriority; label: string }[] = (
+  Object.entries(PRIORITY_LABELS) as [TaskPriority, string][]
+).map(([value, label]) => ({ value, label }));
 
 const FIELD_LABEL: Record<string, string> = {
   title: "title",

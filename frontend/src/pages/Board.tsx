@@ -20,6 +20,7 @@ import { useParams } from "react-router-dom";
 
 import { InlineTaskCreator } from "@/components/InlineTaskCreator";
 import { TaskDetailModal } from "@/components/TaskDetailModal";
+import { PRIORITY_STYLE } from "@/features/tasks/labels";
 import { useMembers } from "@/features/members/api";
 import {
   Task,
@@ -44,14 +45,6 @@ const COLUMNS: { status: TaskStatus; label: string }[] = [
 // Columns hidden by default on first visit (user can toggle in the menu).
 // Cancelled is noise on a working board — opt-in via the menu.
 const DEFAULT_HIDDEN: TaskStatus[] = ["cancelled"];
-
-const PRIORITY_STYLE: Record<TaskPriority, string> = {
-  urgent: "bg-red-100 text-red-700",
-  high: "bg-orange-100 text-orange-700",
-  medium: "bg-amber-100 text-amber-700",
-  low: "bg-slate-100 text-slate-500",
-  no_priority: "",
-};
 
 function PriorityBadge({ priority }: { priority: TaskPriority }) {
   if (priority === "no_priority" || priority === "low") return null;

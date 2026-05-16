@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
 import { TaskDetailModal } from "@/components/TaskDetailModal";
+import { STATUS_LABELS } from "@/features/tasks/labels";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -276,7 +277,7 @@ export default function SprintDetail() {
                     <td className="px-3 py-2">{t.title}</td>
                     <td className="px-3 py-2">
                       <span className="inline-flex items-center rounded bg-slate-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-700">
-                        {t.status.replace(/_/g, " ")}
+                        {STATUS_LABELS[t.status]}
                       </span>
                     </td>
                   </tr>

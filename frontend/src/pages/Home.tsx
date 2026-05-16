@@ -7,16 +7,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useCreateWorkspace } from "@/features/workspaces/api";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { slugifyWorkspace } from "@/lib/slug";
 
 const LAST_WORKSPACE_KEY = "tracker.lastWorkspaceSlug";
-
-function slugifyWorkspace(name: string): string {
-  return name
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 50);
-}
 
 export default function Home() {
   const { data: me, isLoading } = useCurrentUser();

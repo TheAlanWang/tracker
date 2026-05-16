@@ -10,14 +10,7 @@ import {
   useCreateWorkspace,
   useWorkspaces,
 } from "@/features/workspaces/api";
-
-function slugifyWorkspace(name: string): string {
-  return name
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-}
+import { slugifyWorkspace } from "@/lib/slug";
 
 type Props = {
   children: React.ReactNode;
