@@ -1,5 +1,7 @@
-import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { useState } from "react";
+import { useParams } from "react-router-dom";
 
+import { TaskDetailModal } from "@/components/TaskDetailModal";
 import { useWorkspaceTasks } from "@/features/tasks/api";
 import { useWorkspaces } from "@/features/workspaces/api";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
@@ -23,8 +25,7 @@ const PRIORITY_LABELS: Record<string, string> = {
 
 export default function MyIssues() {
   const { wsSlug } = useParams();
-  const navigate = useNavigate();
-  const location = useLocation();
+  const [openTaskId, setOpenTaskId] = useState<string | null>(null);
 
   const { data: me } = useCurrentUser();
   const { data: workspaces = [] } = useWorkspaces();
@@ -61,25 +62,11 @@ export default function MyIssues() {
             </thead>
             <tbody>
               {issues.map((issue) => {
-                // Derive pKey from identifier (e.g. "ABC-123" → "ABC")
-                const pKey = issue.identifier.split("-")[0];
                 return (
                   <tr
                     key={issue.id}
                     className="cursor-pointer border-t border-slate-100 hover:bg-slate-50"
-                    onClick={() =>
-                      navigate(
-                        `/w/${wsSlug}/p/${pKey}/tasks/${issue.identifier}`,
-                        {
-                          state: {
-                            from: {
-                              path: location.pathname,
-                              label: "My Tasks",
-                            },
-                          },
-                        },
-                      )
-                    }
+                    onClick={() => setOpenTaskId(issue.id)}
                   >
                     <td className="px-3 py-2 font-mono text-xs text-slate-600">
                       {issue.identifier}
@@ -103,6 +90,10 @@ export default function MyIssues() {
           </table>
         </div>
       )}
+      <TaskDetailModal
+        taskId={openTaskId}
+        onClose={() => setOpenTaskId(null)}
+      />
     </div>
   );
 }

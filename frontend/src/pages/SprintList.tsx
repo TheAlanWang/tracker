@@ -120,7 +120,7 @@ export default function SprintList() {
   const byStatus = (s: SprintStatus) => sprints.filter((x) => x.status === s);
 
   return (
-    <div className="space-y-6 max-w-5xl">
+    <div className="space-y-6">
       <div className="flex items-center justify-end">
         <Button
           onClick={() => {

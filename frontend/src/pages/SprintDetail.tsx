@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
-import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
+
+import { TaskDetailModal } from "@/components/TaskDetailModal";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -36,7 +38,7 @@ const STATUS_STYLE: Record<string, string> = {
 export default function SprintDetail() {
   const { wsSlug, pKey, sprintId } = useParams();
   const navigate = useNavigate();
-  const location = useLocation();
+  const [openTaskId, setOpenTaskId] = useState<string | null>(null);
 
   const { data: sprint } = useSprint(sprintId ?? "");
   const { data: tasks = [] } = useTasks(sprint?.project_id ?? "", {
@@ -135,7 +137,7 @@ export default function SprintDetail() {
   }
 
   return (
-    <div className="space-y-6 max-w-5xl">
+    <div className="space-y-6">
       <button
         type="button"
         onClick={() => navigate(`/w/${wsSlug}/p/${pKey}/sprints`)}
@@ -266,16 +268,7 @@ export default function SprintDetail() {
                   <tr
                     key={t.id}
                     className="cursor-pointer border-t border-slate-100 hover:bg-slate-50"
-                    onClick={() =>
-                      navigate(`/w/${wsSlug}/p/${pKey}/tasks/${t.identifier}`, {
-                        state: {
-                          from: {
-                            path: location.pathname,
-                            label: sprint?.name ?? "Sprint",
-                          },
-                        },
-                      })
-                    }
+                    onClick={() => setOpenTaskId(t.id)}
                   >
                     <td className="px-3 py-2 font-mono text-xs text-slate-600">
                       {t.identifier}
@@ -293,6 +286,10 @@ export default function SprintDetail() {
           </div>
         )}
       </section>
+      <TaskDetailModal
+        taskId={openTaskId}
+        onClose={() => setOpenTaskId(null)}
+      />
     </div>
   );
 }

@@ -12,7 +12,7 @@ export type Notification = {
   id: string;
   user_id: string;
   type: NotificationType;
-  issue_id: string;
+  task_id: string;
   actor_id: string | null;
   payload: Record<string, unknown>;
   read_at: string | null;

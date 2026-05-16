@@ -15,7 +15,8 @@ export type Project = {
 
 export type ProjectCreate = {
   name: string;
-  key: string;
+  // Optional — backend derives a unique key from name when omitted.
+  key?: string;
   description?: string;
 };
 

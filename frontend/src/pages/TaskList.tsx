@@ -1,24 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useLocation, useNavigate, useParams } from "react-router-dom";
-import { toast } from "sonner";
+import { createPortal } from "react-dom";
+import { useParams } from "react-router-dom";
 
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { TaskDetailModal } from "@/components/TaskDetailModal";
 import { useMembers } from "@/features/members/api";
 import { useSprints } from "@/features/sprints/api";
-import {
-  TaskPriority,
-  TaskStatus,
-  useCreateTask,
-  useTasks,
-} from "@/features/tasks/api";
+import { TaskPriority, TaskStatus, useTasks } from "@/features/tasks/api";
 import { useProjects } from "@/features/projects/api";
 import { useProjectTasksRealtime } from "@/features/realtime/useProjectTasksRealtime";
 import { useWorkspaces } from "@/features/workspaces/api";
@@ -89,6 +76,7 @@ const COLUMNS: { key: ColKey; label: string }[] = [
   { key: "created", label: "Created" },
 ];
 
+
 function useHiddenColumns(projectId: string) {
   const key = projectId ? `tracker.list.hidden.${projectId}` : "";
   const [hidden, setHidden] = useState<Set<ColKey>>(() => {
@@ -113,7 +101,7 @@ function ColumnsIcon() {
       xmlns="http://www.w3.org/2000/svg"
       viewBox="0 0 20 20"
       fill="currentColor"
-      className="w-3.5 h-3.5"
+      className="w-4 h-4"
     >
       <path
         fillRule="evenodd"
@@ -121,6 +109,99 @@ function ColumnsIcon() {
         clipRule="evenodd"
       />
     </svg>
+  );
+}
+
+function StatusFilterHeader({
+  value,
+  onChange,
+}: {
+  value: TaskStatus | "all";
+  onChange: (v: TaskStatus | "all") => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const [menuPos, setMenuPos] = useState({ left: 0, top: 0 });
+
+  useEffect(() => {
+    if (!open) return;
+    if (triggerRef.current) {
+      const r = triggerRef.current.getBoundingClientRect();
+      setMenuPos({ left: r.left, top: r.bottom + 4 });
+    }
+    const onClick = (e: MouseEvent) => {
+      const target = e.target as Node;
+      if (
+        triggerRef.current?.contains(target) ||
+        menuRef.current?.contains(target)
+      )
+        return;
+      setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("mousedown", onClick);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onClick);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
+  const filtered = value !== "all";
+  return (
+    <>
+      <button
+        ref={triggerRef}
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className={`inline-flex items-center gap-1 uppercase tracking-wide hover:text-slate-900 transition-colors ${
+          filtered ? "text-blue-600" : ""
+        }`}
+      >
+        <span>Status</span>
+        {filtered && <span>: {STATUS_LABELS[value]}</span>}
+        <svg viewBox="0 0 20 20" fill="currentColor" className="w-3 h-3">
+          <path
+            fillRule="evenodd"
+            d="M5.23 7.21a.75.75 0 0 1 1.06.02L10 11.06l3.71-3.83a.75.75 0 1 1 1.08 1.04l-4.25 4.39a.75.75 0 0 1-1.08 0L5.21 8.27a.75.75 0 0 1 .02-1.06Z"
+            clipRule="evenodd"
+          />
+        </svg>
+      </button>
+      {open &&
+        createPortal(
+          <div
+            ref={menuRef}
+            style={{
+              position: "fixed",
+              left: menuPos.left,
+              top: menuPos.top,
+            }}
+            className="w-40 bg-white rounded-md border border-slate-200 shadow-lg z-50 py-1"
+          >
+            {STATUS_OPTIONS.map((s) => (
+              <button
+                key={s}
+                type="button"
+                onClick={() => {
+                  onChange(s);
+                  setOpen(false);
+                }}
+                className={`w-full text-left px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-600 hover:bg-slate-50 flex items-center justify-between ${
+                  s === value ? "bg-slate-50 text-slate-900" : ""
+                }`}
+              >
+                <span>{STATUS_LABELS[s]}</span>
+                {s === value && <span className="text-blue-600 text-xs">✓</span>}
+              </button>
+            ))}
+          </div>,
+          document.body,
+        )}
+    </>
   );
 }
 
@@ -155,7 +236,7 @@ function ColumnVisibilityMenu({
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="inline-flex items-center gap-1.5 text-xs text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded px-2 py-1 transition-colors"
+        className="inline-flex items-center gap-1.5 text-sm text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-md px-2.5 py-1.5 transition-colors"
       >
         <ColumnsIcon />
         <span>Columns</span>
@@ -218,8 +299,7 @@ function DueDateCell({ date }: { date: string }) {
 
 export default function TaskList() {
   const { wsSlug, pKey } = useParams();
-  const navigate = useNavigate();
-  const location = useLocation();
+  const [openTaskId, setOpenTaskId] = useState<string | null>(null);
 
   const { data: workspaces = [] } = useWorkspaces();
   const currentWs = workspaces.find((w) => w.slug === wsSlug);
@@ -245,11 +325,6 @@ export default function TaskList() {
     [sprints],
   );
 
-  const createMutation = useCreateTask(currentProject?.id ?? "");
-  const [showForm, setShowForm] = useState(false);
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-
   const [hiddenColumns, setHiddenColumns] = useHiddenColumns(
     currentProject?.id ?? "",
   );
@@ -261,6 +336,7 @@ export default function TaskList() {
   };
   const show = (key: ColKey) => !hiddenColumns.has(key);
 
+
   const sortedTasks = useMemo(
     () =>
       [...tasks].sort(
@@ -270,119 +346,53 @@ export default function TaskList() {
     [tasks],
   );
 
-  async function onCreate(e: React.FormEvent) {
-    e.preventDefault();
-    if (!currentProject) return;
-    try {
-      const task = await createMutation.mutateAsync({ title, description });
-      toast.success(`Created ${task.identifier}`);
-      setShowForm(false);
-      setTitle("");
-      setDescription("");
-    } catch (err) {
-      const detail =
-        (err as { response?: { data?: { detail?: string } } }).response?.data
-          ?.detail ?? "Failed to create task";
-      toast.error(detail);
-    }
-  }
-
   if (!currentProject) return null;
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-end gap-2">
-        <select
-          className="rounded border border-slate-300 bg-white px-2 py-1 text-sm"
-          value={statusFilter}
-          onChange={(e) =>
-            setStatusFilter(e.target.value as TaskStatus | "all")
-          }
-        >
-          {STATUS_OPTIONS.map((s) => (
-            <option key={s} value={s}>
-              {STATUS_LABELS[s]}
-            </option>
-          ))}
-        </select>
+    <div>
+      <div className="flex items-center justify-end h-9 mb-2">
         <ColumnVisibilityMenu hidden={hiddenColumns} onToggle={toggleColumn} />
-        <Button onClick={() => setShowForm((v) => !v)}>
-          {showForm ? "Cancel" : "New task"}
-        </Button>
       </div>
 
-      {showForm && (
-        <Card>
-          <CardHeader>
-            <CardTitle>New task</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={onCreate} className="space-y-4">
-              <div className="space-y-1">
-                <Label htmlFor="task-title">Title</Label>
-                <Input
-                  id="task-title"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  required
-                  minLength={1}
-                  maxLength={200}
-                  placeholder="Set up authentication"
-                />
-              </div>
-              <div className="space-y-1">
-                <Label htmlFor="task-desc">Description</Label>
-                <textarea
-                  id="task-desc"
-                  className="w-full rounded border border-slate-300 bg-white p-2 text-sm"
-                  rows={4}
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  maxLength={10000}
-                />
-              </div>
-              <Button type="submit" disabled={createMutation.isPending}>
-                {createMutation.isPending ? "Creating…" : "Create"}
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
-      )}
-
       {isLoading && <p>Loading tasks…</p>}
-      {!isLoading && sortedTasks.length === 0 && (
-        <p className="text-muted-foreground">
-          No tasks yet. Click "New task" to create one.
-        </p>
-      )}
-      {sortedTasks.length > 0 && (
-        <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
-          <table className="w-full text-sm table-fixed">
+      {!isLoading && (
+        <div className="rounded-lg border border-slate-200 bg-white overflow-x-auto">
+          <table className="w-full text-sm">
             <thead className="border-b border-slate-200 bg-slate-50">
               <tr className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-                {show("id") && <th className="px-3 py-2 text-left w-24">ID</th>}
-                {show("title") && <th className="px-3 py-2 text-left">Title</th>}
-                {show("status") && (
-                  <th className="px-3 py-2 text-left w-36">Status</th>
-                )}
-                {show("priority") && (
-                  <th className="px-3 py-2 text-left w-28">Priority</th>
-                )}
-                {show("assignee") && (
-                  <th className="px-3 py-2 text-left w-40">Assignee</th>
-                )}
-                {show("due") && (
-                  <th className="px-3 py-2 text-left w-24">Due</th>
-                )}
-                {show("sprint") && (
-                  <th className="px-3 py-2 text-left w-32">Sprint</th>
-                )}
-                {show("created") && (
-                  <th className="px-3 py-2 text-left w-28">Created</th>
-                )}
+                {COLUMNS.map((c) => {
+                  if (!show(c.key)) return null;
+                  return (
+                    <th
+                      key={c.key}
+                      className="px-3 py-2 text-left whitespace-nowrap relative"
+                    >
+                      {c.key === "status" ? (
+                        <StatusFilterHeader
+                          value={statusFilter}
+                          onChange={setStatusFilter}
+                        />
+                      ) : (
+                        c.label
+                      )}
+                    </th>
+                  );
+                })}
               </tr>
             </thead>
             <tbody>
+              {sortedTasks.length === 0 && (
+                <tr>
+                  <td
+                    colSpan={COLUMNS.filter((c) => show(c.key)).length}
+                    className="px-3 py-10 text-center text-sm text-slate-400 border-t border-slate-100"
+                  >
+                    {statusFilter !== "all"
+                      ? `No tasks with status "${STATUS_LABELS[statusFilter]}".`
+                      : "No tasks yet."}
+                  </td>
+                </tr>
+              )}
               {sortedTasks.map((t) => {
                 const assigneeEmail = t.assignee_id
                   ? memberByUser.get(t.assignee_id)
@@ -394,13 +404,7 @@ export default function TaskList() {
                   <tr
                     key={t.id}
                     className="cursor-pointer border-t border-slate-100 hover:bg-slate-50"
-                    onClick={() =>
-                      navigate(`/w/${wsSlug}/p/${pKey}/tasks/${t.identifier}`, {
-                        state: {
-                          from: { path: location.pathname, label: "List" },
-                        },
-                      })
-                    }
+                    onClick={() => setOpenTaskId(t.id)}
                   >
                     {show("id") && (
                       <td className="px-3 py-2.5 font-mono text-xs text-slate-500">
@@ -479,6 +483,10 @@ export default function TaskList() {
           </table>
         </div>
       )}
+      <TaskDetailModal
+        taskId={openTaskId}
+        onClose={() => setOpenTaskId(null)}
+      />
     </div>
   );
 }

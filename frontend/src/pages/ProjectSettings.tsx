@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 
+import { SettingsLayout } from "@/components/SettingsLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -80,21 +81,21 @@ export default function ProjectSettings() {
   if (!currentProject) return null;
 
   return (
-    <div className="mx-auto max-w-3xl space-y-10">
-      <header>
-        <button
-          type="button"
-          onClick={() => navigate(`/w/${wsSlug}/p/${pKey}/board`)}
-          className="text-sm text-slate-500 hover:text-slate-700 mb-3"
-        >
-          ← Back to {currentProject.name}
-        </button>
-        <h1 className="text-3xl font-semibold text-slate-900">Project Settings</h1>
+    <SettingsLayout>
+      <header className="mb-10">
+        <h1 className="text-3xl font-semibold text-slate-900">
+          Project Settings
+        </h1>
         <p className="mt-2 text-slate-500">
-          Configure {currentProject.name} — rename, describe, or delete.
+          Configure{" "}
+          <span className="font-medium text-slate-700">
+            {currentProject.name}
+          </span>{" "}
+          — rename, describe, or delete.
         </p>
       </header>
 
+      <div className="space-y-10 min-w-0">
       <section className="space-y-4">
         <h2 className="text-xl font-medium text-slate-900">General settings</h2>
         <form onSubmit={onSave}>
@@ -136,7 +137,7 @@ export default function ProjectSettings() {
         <h2 className="text-xl font-medium text-red-700">Danger zone</h2>
         <div className="rounded-lg border border-red-200 bg-white">
           <SettingRow
-            label="Delete project"
+            label="Delete Project"
             description="Permanently delete this project and all its tasks and sprints. This cannot be undone."
           >
             <div className="flex justify-end">
@@ -147,13 +148,14 @@ export default function ProjectSettings() {
                 disabled={deleteMutation.isPending}
                 className="border-red-300 text-red-700 hover:bg-red-50"
               >
-                {deleteMutation.isPending ? "Deleting…" : "Delete project"}
+                {deleteMutation.isPending ? "Deleting…" : "Delete Project"}
               </Button>
             </div>
           </SettingRow>
         </div>
       </section>
-    </div>
+      </div>
+    </SettingsLayout>
   );
 }
 

@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 
+import { TaskDetailModal } from "@/components/TaskDetailModal";
 import { Button } from "@/components/ui/button";
 import {
   type Notification,
@@ -36,10 +36,8 @@ function timeAgo(iso: string): string {
 }
 
 export default function Inbox() {
-  const { wsSlug } = useParams();
-  const navigate = useNavigate();
-  const location = useLocation();
   const [unreadOnly, setUnreadOnly] = useState(false);
+  const [openTaskId, setOpenTaskId] = useState<string | null>(null);
 
   const { data: notifications = [], isLoading } = useNotifications({
     unreadOnly,
@@ -52,17 +50,10 @@ export default function Inbox() {
       try {
         await markRead.mutateAsync(n.id);
       } catch {
-        // Non-blocking — still navigate
+        // Non-blocking — still open the task
       }
     }
-    const identifier = n.payload["identifier"] as string | undefined;
-    if (identifier) {
-      // identifier format: "KEY-N" — need project key
-      const projectKey = identifier.split("-")[0];
-      navigate(`/w/${wsSlug}/p/${projectKey}/tasks/${identifier}`, {
-        state: { from: { path: location.pathname, label: "Inbox" } },
-      });
-    }
+    setOpenTaskId(n.task_id);
   }
 
   async function handleMarkAllRead() {
@@ -174,6 +165,10 @@ export default function Inbox() {
           </li>
         ))}
       </ul>
+      <TaskDetailModal
+        taskId={openTaskId}
+        onClose={() => setOpenTaskId(null)}
+      />
     </div>
   );
 }

@@ -34,11 +34,12 @@ export function WorkspaceLayout() {
   const { wsSlug } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
-  // Hide the left sidebar on workspace-level settings — page is self-contained
-  // (has its own workspace picker) and doesn't relate to project navigation.
+  // Hide the left sidebar on settings/profile pages — Settings has its own
+  // left nav (workspaces + projects). Avoids two competing left rails.
   const hideSidebar =
     location.pathname === `/w/${wsSlug}/settings` ||
-    location.pathname === `/w/${wsSlug}/profile`;
+    location.pathname === `/w/${wsSlug}/profile` ||
+    /^\/w\/[^/]+\/p\/[^/]+\/settings$/.test(location.pathname);
   const { data: workspaces = [] } = useWorkspaces();
   const { data: me } = useCurrentUser();
 
@@ -354,16 +355,6 @@ export function WorkspaceLayout() {
   );
 }
 
-function deriveProjectKey(name: string): string {
-  // Strip non-letters, take first letter of each word; fall back to first 3 letters.
-  const words = name.trim().split(/\s+/).filter((w) => /[A-Za-z]/.test(w));
-  if (words.length >= 2) {
-    return words.slice(0, 4).map((w) => w[0].toUpperCase()).join("");
-  }
-  const single = (words[0] ?? "").toUpperCase().replace(/[^A-Z]/g, "");
-  return single.slice(0, 3);
-}
-
 function SidebarNav({ wsSlug, currentWsId }: { wsSlug: string; currentWsId: string }) {
   const navigate = useNavigate();
   const { pKey: activePKey } = useParams();
@@ -372,7 +363,6 @@ function SidebarNav({ wsSlug, currentWsId }: { wsSlug: string; currentWsId: stri
 
   const [showModal, setShowModal] = useState(false);
   const [name, setName] = useState("");
-  const derivedKey = deriveProjectKey(name);
 
   // Close modal on Esc
   useEffect(() => {
@@ -392,12 +382,9 @@ function SidebarNav({ wsSlug, currentWsId }: { wsSlug: string; currentWsId: stri
   async function onCreate(e: React.FormEvent) {
     e.preventDefault();
     if (!currentWsId) return;
-    if (derivedKey.length < 2) {
-      toast.error("Project name needs at least 2 letters");
-      return;
-    }
+    if (!name.trim()) return;
     try {
-      const p = await createMutation.mutateAsync({ name, key: derivedKey });
+      const p = await createMutation.mutateAsync({ name: name.trim() });
       toast.success(`Created ${p.name}`);
       setShowModal(false);
       setName("");
@@ -464,18 +451,6 @@ function SidebarNav({ wsSlug, currentWsId }: { wsSlug: string; currentWsId: stri
                   placeholder="Backend"
                   autoFocus
                 />
-                {derivedKey.length >= 2 && (
-                  <p className="text-xs text-muted-foreground">
-                    Issues will be named{" "}
-                    <span className="font-mono text-slate-700">{derivedKey}-1</span>,{" "}
-                    <span className="font-mono text-slate-700">{derivedKey}-2</span>, …
-                  </p>
-                )}
-                {name.length > 0 && derivedKey.length < 2 && (
-                  <p className="text-xs text-red-500">
-                    Name needs at least 2 letters.
-                  </p>
-                )}
               </div>
               <div className="flex justify-end gap-2 pt-2">
                 <Button
@@ -487,7 +462,7 @@ function SidebarNav({ wsSlug, currentWsId }: { wsSlug: string; currentWsId: stri
                 </Button>
                 <Button
                   type="submit"
-                  disabled={createMutation.isPending || derivedKey.length < 2}
+                  disabled={createMutation.isPending || !name.trim()}
                 >
                   {createMutation.isPending ? "Creating…" : "Create"}
                 </Button>

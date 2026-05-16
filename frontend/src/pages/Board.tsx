@@ -16,18 +16,15 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { createPortal } from "react-dom";
 import { useParams } from "react-router-dom";
-import { toast } from "sonner";
 
+import { InlineTaskCreator } from "@/components/InlineTaskCreator";
 import { TaskDetailModal } from "@/components/TaskDetailModal";
-import { Button } from "@/components/ui/button";
 import { useMembers } from "@/features/members/api";
 import {
   Task,
   TaskPriority,
   TaskStatus,
-  useCreateTask,
   useMoveTask,
   useTasks,
 } from "@/features/tasks/api";
@@ -84,26 +81,13 @@ function CalendarIcon() {
   );
 }
 
-function PlusIcon() {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 20 20"
-      fill="currentColor"
-      className="w-3.5 h-3.5"
-    >
-      <path d="M10 4a.75.75 0 0 1 .75.75v4.5h4.5a.75.75 0 0 1 0 1.5h-4.5v4.5a.75.75 0 0 1-1.5 0v-4.5h-4.5a.75.75 0 0 1 0-1.5h4.5v-4.5A.75.75 0 0 1 10 4Z" />
-    </svg>
-  );
-}
-
 function ColumnsIcon() {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
       viewBox="0 0 20 20"
       fill="currentColor"
-      className="w-3.5 h-3.5"
+      className="w-4 h-4"
     >
       <path
         fillRule="evenodd"
@@ -169,7 +153,7 @@ function ColumnVisibilityMenu({
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="inline-flex items-center gap-1.5 text-xs text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded px-2 py-1 transition-colors"
+        className="inline-flex items-center gap-1.5 text-sm text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-md px-2.5 py-1.5 transition-colors"
       >
         <ColumnsIcon />
         <span>Columns</span>
@@ -309,14 +293,14 @@ function Column({
   emailById,
   isDropTarget,
   onOpen,
-  onAddTask,
+  projectId,
 }: {
   col: { status: TaskStatus; label: string };
   items: Task[];
   emailById: Map<string, string>;
   isDropTarget: boolean;
   onOpen: (taskId: string) => void;
-  onAddTask: (status: TaskStatus) => void;
+  projectId: string;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: col.status });
   const highlight = isOver || isDropTarget;
@@ -335,113 +319,46 @@ function Column({
         <span className="text-slate-400 font-medium tracking-normal normal-case">
           {items.length}
         </span>
-        <button
-          type="button"
-          onClick={() => onAddTask(col.status)}
-          className="ml-auto inline-flex items-center justify-center h-5 w-5 rounded text-slate-500 hover:bg-slate-200 hover:text-slate-900 opacity-0 group-hover:opacity-100 transition-opacity"
-          aria-label="Add task"
-          title="Add task"
-        >
-          <PlusIcon />
-        </button>
       </div>
-      <SortableContext
-        items={items.map((i) => i.id)}
-        strategy={verticalListSortingStrategy}
-      >
-        <div className="space-y-2 min-h-[40px] flex-1">
-          {items.map((task) => (
-            <SortableCard
-              key={task.id}
-              task={task}
-              assigneeEmail={
-                task.assignee_id ? emailById.get(task.assignee_id) : undefined
-              }
-              onOpen={onOpen}
+      {items.length === 0 ? (
+        // Empty column: put the affordance right under the header so it
+        // doesn't float at the bottom of a tall empty box.
+        <InlineTaskCreator
+          projectId={projectId}
+          status={col.status}
+          triggerClassName="w-full text-left text-xs text-slate-500 hover:text-slate-900 hover:bg-slate-200/60 rounded px-2 py-1.5 transition-opacity opacity-0 group-hover:opacity-100"
+        />
+      ) : (
+        <>
+          <SortableContext
+            items={items.map((i) => i.id)}
+            strategy={verticalListSortingStrategy}
+          >
+            <div className="space-y-2 min-h-[40px] flex-1">
+              {items.map((task) => (
+                <SortableCard
+                  key={task.id}
+                  task={task}
+                  assigneeEmail={
+                    task.assignee_id
+                      ? emailById.get(task.assignee_id)
+                      : undefined
+                  }
+                  onOpen={onOpen}
+                />
+              ))}
+            </div>
+          </SortableContext>
+          <div className="mt-2">
+            <InlineTaskCreator
+              projectId={projectId}
+              status={col.status}
+              triggerClassName="w-full text-left text-xs text-slate-500 hover:text-slate-900 hover:bg-slate-200/60 rounded px-2 py-1.5 transition-colors"
             />
-          ))}
-        </div>
-      </SortableContext>
-    </div>
-  );
-}
-
-function QuickAddTaskModal({
-  projectId,
-  status,
-  onClose,
-}: {
-  projectId: string;
-  status: TaskStatus | null;
-  onClose: () => void;
-}) {
-  const [title, setTitle] = useState("");
-  const create = useCreateTask(projectId);
-
-  useEffect(() => {
-    if (!status) return;
-    setTitle("");
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [status, onClose]);
-
-  if (!status) return null;
-
-  const label = COLUMNS.find((c) => c.status === status)?.label ?? status;
-
-  const onSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!title.trim()) return;
-    try {
-      await create.mutateAsync({ title: title.trim(), status });
-      onClose();
-    } catch (err) {
-      const detail =
-        (err as { response?: { data?: { detail?: string } } }).response?.data
-          ?.detail ?? "Failed to create task";
-      toast.error(detail);
-    }
-  };
-
-  return createPortal(
-    <div
-      className="fixed inset-0 z-50 flex items-start justify-center bg-slate-900/60 p-4 sm:p-8 overflow-y-auto"
-      onClick={onClose}
-    >
-      <div
-        className="bg-white rounded-lg shadow-2xl w-full max-w-md mt-24 p-6"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <h2 className="text-base font-semibold mb-4 flex items-center gap-2">
-          <span>New task in</span>
-          <span className="inline-flex items-center rounded bg-slate-100 px-2 py-0.5 font-normal">
-            {label}
-          </span>
-        </h2>
-        <form onSubmit={onSubmit} className="space-y-3">
-          <input
-            autoFocus
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="Task title…"
-            maxLength={200}
-            className="w-full rounded border border-slate-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-          />
-          <div className="flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={onClose}>
-              Cancel
-            </Button>
-            <Button type="submit" disabled={!title.trim() || create.isPending}>
-              {create.isPending ? "Creating…" : "Create"}
-            </Button>
           </div>
-        </form>
-      </div>
-    </div>,
-    document.body,
+        </>
+      )}
+    </div>
   );
 }
 
@@ -466,7 +383,6 @@ export default function Board() {
   const [activeTask, setActiveTask] = useState<Task | null>(null);
   const [activeColumn, setActiveColumn] = useState<TaskStatus | null>(null);
   const [openTaskId, setOpenTaskId] = useState<string | null>(null);
-  const [quickAddStatus, setQuickAddStatus] = useState<TaskStatus | null>(null);
   const [hiddenColumns, setHiddenColumns] = useHiddenColumns(
     currentProject?.id ?? "",
   );
@@ -591,8 +507,8 @@ export default function Board() {
   if (!currentProject) return null;
 
   return (
-    <div className="relative">
-      <div className="absolute right-0 -top-[22px] z-10">
+    <div>
+      <div className="flex items-center justify-end h-9 mb-2">
         <ColumnVisibilityMenu hidden={hiddenColumns} onToggle={toggleColumn} />
       </div>
       <DndContext
@@ -604,7 +520,7 @@ export default function Board() {
         onDragCancel={onDragCancel}
         autoScroll={{ acceleration: 1000, threshold: { x: 0.2, y: 0.2 } }}
       >
-        <div className="overflow-x-auto scrollbar-hide p-1 pb-2 mt-2">
+        <div className="overflow-x-auto scrollbar-hide p-1 pb-2">
           <div
             className="grid gap-3"
             style={{
@@ -622,7 +538,7 @@ export default function Board() {
                   activeTask?.status !== col.status
                 }
                 onOpen={setOpenTaskId}
-                onAddTask={setQuickAddStatus}
+                projectId={currentProject.id}
               />
             ))}
           </div>
@@ -646,12 +562,6 @@ export default function Board() {
       <TaskDetailModal
         taskId={openTaskId}
         onClose={() => setOpenTaskId(null)}
-      />
-
-      <QuickAddTaskModal
-        projectId={currentProject.id}
-        status={quickAddStatus}
-        onClose={() => setQuickAddStatus(null)}
       />
     </div>
   );

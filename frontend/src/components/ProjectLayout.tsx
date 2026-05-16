@@ -103,7 +103,7 @@ export function ProjectLayout() {
           ))}
         </nav>
       </div>
-      <div className="pt-6">
+      <div className="pt-3">
         <Outlet />
       </div>
 

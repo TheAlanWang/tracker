@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { useParams } from "react-router-dom";
 
-import { TaskQuickEdit } from "@/components/TaskQuickEdit";
-import { Task, useTasks } from "@/features/tasks/api";
+import { InlineTaskCreator } from "@/components/InlineTaskCreator";
+import { TaskDetailModal } from "@/components/TaskDetailModal";
+import { useTasks } from "@/features/tasks/api";
 import { useProjects } from "@/features/projects/api";
 import { useWorkspaces } from "@/features/workspaces/api";
 
@@ -19,12 +20,12 @@ export default function Backlog() {
     { status: "backlog" },
   );
 
-  const [activeTask, setActiveTask] = useState<Task | null>(null);
+  const [openTaskId, setOpenTaskId] = useState<string | null>(null);
 
   if (!currentProject) return null;
 
   return (
-    <div className="space-y-6 max-w-5xl">
+    <div className="space-y-6">
       <p className="text-sm text-muted-foreground">
         New items live here until they're picked up. Set priority + dates, then
         move to Board to start work.
@@ -51,7 +52,7 @@ export default function Backlog() {
                 <tr
                   key={i.id}
                   className="cursor-pointer border-t border-slate-100 hover:bg-slate-50"
-                  onClick={() => setActiveTask(i)}
+                  onClick={() => setOpenTaskId(i.id)}
                 >
                   <td className="px-3 py-2 font-mono text-xs text-slate-600">
                     {i.identifier}
@@ -66,12 +67,18 @@ export default function Backlog() {
         </div>
       )}
 
-      <TaskQuickEdit
-        task={activeTask}
-        open={!!activeTask}
-        onClose={() => setActiveTask(null)}
-        wsSlug={wsSlug ?? ""}
-        pKey={pKey ?? ""}
+      <div className="rounded border border-slate-200 bg-white p-2">
+        <InlineTaskCreator
+          projectId={currentProject.id}
+          status="backlog"
+          triggerLabel="+ Add task to backlog"
+          triggerClassName="w-full text-left text-sm text-slate-500 hover:text-slate-900 hover:bg-slate-50 rounded px-2 py-1.5 transition-colors"
+        />
+      </div>
+
+      <TaskDetailModal
+        taskId={openTaskId}
+        onClose={() => setOpenTaskId(null)}
       />
     </div>
   );
