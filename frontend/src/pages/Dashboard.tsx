@@ -1,9 +1,28 @@
-import { useState } from "react";
+// Workspace Dashboard page.
+//
+// Layout (top → bottom):
+//   - Hero greeting ("Good morning, Alan.") with a dynamic subtitle that
+//     reflects today's state ("3 overdue, 2 due today" / "All caught up").
+//   - Stat Bento: clickable Workload (hero, blue) + Done this week (emerald)
+//     + Overdue (amber). Clicking a tile expands an inline panel with the
+//     underlying task list. All three stats are filtered server-side to the
+//     current user, which is why the panel skips an "Assigned" column.
+//   - Today's Focus: top 3 priorities (overdue → due today → assigned filler).
+//     Hidden when the Workload panel is expanded, since the list duplicates.
+//   - Two-column body: Due this week + Active sprints on the left, Recent
+//     activity feed on the right with a Show more toggle.
+//
+// All task data comes from /me/dashboard (services/dashboard.py). Rows in
+// the panel + Due this week share a TaskTable component (HTML <table>,
+// table-layout: auto — CSS Grid versions kept misbehaving for our use case).
+// Project chips inside rows navigate to that project's Board on click;
+// stopPropagation prevents the row's onClick (open task detail) from firing.
+
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
+import { Avatar } from "@/components/Avatar";
 import { TaskDetailModal } from "@/components/TaskDetailModal";
-
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   type DashboardActivity,
   type DashboardSprint,
@@ -13,6 +32,10 @@ import {
 } from "@/features/dashboard/api";
 import { STATUS_STYLE } from "@/features/tasks/labels";
 import { type TaskStatus } from "@/features/tasks/api";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
+import { Skeleton } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/EmptyState";
 import { useWorkspaces } from "@/features/workspaces/api";
 
 const FIELD_LABEL: Record<string, string> = {
@@ -45,158 +68,699 @@ function formatRelative(iso: string): string {
   });
 }
 
-function Avatar({ email, size = 20 }: { email: string; size?: number }) {
-  const initial = (email[0] ?? "?").toUpperCase();
-  const hue =
-    Array.from(email).reduce((a, c) => a + c.charCodeAt(0), 0) % 360;
+function timeBucket(iso: string): "today" | "yesterday" | "week" | "earlier" {
+  const d = new Date(iso);
+  d.setHours(0, 0, 0, 0);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const diffDays = Math.floor(
+    (today.getTime() - d.getTime()) / (24 * 60 * 60 * 1000),
+  );
+  if (diffDays <= 0) return "today";
+  if (diffDays === 1) return "yesterday";
+  if (diffDays < 7) return "week";
+  return "earlier";
+}
+
+function isToday(iso: string): boolean {
+  const d = new Date(iso);
+  d.setHours(0, 0, 0, 0);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return d.getTime() === today.getTime();
+}
+
+// ---- Hero ----
+
+function greetingFor(name: string | null): { hi: string; sub: string } {
+  const hour = new Date().getHours();
+  const slot =
+    hour < 5
+      ? "Working late"
+      : hour < 12
+        ? "Good morning"
+        : hour < 17
+          ? "Good afternoon"
+          : "Good evening";
+  return { hi: `${slot}${name ? `, ${name.split(" ")[0]}` : ""}.`, sub: "" };
+}
+
+function focusSubtitle(
+  overdueCount: number,
+  dueTodayCount: number,
+  assignedCount: number,
+): string {
+  if (overdueCount > 0 && dueTodayCount > 0) {
+    return `${overdueCount} overdue, ${dueTodayCount} due today.`;
+  }
+  if (overdueCount > 0) {
+    return `${overdueCount} task${overdueCount > 1 ? "s" : ""} overdue.`;
+  }
+  if (dueTodayCount > 0) {
+    return `${dueTodayCount} task${dueTodayCount > 1 ? "s" : ""} due today.`;
+  }
+  if (assignedCount > 0) {
+    return `${assignedCount} open task${assignedCount > 1 ? "s" : ""} on your plate.`;
+  }
+  return "You're all caught up — nice.";
+}
+
+// ---- Stat bento ----
+
+type ExpandKey = "workload" | "done" | "overdue";
+
+function Chevron({ active }: { active: boolean }) {
   return (
-    <div
-      title={email}
-      style={{
-        width: size,
-        height: size,
-        backgroundColor: `hsl(${hue} 55% 50%)`,
-      }}
-      className="rounded-full flex items-center justify-center text-white text-[10px] font-semibold shrink-0"
+    <svg
+      viewBox="0 0 20 20"
+      fill="currentColor"
+      className={`w-3.5 h-3.5 text-slate-400 dark:text-slate-500 transition-transform ${active ? "rotate-180" : ""}`}
     >
-      {initial}
-    </div>
+      <path
+        fillRule="evenodd"
+        d="M5.23 7.21a.75.75 0 0 1 1.06.02L10 11.06l3.71-3.83a.75.75 0 1 1 1.08 1.04l-4.25 4.39a.75.75 0 0 1-1.08 0L5.21 8.27a.75.75 0 0 1 .02-1.06Z"
+        clipRule="evenodd"
+      />
+    </svg>
   );
 }
 
-function StatCard({
-  label,
-  value,
-  tone,
-  icon,
+// Bento: Workload (hero, spans 2 cols) + Done this week + Overdue. "In review"
+// is a sub-line inside Workload because it's a subset of Open — surfacing it
+// as an equal tile was redundant. Each tile is clickable to drill into the
+// underlying task list inline below the grid.
+function WorkloadHero({
+  stats,
+  active,
+  onClick,
 }: {
-  label: string;
-  value: number;
-  tone: "neutral" | "good" | "warn" | "bad";
-  icon: React.ReactNode;
+  stats: DashboardStats;
+  active: boolean;
+  onClick: () => void;
 }) {
-  const toneClass = {
-    neutral: "bg-slate-50 text-slate-600 border-slate-200",
-    good: "bg-green-50 text-green-700 border-green-200",
-    warn: "bg-amber-50 text-amber-700 border-amber-200",
-    bad: "bg-red-50 text-red-700 border-red-200",
-  }[tone];
-  const iconClass = {
-    neutral: "text-slate-400",
-    good: "text-green-500",
-    warn: "text-amber-500",
-    bad: "text-red-500",
-  }[tone];
+  // Workload is the page's primary KPI; the blue accent makes that obvious
+  // and gives the Bento a focal point instead of a row of monochrome tiles.
   return (
-    <div
-      className={`flex-1 min-w-0 rounded-lg border bg-white p-4 flex items-center gap-4 transition-colors ${
-        value > 0 && (tone === "bad" || tone === "warn") ? toneClass : ""
+    <button
+      type="button"
+      onClick={onClick}
+      className={`sm:col-span-2 text-left rounded-xl border bg-gradient-to-br from-white via-white to-blue-50/40 dark:from-slate-900 dark:via-slate-900 dark:to-blue-950/30 p-5 shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition-all hover:shadow-[0_4px_12px_rgba(15,23,42,0.06)] ${
+        active
+          ? "border-blue-400 dark:border-blue-700 ring-2 ring-blue-100 dark:ring-blue-900/40"
+          : "border-blue-100 dark:border-blue-900/30 ring-1 ring-blue-50/60 dark:ring-blue-900/20"
       }`}
     >
-      <div
-        className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${
-          tone === "bad" && value > 0
-            ? "bg-red-100"
-            : tone === "warn" && value > 0
-              ? "bg-amber-100"
-              : tone === "good"
-                ? "bg-green-50"
-                : "bg-slate-50"
-        } ${iconClass}`}
-      >
-        {icon}
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-[11px] uppercase tracking-[0.08em] text-blue-700 font-semibold flex items-center gap-1.5">
+            Workload <Chevron active={active} />
+          </p>
+          <div className="mt-2 flex items-baseline gap-2">
+            <span className="text-4xl font-bold leading-none tabular-nums text-slate-900 dark:text-slate-100">
+              {stats.open}
+            </span>
+            <span className="text-sm font-medium text-slate-500 dark:text-slate-400">open</span>
+          </div>
+          {stats.in_review > 0 && (
+            <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+              <span className="inline-flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-blue-400" />
+                <span className="tabular-nums font-medium text-slate-700 dark:text-slate-300">
+                  {stats.in_review}
+                </span>{" "}
+                in review
+              </span>
+            </p>
+          )}
+        </div>
+        <div className="w-10 h-10 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+          <svg viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">
+            <path
+              fillRule="evenodd"
+              d="M3.5 5A1.5 1.5 0 0 1 5 3.5h10A1.5 1.5 0 0 1 16.5 5v10a1.5 1.5 0 0 1-1.5 1.5H5A1.5 1.5 0 0 1 3.5 15V5Z"
+              clipRule="evenodd"
+            />
+          </svg>
+        </div>
       </div>
-      <div className="min-w-0">
-        <p className="text-[11px] uppercase tracking-wide text-slate-500 font-semibold">
-          {label}
-        </p>
-        <p
-          className={`text-2xl font-bold leading-tight ${
-            tone === "bad" && value > 0
-              ? "text-red-700"
-              : tone === "warn" && value > 0
-                ? "text-amber-700"
-                : "text-slate-900"
-          }`}
-        >
-          {value}
-        </p>
-      </div>
-    </div>
+    </button>
   );
 }
 
-function StatsBanner({ stats }: { stats: DashboardStats }) {
+function ThroughputTile({
+  value,
+  active,
+  onClick,
+}: {
+  value: number;
+  active: boolean;
+  onClick: () => void;
+}) {
+  const accent = value > 0;
   return (
-    <div className="flex flex-wrap gap-3">
-      <StatCard
-        label="Open"
-        value={stats.open}
-        tone="neutral"
-        icon={
-          <svg viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">
-            <path
-              fillRule="evenodd"
-              d="M2.5 4A1.5 1.5 0 0 1 4 2.5h12A1.5 1.5 0 0 1 17.5 4v12a1.5 1.5 0 0 1-1.5 1.5H4A1.5 1.5 0 0 1 2.5 16V4Zm1.5 0v12h12V4H4Z"
-              clipRule="evenodd"
-            />
-          </svg>
-        }
-      />
-      <StatCard
-        label="In review"
-        value={stats.in_review}
-        tone="neutral"
-        icon={
-          <svg viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">
-            <path
-              fillRule="evenodd"
-              d="M8 3a5 5 0 1 0 3.65 8.41l3.47 3.47a.75.75 0 1 0 1.06-1.06l-3.47-3.47A5 5 0 0 0 8 3ZM4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0Z"
-              clipRule="evenodd"
-            />
-          </svg>
-        }
-      />
-      <StatCard
-        label="Done this week"
-        value={stats.done_this_week}
-        tone="good"
-        icon={
-          <svg viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">
+    <button
+      type="button"
+      onClick={onClick}
+      className={`text-left rounded-xl border bg-gradient-to-br from-white via-white to-emerald-50/30 dark:from-slate-900 dark:via-slate-900 dark:to-emerald-950/30 p-5 shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition-all hover:shadow-[0_4px_12px_rgba(15,23,42,0.06)] ${
+        active
+          ? "border-emerald-400 dark:border-emerald-700 ring-2 ring-emerald-100 dark:ring-emerald-900/40"
+          : accent
+            ? "border-emerald-100 dark:border-emerald-900/30 ring-1 ring-emerald-50 dark:ring-emerald-900/20"
+            : "border-slate-200/80 dark:border-slate-800"
+      }`}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-[11px] uppercase tracking-[0.08em] text-slate-500 dark:text-slate-400 font-semibold flex items-center gap-1.5">
+            Done this week <Chevron active={active} />
+          </p>
+          <p
+            className={`mt-2 text-3xl font-bold leading-none tabular-nums ${accent ? "text-emerald-700" : "text-slate-900 dark:text-slate-100"}`}
+          >
+            {value}
+          </p>
+        </div>
+        <div className="w-9 h-9 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+          <svg viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
             <path
               fillRule="evenodd"
               d="M16.7 5.3a1 1 0 0 1 0 1.4l-8 8a1 1 0 0 1-1.4 0l-4-4a1 1 0 1 1 1.4-1.4L8 12.59l7.3-7.3a1 1 0 0 1 1.4 0Z"
               clipRule="evenodd"
             />
           </svg>
-        }
-      />
-      <StatCard
-        label="Overdue"
-        value={stats.overdue}
-        tone="bad"
-        icon={
-          <svg viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">
-            <path
-              fillRule="evenodd"
-              d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm.75-11.25v4.5a.75.75 0 0 1-1.5 0v-4.5a.75.75 0 0 1 1.5 0ZM10 14a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z"
-              clipRule="evenodd"
-            />
+        </div>
+      </div>
+    </button>
+  );
+}
+
+function RiskTile({
+  value,
+  active,
+  onClick,
+}: {
+  value: number;
+  active: boolean;
+  onClick: () => void;
+}) {
+  // Amber, not red — overdue is "needs attention," not "error / something is
+  // broken." Red was reading as an alert / failure indicator.
+  const accent = value > 0;
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`text-left rounded-xl border bg-gradient-to-br from-white via-white to-amber-50/30 dark:from-slate-900 dark:via-slate-900 dark:to-amber-950/30 p-5 shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition-all hover:shadow-[0_4px_12px_rgba(15,23,42,0.06)] ${
+        active
+          ? "border-amber-400 dark:border-amber-700 ring-2 ring-amber-100 dark:ring-amber-900/40"
+          : accent
+            ? "border-amber-100 dark:border-amber-900/30 ring-1 ring-amber-50 dark:ring-amber-900/20"
+            : "border-slate-200/80 dark:border-slate-800"
+      }`}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-[11px] uppercase tracking-[0.08em] text-slate-500 dark:text-slate-400 font-semibold flex items-center gap-1.5">
+            Overdue <Chevron active={active} />
+          </p>
+          <p
+            className={`mt-2 text-3xl font-bold leading-none tabular-nums ${accent ? "text-amber-700" : "text-slate-900 dark:text-slate-100"}`}
+          >
+            {value}
+          </p>
+        </div>
+        <div className="w-9 h-9 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
+          <svg viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
+            <path d="M10 2 2 17h16L10 2Zm0 4 5.3 10H4.7L10 6Zm-.75 3v3.5h1.5V9h-1.5Zm0 4.5V15h1.5v-1.5h-1.5Z" />
           </svg>
-        }
+        </div>
+      </div>
+    </button>
+  );
+}
+
+function StatsRow({
+  stats,
+  expanded,
+  onToggle,
+}: {
+  stats: DashboardStats;
+  expanded: ExpandKey | null;
+  onToggle: (key: ExpandKey) => void;
+}) {
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+      <WorkloadHero
+        stats={stats}
+        active={expanded === "workload"}
+        onClick={() => onToggle("workload")}
+      />
+      <ThroughputTile
+        value={stats.done_this_week}
+        active={expanded === "done"}
+        onClick={() => onToggle("done")}
+      />
+      <RiskTile
+        value={stats.overdue}
+        active={expanded === "overdue"}
+        onClick={() => onToggle("overdue")}
       />
     </div>
   );
 }
 
+// Inline panel rendered directly below the stats grid, showing the task list
+// behind whichever tile is currently active.
+// AnimatedExpansion — wraps ExpansionPanel with a smooth open/close
+// animation. Three things happen in parallel over 280ms:
+//   1. Outer grid animates grid-template-rows 0fr ↔ 1fr (height auto, no JS)
+//   2. Inner content fades opacity 0 ↔ 100
+//   3. Inner content slides up/down 4px (subtle motion cue)
+//
+// During close, we keep the previous expandKey rendered for `MS` after
+// `open` flips false so the panel doesn't blank to empty content mid-
+// animation. After the duration, we drop it.
+function AnimatedExpansion({
+  open,
+  renderKey,
+  workload,
+  done,
+  overdue,
+  onClose,
+  onOpenTask,
+}: {
+  open: boolean;
+  renderKey: ExpandKey | null;
+  workload: DashboardTask[];
+  done: DashboardTask[];
+  overdue: DashboardTask[];
+  onClose: () => void;
+  onOpenTask: (id: string) => void;
+}) {
+  const MS = 280;
+  // Track the key used for rendering. When closing, we hold the last
+  // key for MS milliseconds so ExpansionPanel can finish its exit.
+  const [stickyKey, setStickyKey] = useState<ExpandKey | null>(renderKey);
+
+  useEffect(() => {
+    if (renderKey) {
+      setStickyKey(renderKey);
+      return;
+    }
+    const t = window.setTimeout(() => setStickyKey(null), MS);
+    return () => window.clearTimeout(t);
+  }, [renderKey]);
+
+  return (
+    <div
+      // grid-rows trick — animates the row size between 0fr (collapsed)
+      // and 1fr (auto, matching child's natural height). Pure CSS, no
+      // JS measurement, no layout glitches.
+      className={`grid transition-[grid-template-rows,opacity] duration-[280ms] ease-[cubic-bezier(0.2,0,0,1)] ${
+        open ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+      }`}
+      aria-hidden={!open}
+    >
+      <div className="overflow-hidden">
+        <div
+          className={`transition-transform duration-[280ms] ease-[cubic-bezier(0.2,0,0,1)] ${
+            open ? "translate-y-0" : "-translate-y-1"
+          }`}
+        >
+          {stickyKey && (
+            <ExpansionPanel
+              expanded={stickyKey}
+              workload={workload}
+              done={done}
+              overdue={overdue}
+              onClose={onClose}
+              onOpenTask={onOpenTask}
+            />
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ExpansionPanel({
+  expanded,
+  workload,
+  done,
+  overdue,
+  onClose,
+  onOpenTask,
+}: {
+  expanded: ExpandKey;
+  workload: DashboardTask[];
+  done: DashboardTask[];
+  overdue: DashboardTask[];
+  onClose: () => void;
+  onOpenTask: (id: string) => void;
+}) {
+  const cfg = {
+    workload: {
+      title: "Workload — your open tasks",
+      empty: "No open tasks. Enjoy the quiet.",
+      tasks: workload,
+    },
+    done: {
+      title: "Done this week",
+      empty: "Nothing finished in the last 7 days yet.",
+      tasks: done,
+    },
+    overdue: {
+      title: "Overdue",
+      empty: "Nothing overdue — nice.",
+      tasks: overdue,
+    },
+  }[expanded];
+
+  return (
+    <section className="rounded-xl border border-slate-200/80 bg-white dark:bg-slate-900 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
+      <div className="flex items-center justify-between px-5 py-3 border-b border-slate-100 dark:border-slate-800">
+        <h2 className="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500 dark:text-slate-400">
+          {cfg.title}
+          {cfg.tasks.length > 0 && (
+            <span className="ml-1.5 text-slate-400 dark:text-slate-500 normal-case tracking-normal tabular-nums">
+              {cfg.tasks.length}
+            </span>
+          )}
+        </h2>
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Close"
+          className="w-6 h-6 rounded-md text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center"
+        >
+          <svg viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5">
+            <path
+              fillRule="evenodd"
+              d="M4.3 4.3a1 1 0 0 1 1.4 0L10 8.6l4.3-4.3a1 1 0 1 1 1.4 1.4L11.4 10l4.3 4.3a1 1 0 1 1-1.4 1.4L10 11.4l-4.3 4.3a1 1 0 1 1-1.4-1.4L8.6 10 4.3 5.7a1 1 0 0 1 0-1.4Z"
+              clipRule="evenodd"
+            />
+          </svg>
+        </button>
+      </div>
+      <div className="p-2">
+        {cfg.tasks.length === 0 ? (
+          <p className="text-sm text-slate-400 dark:text-slate-500 px-3 py-2">{cfg.empty}</p>
+        ) : (
+          <TaskTable tasks={cfg.tasks} onOpenTask={onOpenTask} />
+        )}
+      </div>
+    </section>
+  );
+}
+
+// ---- Focus card ----
+
+type FocusReason = "overdue" | "today" | "assigned";
+
+function pickFocus(
+  overdue: DashboardTask[],
+  dueThisWeek: DashboardTask[],
+  assigned: DashboardTask[],
+): { task: DashboardTask; reason: FocusReason }[] {
+  const seen = new Set<string>();
+  const picks: { task: DashboardTask; reason: FocusReason }[] = [];
+
+  const sortedOverdue = [...overdue].sort((a, b) => {
+    const ad = a.due_date ? new Date(a.due_date).getTime() : Infinity;
+    const bd = b.due_date ? new Date(b.due_date).getTime() : Infinity;
+    return ad - bd; // most overdue first
+  });
+  for (const t of sortedOverdue) {
+    if (picks.length >= 3) break;
+    if (seen.has(t.id)) continue;
+    picks.push({ task: t, reason: "overdue" });
+    seen.add(t.id);
+  }
+
+  const dueToday = dueThisWeek.filter((t) => t.due_date && isToday(t.due_date));
+  for (const t of dueToday) {
+    if (picks.length >= 3) break;
+    if (seen.has(t.id)) continue;
+    picks.push({ task: t, reason: "today" });
+    seen.add(t.id);
+  }
+
+  for (const t of assigned) {
+    if (picks.length >= 3) break;
+    if (seen.has(t.id)) continue;
+    picks.push({ task: t, reason: "assigned" });
+    seen.add(t.id);
+  }
+
+  return picks;
+}
+
+function FocusCard({
+  picks,
+  onOpen,
+}: {
+  picks: { task: DashboardTask; reason: FocusReason }[];
+  onOpen: (id: string) => void;
+}) {
+  // Rank color signals urgency tier: red = overdue, amber = today, slate
+  // = plain assigned (filler when nothing urgent).
+  const rankColor = (reason: FocusReason) =>
+    reason === "overdue"
+      ? "text-red-600"
+      : reason === "today"
+        ? "text-amber-600"
+        : "text-slate-400 dark:text-slate-500";
+
+  // Use a real <table> like TaskTable. See the comment on TaskTable for the
+  // "why not Grid" backstory.
+
+  return (
+    <section className="rounded-xl border border-slate-200/80 bg-white dark:bg-slate-900 p-5 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500 dark:text-slate-400">
+          Today's focus
+        </h2>
+        <span className="text-[11px] text-slate-400 dark:text-slate-500">
+          Top {picks.length} priorit{picks.length === 1 ? "y" : "ies"}
+        </span>
+      </div>
+
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-400 dark:text-slate-500">
+            <th className="px-3 pb-2 text-left w-6" />
+            <th className="px-3 pb-2 text-left">Project</th>
+            <th className="px-3 pb-2 text-left">Task</th>
+            <th className="px-3 pb-2 text-left whitespace-nowrap">Due</th>
+            <th className="px-3 pb-2 text-left">Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {picks.map(({ task, reason }, i) => {
+            const dueLabel = task.due_date
+              ? new Date(task.due_date).toLocaleDateString(undefined, {
+                  month: "short",
+                  day: "numeric",
+                })
+              : null;
+            const isOverdue =
+              !!task.due_date &&
+              new Date(task.due_date).getTime() <
+                new Date().setHours(0, 0, 0, 0);
+
+            return (
+              <tr
+                key={task.id}
+                role="button"
+                tabIndex={0}
+                onClick={() => onOpen(task.id)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    onOpen(task.id);
+                  }
+                }}
+                className="group border-t border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer"
+              >
+                <td className="px-3 py-2.5 align-middle">
+                  <span
+                    className={`text-xs font-bold tabular-nums ${rankColor(reason)}`}
+                    title={
+                      reason === "overdue"
+                        ? "Overdue"
+                        : reason === "today"
+                          ? "Due today"
+                          : "Assigned"
+                    }
+                  >
+                    {i + 1}
+                  </span>
+                </td>
+                <td className="px-3 py-2.5 align-middle">
+                  <ProjectChip
+                    workspaceSlug={task.workspace_slug}
+                    projectKey={task.project_key}
+                    projectName={task.project_name}
+                  />
+                </td>
+                <td className="px-3 py-2.5 align-middle text-sm text-slate-800 dark:text-slate-200 group-hover:text-slate-900">
+                  {task.title}
+                </td>
+                <td className="px-3 py-2.5 align-middle whitespace-nowrap">
+                  {dueLabel ? (
+                    <span
+                      className={`text-xs ${
+                        isOverdue ? "text-red-600 font-medium" : "text-slate-500 dark:text-slate-400"
+                      }`}
+                    >
+                      {dueLabel}
+                    </span>
+                  ) : (
+                    <span className="text-xs text-slate-300">—</span>
+                  )}
+                </td>
+                <td className="px-3 py-2.5 align-middle">
+                  <span
+                    className={`inline-flex items-center justify-center rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide w-fit ${
+                      STATUS_STYLE[task.status as TaskStatus] ??
+                      "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
+                    }`}
+                  >
+                    {formatStatus(task.status)}
+                  </span>
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </section>
+  );
+}
+
+// ---- Section card (generic) ----
+
+function SectionCard({
+  title,
+  count,
+  children,
+  rightSlot,
+}: {
+  title: string;
+  count?: number;
+  children: React.ReactNode;
+  rightSlot?: React.ReactNode;
+}) {
+  return (
+    <section className="rounded-xl border border-slate-200/80 bg-white dark:bg-slate-900 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
+      <div className="flex items-center justify-between px-5 py-3 border-b border-slate-100 dark:border-slate-800">
+        <h2 className="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500 dark:text-slate-400">
+          {title}
+          {typeof count === "number" && (
+            <span className="ml-1.5 text-slate-400 dark:text-slate-500 normal-case tracking-normal tabular-nums">
+              {count}
+            </span>
+          )}
+        </h2>
+        {rightSlot}
+      </div>
+      <div className="p-2">{children}</div>
+    </section>
+  );
+}
+
+// ---- Task / sprint / activity rows ----
+
+// Small clickable chip that surfaces the parent project and jumps to its
+// Board. Used inside dashboard rows that otherwise open the task detail
+// modal — the chip stops propagation so the two affordances don't collide.
+// Stable per-project color, hashed from the project key. Same hash function as
+// the sidebar so the dot/swatch colors match across the app.
+function projectHue(key: string): number {
+  return Array.from(key).reduce((a, c) => a + c.charCodeAt(0), 0) % 360;
+}
+
+function ProjectChip({
+  workspaceSlug,
+  projectKey,
+  projectName,
+}: {
+  workspaceSlug: string;
+  projectKey: string;
+  projectName: string;
+}) {
+  const navigate = useNavigate();
+  const hue = projectHue(projectKey);
+  return (
+    <button
+      type="button"
+      title={`Go to ${projectName} board`}
+      onClick={(e) => {
+        e.stopPropagation();
+        navigate(`/w/${workspaceSlug}/p/${projectKey}/board`);
+      }}
+      className="inline-flex items-center gap-1.5 text-sm rounded px-1.5 py-0.5 -mx-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100 transition-colors shrink-0 max-w-[12rem]"
+    >
+      <span
+        className="w-1.5 h-1.5 rounded-full shrink-0"
+        style={{ backgroundColor: `hsl(${hue} 55% 55%)` }}
+      />
+      <span className="truncate">{projectName}</span>
+    </button>
+  );
+}
+
+// We use an HTML <table> here, same as the project's List view, because the
+// browser's `table-layout: auto` algorithm sizes each column based on widest
+// content + distributes leftover width proportionally — exactly the "balanced
+// row" look we want on the dashboard. CSS Grid with minmax/fit-content kept
+// fighting us: either columns blew up to their max (gaps in the middle) or
+// hugged left (right side empty). Tables get this right for free.
+//
+// Assigned was dropped — every dashboard task is `assignee = current user`
+// already (backend filter), so the column was pure redundancy.
+function TaskTable({
+  tasks,
+  onOpenTask,
+}: {
+  tasks: DashboardTask[];
+  onOpenTask: (id: string) => void;
+}) {
+  return (
+    <table className="w-full text-sm">
+      <thead>
+        <tr className="text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-400 dark:text-slate-500">
+          <th className="px-3 pb-2 text-left">Project</th>
+          <th className="px-3 pb-2 text-left">Task</th>
+          <th className="px-3 pb-2 text-left whitespace-nowrap">Due</th>
+          <th className="px-3 pb-2 text-left">Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {tasks.map((t, i) => (
+          <TaskRow
+            key={t.id}
+            task={t}
+            index={i}
+            onClick={() => onOpenTask(t.id)}
+          />
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
 function TaskRow({
   task,
+  index = 0,
   onClick,
-  highlight = false,
 }: {
   task: DashboardTask;
+  // 0-based row index. Drives a small stagger so each row fades in just
+  // after the one above it — gives the table a "cascading reveal" feel
+  // when the panel opens. Capped at 8 so very long lists don't drag.
+  index?: number;
   onClick: () => void;
-  highlight?: boolean;
 }) {
   const dueLabel = task.due_date
     ? new Date(task.due_date).toLocaleDateString(undefined, {
@@ -207,35 +771,54 @@ function TaskRow({
   const isOverdue =
     !!task.due_date &&
     new Date(task.due_date).getTime() < new Date().setHours(0, 0, 0, 0);
+  const delay = Math.min(index, 8) * 25;
   return (
-    <button
-      type="button"
-      className={`w-full text-left flex items-center gap-3 px-3 py-2.5 rounded hover:bg-slate-50 text-sm transition-colors ${
-        highlight ? "hover:bg-red-50/50" : ""
-      }`}
+    <tr
+      role="button"
+      tabIndex={0}
+      style={{ animationDelay: `${delay}ms` }}
+      className="group border-t border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer animate-in fade-in slide-in-from-top-1 fill-mode-both duration-200"
       onClick={onClick}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onClick();
+        }
+      }}
     >
-      <span className="font-mono text-[11px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 shrink-0">
-        {task.identifier}
-      </span>
-      <span className="flex-1 truncate text-slate-800">{task.title}</span>
-      {dueLabel && (
+      <td className="px-3 py-2 align-middle">
+        <ProjectChip
+          workspaceSlug={task.workspace_slug}
+          projectKey={task.project_key}
+          projectName={task.project_name}
+        />
+      </td>
+      <td className="px-3 py-2 align-middle text-slate-800 dark:text-slate-200 group-hover:text-slate-900">
+        {task.title}
+      </td>
+      <td className="px-3 py-2 align-middle whitespace-nowrap">
+        {dueLabel ? (
+          <span
+            className={`text-xs ${
+              isOverdue ? "text-red-600 font-medium" : "text-slate-500 dark:text-slate-400"
+            }`}
+          >
+            {dueLabel}
+          </span>
+        ) : (
+          <span className="text-xs text-slate-300">—</span>
+        )}
+      </td>
+      <td className="px-3 py-2 align-middle">
         <span
-          className={`text-xs shrink-0 ${
-            isOverdue ? "text-red-600 font-medium" : "text-slate-500"
+          className={`inline-flex items-center justify-center rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide w-fit ${
+            STATUS_STYLE[task.status as TaskStatus] ?? "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
           }`}
         >
-          {dueLabel}
+          {formatStatus(task.status)}
         </span>
-      )}
-      <span
-        className={`inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide shrink-0 ${
-          STATUS_STYLE[task.status as TaskStatus] ?? "bg-slate-100 text-slate-600"
-        }`}
-      >
-        {formatStatus(task.status)}
-      </span>
-    </button>
+      </td>
+    </tr>
   );
 }
 
@@ -249,17 +832,17 @@ function SprintRow({
   return (
     <button
       type="button"
-      className="w-full text-left flex items-center gap-3 px-3 py-2.5 rounded hover:bg-slate-50 text-sm"
+      className="w-full text-left flex items-center gap-3 px-3 py-2 rounded hover:bg-slate-50 dark:hover:bg-slate-800/50 text-sm"
       onClick={onClick}
     >
-      <span className="flex-1 truncate font-medium text-slate-800">
+      <span className="flex-1 truncate font-medium text-slate-800 dark:text-slate-200">
         {sprint.name}
       </span>
-      <span className="text-xs text-slate-400 shrink-0">
+      <span className="text-xs text-slate-400 dark:text-slate-500 shrink-0">
         {sprint.workspace_slug} / {sprint.project_key}
       </span>
       {sprint.end_at && (
-        <span className="text-xs text-slate-500 shrink-0">
+        <span className="text-xs text-slate-500 dark:text-slate-400 shrink-0">
           ends{" "}
           {new Date(sprint.end_at).toLocaleDateString(undefined, {
             month: "short",
@@ -289,11 +872,7 @@ function formatActivityAction(a: DashboardActivity): React.ReactNode {
         const label = FIELD_LABEL[f] ?? f;
         const c = p[f];
         if (c.updated) return <>updated {label} of</>;
-        return (
-          <>
-            changed {label} of {""}
-          </>
-        );
+        return <>changed {label} of</>;
       }
       return <>updated {fields.map((f) => FIELD_LABEL[f] ?? f).join(", ")} of</>;
     }
@@ -309,43 +888,172 @@ function ActivityRow({
   a: DashboardActivity;
   onClick: () => void;
 }) {
-  const actor = a.actor_email ?? "Someone";
+  // Prefer a display name over the raw email — name reads more naturally in
+  // activity sentences and as the avatar initial.
+  const actor = a.actor_display_name?.trim() || a.actor_email || "Someone";
   return (
     <button
       type="button"
       onClick={onClick}
-      className="w-full text-left flex items-start gap-2.5 px-3 py-2 rounded hover:bg-slate-50 text-xs"
+      className="w-full text-left flex items-center gap-2.5 px-3 py-2 rounded hover:bg-slate-50 dark:hover:bg-slate-800/50"
     >
-      <Avatar email={actor} size={20} />
-      <div className="flex-1 min-w-0 leading-relaxed">
-        <span className="text-slate-700">
-          <span className="font-medium text-slate-900">{actor}</span>{" "}
-          {formatActivityAction(a)}{" "}
-          <span className="font-mono text-[11px] px-1 py-0.5 rounded bg-slate-100 text-slate-600">
-            {a.task_identifier}
-          </span>{" "}
-          <span className="text-slate-600">{a.task_title}</span>
+      <Avatar
+        displayName={a.actor_display_name}
+        email={a.actor_email}
+        size={22}
+        className="ring-0"
+      />
+      {/* Single-line sentence — the avatar carries the visual weight,
+          so the name itself can sit at the same weight as the verb.
+          Task title gets darker (slate-700) since that's what the user
+          actually cares about scanning for. */}
+      <p className="flex-1 min-w-0 truncate text-xs text-slate-500 dark:text-slate-400">
+        <span className="text-slate-700 dark:text-slate-300">{actor}</span>
+        <span className="ml-1">{formatActivityAction(a)} </span>
+        <span className="font-mono text-[11px] px-1 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 mx-0.5">
+          {a.task_identifier}
         </span>
-      </div>
-      <span className="text-slate-400 shrink-0">{formatRelative(a.created_at)}</span>
+        <span className="text-slate-700 dark:text-slate-300"> {a.task_title}</span>
+      </p>
+      <span className="text-xs text-slate-400 dark:text-slate-500 shrink-0">
+        {formatRelative(a.created_at)}
+      </span>
     </button>
   );
 }
 
+const ACTIVITY_PREVIEW = 6;
+
+function ActivityFeed({
+  items,
+  onOpen,
+}: {
+  items: DashboardActivity[];
+  onOpen: (id: string) => void;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const hasMore = items.length > ACTIVITY_PREVIEW;
+
+  return (
+    <>
+      {expanded ? (
+        <GroupedActivity items={items} onOpen={onOpen} />
+      ) : (
+        <div className="space-y-0.5">
+          {items.slice(0, ACTIVITY_PREVIEW).map((a) => (
+            <ActivityRow key={a.id} a={a} onClick={() => onOpen(a.task_id)} />
+          ))}
+        </div>
+      )}
+      {hasMore && (
+        <button
+          type="button"
+          onClick={() => setExpanded((v) => !v)}
+          className="mt-2 ml-1 text-xs text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 px-2 py-1"
+        >
+          {expanded
+            ? "Show less"
+            : `Show ${items.length - ACTIVITY_PREVIEW} more activity →`}
+        </button>
+      )}
+    </>
+  );
+}
+
+function GroupedActivity({
+  items,
+  onOpen,
+}: {
+  items: DashboardActivity[];
+  onOpen: (id: string) => void;
+}) {
+  const groups = useMemo(() => {
+    const map: Record<
+      "today" | "yesterday" | "week" | "earlier",
+      DashboardActivity[]
+    > = {
+      today: [],
+      yesterday: [],
+      week: [],
+      earlier: [],
+    };
+    for (const a of items) map[timeBucket(a.created_at)].push(a);
+    return map;
+  }, [items]);
+
+  const labels = {
+    today: "Today",
+    yesterday: "Yesterday",
+    week: "This week",
+    earlier: "Earlier",
+  } as const;
+
+  return (
+    <div className="space-y-3">
+      {(["today", "yesterday", "week", "earlier"] as const).map((k) => {
+        const arr = groups[k];
+        if (arr.length === 0) return null;
+        return (
+          <div key={k}>
+            <p className="px-3 pt-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-400 dark:text-slate-500">
+              {labels[k]}
+            </p>
+            <div className="space-y-0.5 mt-1">
+              {arr.map((a) => (
+                <ActivityRow key={a.id} a={a} onClick={() => onOpen(a.task_id)} />
+              ))}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ---- Page ----
+
+// Placeholder shown while /me/dashboard is in flight. Mirrors the real
+// page's structure so the layout doesn't reflow when content lands —
+// the eye stays put and the page feels immediately responsive.
+function DashboardSkeleton() {
+  return (
+    <div className="space-y-6 max-w-7xl">
+      <div className="space-y-2">
+        <Skeleton className="h-9 w-72" />
+        <Skeleton className="h-5 w-40" />
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+        <Skeleton className="h-28 rounded-xl sm:col-span-2" />
+        <Skeleton className="h-28 rounded-xl" />
+        <Skeleton className="h-28 rounded-xl" />
+      </div>
+      <Skeleton className="h-56 rounded-xl" />
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-6">
+        <div className="space-y-3">
+          <Skeleton className="h-40 rounded-xl" />
+          <Skeleton className="h-32 rounded-xl" />
+        </div>
+        <Skeleton className="h-72 rounded-xl" />
+      </div>
+    </div>
+  );
+}
+
 export default function Dashboard() {
+  useDocumentTitle("Dashboard");
   const navigate = useNavigate();
   const { wsSlug } = useParams();
   const { data: workspaces = [] } = useWorkspaces();
   const currentWs = workspaces.find((w) => w.slug === wsSlug);
+  const { data: me } = useCurrentUser();
   const { data, isLoading } = useDashboard(currentWs?.id);
   const [openTaskId, setOpenTaskId] = useState<string | null>(null);
+  const [expanded, setExpanded] = useState<ExpandKey | null>(null);
+  const toggleExpand = (key: ExpandKey) =>
+    setExpanded((cur) => (cur === key ? null : key));
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-[50vh]">
-        <p className="text-muted-foreground">Loading…</p>
-      </div>
-    );
+    return <DashboardSkeleton />;
   }
 
   const stats = data?.stats ?? {
@@ -357,153 +1065,146 @@ export default function Dashboard() {
   const assigned = data?.assigned_to_me ?? [];
   const dueThisWeek = data?.due_this_week ?? [];
   const overdue = data?.overdue ?? [];
+  const doneThisWeek = data?.done_this_week_tasks ?? [];
   const activeSprints = data?.active_sprints ?? [];
   const recentActivity = data?.recent_activity ?? [];
 
-  const goToTask = (t: DashboardTask) => setOpenTaskId(t.id);
+  const dueTodayCount = dueThisWeek.filter(
+    (t) => t.due_date && isToday(t.due_date),
+  ).length;
+
+  const focusPicks = pickFocus(overdue, dueThisWeek, assigned);
+  const { hi } = greetingFor(me?.display_name ?? null);
+  const subtitle = focusSubtitle(
+    overdue.length,
+    dueTodayCount,
+    assigned.length,
+  );
 
   return (
     <div className="space-y-6 max-w-6xl">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">Dashboard</h1>
-        <p className="text-sm text-slate-500 mt-1">
-          {currentWs
-            ? `Your work in ${currentWs.name} at a glance.`
-            : "Your work at a glance."}
-        </p>
+        {/* Two-line hero: personalized greeting + actionable subtitle. The
+            workspace name lives in the sidebar's switcher already, so
+            repeating it here was just noise. */}
+        <h1 className="text-2xl font-semibold tracking-tight text-slate-900 dark:text-slate-100">
+          {hi}
+        </h1>
+        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{subtitle}</p>
       </div>
 
-      {/* KPI banner */}
-      <StatsBanner stats={stats} />
+      <StatsRow stats={stats} expanded={expanded} onToggle={toggleExpand} />
 
-      {/* Overdue alert */}
-      {overdue.length > 0 && (
-        <Card className="border-red-200 bg-red-50/40">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base flex items-center gap-2 text-red-700">
-              <svg viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
-                <path
-                  fillRule="evenodd"
-                  d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm.75-11.25v4.5a.75.75 0 0 1-1.5 0v-4.5a.75.75 0 0 1 1.5 0ZM10 14a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z"
-                  clipRule="evenodd"
-                />
-              </svg>
-              <span>Overdue ({overdue.length})</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-2">
-            <div className="divide-y divide-red-100">
-              {overdue.map((t) => (
-                <TaskRow
-                  key={t.id}
-                  task={t}
-                  onClick={() => goToTask(t)}
-                  highlight
-                />
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+      {/* Animated expand/collapse via the grid-rows trick: the outer
+          grid animates `grid-template-rows` from 0fr → 1fr, which the
+          browser interpolates against the child's natural height. The
+          inner div clips overflow so content doesn't bleed during
+          transition. `panelKey` keeps the panel mounted with its last
+          shape during close so the exit animation can play out. */}
+      <AnimatedExpansion
+        open={expanded !== null}
+        renderKey={expanded}
+        workload={assigned}
+        done={doneThisWeek}
+        overdue={overdue}
+        onClose={() => setExpanded(null)}
+        onOpenTask={setOpenTaskId}
+      />
+
+      {/* Hide Focus when the Workload panel is open — the expanded list */}
+      {/* already includes every task Focus would surface, so showing both */}
+      {/* is just visual duplication of the same rows. */}
+      {focusPicks.length > 0 && expanded !== "workload" && (
+        <FocusCard picks={focusPicks} onOpen={setOpenTaskId} />
       )}
 
-      {/* Two columns: tasks + activity */}
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-6">
         <div className="space-y-6 min-w-0">
-          {/* Assigned to me */}
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base">Assigned to me</CardTitle>
-            </CardHeader>
-            <CardContent className="p-2">
-              {assigned.length === 0 ? (
-                <p className="text-sm text-muted-foreground px-3 py-2">
-                  No open tasks assigned to you.
-                </p>
-              ) : (
-                <div className="divide-y divide-slate-100">
-                  {assigned.map((t) => (
-                    <TaskRow key={t.id} task={t} onClick={() => goToTask(t)} />
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          <SectionCard title="Due this week" count={dueThisWeek.length}>
+            {dueThisWeek.length === 0 ? (
+              <EmptyState
+                size="compact"
+                title="Nothing due this week"
+                description="Tasks with a due date in the next 7 days show up here."
+                icon={
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth={1.6}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="w-5 h-5"
+                  >
+                    <rect x="3" y="5" width="18" height="16" rx="2" />
+                    <line x1="3" y1="10" x2="21" y2="10" />
+                    <line x1="8" y1="3" x2="8" y2="7" />
+                    <line x1="16" y1="3" x2="16" y2="7" />
+                  </svg>
+                }
+              />
+            ) : (
+              <TaskTable
+                tasks={dueThisWeek}
+                onOpenTask={setOpenTaskId}
+              />
+            )}
+          </SectionCard>
 
-          {/* Due this week */}
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base">Due this week</CardTitle>
-            </CardHeader>
-            <CardContent className="p-2">
-              {dueThisWeek.length === 0 ? (
-                <p className="text-sm text-muted-foreground px-3 py-2">
-                  Nothing due in the next 7 days.
-                </p>
-              ) : (
-                <div className="divide-y divide-slate-100">
-                  {dueThisWeek.map((t) => (
-                    <TaskRow key={t.id} task={t} onClick={() => goToTask(t)} />
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Active sprints */}
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base">Active sprints</CardTitle>
-            </CardHeader>
-            <CardContent className="p-2">
-              {activeSprints.length === 0 ? (
-                <p className="text-sm text-muted-foreground px-3 py-2">
-                  No sprints running right now.
-                </p>
-              ) : (
-                <div className="divide-y divide-slate-100">
-                  {activeSprints.map((s) => (
-                    <SprintRow
-                      key={s.id}
-                      sprint={s}
-                      onClick={() =>
-                        navigate(
-                          `/w/${s.workspace_slug}/p/${s.project_key}/sprints/${s.id}`,
-                        )
-                      }
-                    />
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          <SectionCard title="Active sprints" count={activeSprints.length}>
+            {activeSprints.length === 0 ? (
+              <EmptyState
+                size="compact"
+                title="No active sprint"
+                description="Start a sprint from the Sprints view to see live progress here."
+                icon={
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth={1.6}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="w-5 h-5"
+                  >
+                    <path d="M13 2 4 14h7l-1 8 9-12h-7l1-8z" />
+                  </svg>
+                }
+              />
+            ) : (
+              <div className="space-y-0.5">
+                {activeSprints.map((s) => (
+                  <SprintRow
+                    key={s.id}
+                    sprint={s}
+                    onClick={() =>
+                      navigate(
+                        `/w/${s.workspace_slug}/p/${s.project_key}/sprints/${s.id}`,
+                      )
+                    }
+                  />
+                ))}
+              </div>
+            )}
+          </SectionCard>
         </div>
 
-        {/* Right column: activity feed */}
-        <div className="space-y-6 min-w-0">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base">Recent activity</CardTitle>
-            </CardHeader>
-            <CardContent className="p-2">
-              {recentActivity.length === 0 ? (
-                <p className="text-sm text-muted-foreground px-3 py-2">
-                  No activity yet.
-                </p>
-              ) : (
-                <div className="space-y-0.5">
-                  {recentActivity.map((a) => (
-                    <ActivityRow
-                      key={a.id}
-                      a={a}
-                      onClick={() => setOpenTaskId(a.task_id)}
-                    />
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+        <div className="min-w-0">
+          <SectionCard title="Recent activity">
+            {recentActivity.length === 0 ? (
+              <p className="text-sm text-slate-400 dark:text-slate-500 px-3 py-2">
+                No activity yet.
+              </p>
+            ) : (
+              <ActivityFeed
+                items={recentActivity}
+                onOpen={(id) => setOpenTaskId(id)}
+              />
+            )}
+          </SectionCard>
         </div>
       </div>
+
       <TaskDetailModal
         taskId={openTaskId}
         onClose={() => setOpenTaskId(null)}

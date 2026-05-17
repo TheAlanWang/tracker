@@ -137,6 +137,12 @@ def update_workspace(
     if not updates:
         return WorkspaceResponse(**row)
 
+    # features is a partial merge — preserve keys the client didn't send.
+    # Without this a single-key flip would wipe every other flag.
+    if "features" in updates and updates["features"] is not None:
+        existing = row.get("features") or {}
+        updates["features"] = {**existing, **updates["features"]}
+
     updated = (
         supabase.table("workspaces")
         .update(updates)

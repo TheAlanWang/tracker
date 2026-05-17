@@ -5,6 +5,9 @@ const Toaster = ({ ...props }: ToasterProps) => {
   return (
     <Sonner
       theme="system"
+      // Anchor every notification at the top center so users always look in
+      // the same place — modals, alerts, and toasts share one focal point.
+      position="top-center"
       className="toaster group"
       icons={{
         success: (

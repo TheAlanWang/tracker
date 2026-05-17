@@ -6,14 +6,20 @@ export type NotificationType =
   | "assigned"
   | "mentioned"
   | "commented"
-  | "status_changed";
+  | "status_changed"
+  | "invitation_accepted"
+  | "invitation_declined"
+  | "unblocked";
 
 export type Notification = {
   id: string;
   user_id: string;
   type: NotificationType;
-  task_id: string;
+  // Null for non-task-centric notifications (invitation outcomes).
+  task_id: string | null;
   actor_id: string | null;
+  actor_email: string | null;
+  actor_display_name: string | null;
   payload: Record<string, unknown>;
   read_at: string | null;
   created_at: string;

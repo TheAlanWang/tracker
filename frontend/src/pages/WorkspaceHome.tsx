@@ -27,8 +27,8 @@ export default function WorkspaceHome() {
   if (projects.length === 0) {
     return (
       <div className="max-w-xl space-y-3">
-        <h1 className="text-2xl font-bold text-slate-900">{currentWs.name}</h1>
-        <p className="text-slate-600">
+        <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">{currentWs.name}</h1>
+        <p className="text-slate-600 dark:text-slate-400">
           No projects yet. Click <span className="font-semibold">+</span> next to{" "}
           <span className="font-semibold">PROJECTS</span> in the left sidebar to create your first.
         </p>

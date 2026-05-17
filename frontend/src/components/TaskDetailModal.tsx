@@ -57,13 +57,13 @@ export function TaskDetailModal({ taskId, onClose }: Props) {
       onClick={onClose}
     >
       <div
-        className="relative my-4 w-full max-w-5xl rounded-lg bg-white shadow-2xl"
+        className="relative my-4 w-full max-w-5xl rounded-lg bg-white dark:bg-slate-900 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         <button
           type="button"
           onClick={onClose}
-          className="absolute right-3 top-3 z-10 inline-flex h-8 w-8 items-center justify-center rounded text-slate-500 hover:bg-slate-100 hover:text-slate-900"
+          className="absolute right-3 top-3 z-10 inline-flex h-8 w-8 items-center justify-center rounded text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100"
           aria-label="Close"
         >
           <CloseIcon />

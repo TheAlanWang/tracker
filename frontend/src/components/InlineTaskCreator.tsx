@@ -56,7 +56,7 @@ export function InlineTaskCreator({
         onClick={() => setEditing(true)}
         className={
           triggerClassName ??
-          "w-full text-left text-xs text-slate-500 hover:text-slate-900 hover:bg-slate-200/60 rounded px-2 py-1.5 transition-colors"
+          "w-full text-left text-xs text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/60 rounded px-2 py-1.5 transition-colors"
         }
       >
         {triggerLabel}
@@ -67,7 +67,7 @@ export function InlineTaskCreator({
   return (
     <form
       onSubmit={submit}
-      className="rounded border border-slate-300 bg-white p-2 space-y-2 shadow-sm"
+      className="rounded border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 p-2 space-y-2 shadow-sm"
       onKeyDown={(e) => {
         if (e.key === "Escape") cancel();
       }}
@@ -98,7 +98,7 @@ export function InlineTaskCreator({
         <button
           type="button"
           onClick={cancel}
-          className="text-xs text-slate-500 hover:text-slate-900"
+          className="text-xs text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100"
         >
           Cancel
         </button>

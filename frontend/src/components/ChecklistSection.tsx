@@ -1,0 +1,244 @@
+// ChecklistSection — lightweight TODO list inside a task's detail page.
+//
+// Checklist items are NOT independent tasks: no identifier, no status,
+// not shown in any list view. They're plain text + a checkbox stored in
+// task_checklist_items. They're decoupled from the task's own status —
+// the parent task can be marked done with items still unchecked; a soft
+// toast warns the user about that, but doesn't block.
+//
+// The add affordance is a permanently visible ghost row at the bottom of
+// the list — it mirrors the geometry of a real checklist row (faint "+"
+// in the checkbox slot, text input where the label would be). No explicit
+// Add button — Enter commits. This matches the Notion / Things / Linear
+// pattern where adding feels like "type, then Enter" rather than "open a
+// form, fill it, submit".
+
+import { useState } from "react";
+
+import {
+  type ChecklistItem,
+  useChecklist,
+  useCreateChecklistItem,
+  useDeleteChecklistItem,
+  useUpdateChecklistItem,
+} from "@/features/checklist/api";
+
+function ChecklistRow({
+  item,
+  onToggle,
+  onRename,
+  onDelete,
+}: {
+  item: ChecklistItem;
+  onToggle: (next: boolean) => void;
+  onRename: (next: string) => void;
+  onDelete: () => void;
+}) {
+  // Inline rename: click the text → it becomes an input pre-filled with
+  // the current text. Enter / blur saves, Esc reverts. The done-state
+  // line-through is suppressed while editing so the text stays legible
+  // as the user types over it.
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(item.text);
+
+  function startEdit() {
+    setDraft(item.text);
+    setEditing(true);
+  }
+
+  function commit() {
+    const next = draft.trim();
+    setEditing(false);
+    if (!next || next === item.text) return;
+    onRename(next);
+  }
+
+  function cancel() {
+    setDraft(item.text);
+    setEditing(false);
+  }
+
+  return (
+    <li className="group flex items-center gap-2 py-1">
+      <button
+        type="button"
+        onClick={() => onToggle(!item.done)}
+        aria-label={item.done ? "Mark not done" : "Mark done"}
+        className={`shrink-0 w-4 h-4 rounded border flex items-center justify-center transition-colors ${
+          item.done
+            ? "bg-emerald-500 border-emerald-500 text-white"
+            : "border-slate-300 dark:border-slate-700 hover:border-slate-400 bg-white dark:bg-slate-900"
+        }`}
+      >
+        {item.done && (
+          <svg
+            viewBox="0 0 16 16"
+            className="w-3 h-3"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={3}
+          >
+            <path
+              d="M3 8l3 3 7-7"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        )}
+      </button>
+      {editing ? (
+        <input
+          autoFocus
+          type="text"
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onBlur={commit}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              commit();
+            } else if (e.key === "Escape") {
+              e.preventDefault();
+              cancel();
+            }
+          }}
+          maxLength={200}
+          className="flex-1 bg-transparent outline-none text-sm text-slate-800 dark:text-slate-200"
+        />
+      ) : (
+        <button
+          type="button"
+          onClick={startEdit}
+          className={`flex-1 text-left text-sm cursor-text ${
+            item.done ? "line-through text-slate-400 dark:text-slate-500" : "text-slate-800 dark:text-slate-200"
+          }`}
+        >
+          {item.text}
+        </button>
+      )}
+      <button
+        type="button"
+        onClick={onDelete}
+        className="opacity-0 group-hover:opacity-100 text-slate-400 dark:text-slate-500 hover:text-red-600 text-xs px-1 transition-opacity"
+        aria-label="Delete item"
+      >
+        ×
+      </button>
+    </li>
+  );
+}
+
+// AddRow — the ghost row at the bottom. Geometry matches ChecklistRow so
+// the "+" sits exactly where the real checkbox would, and the input text
+// baseline aligns with item text above it. Enter commits + clears for
+// the next entry; Esc blurs.
+function AddRow({
+  onCommit,
+  pending,
+}: {
+  onCommit: (text: string) => Promise<void>;
+  pending: boolean;
+}) {
+  const [draft, setDraft] = useState("");
+
+  async function commit() {
+    const text = draft.trim();
+    if (!text) return;
+    await onCommit(text);
+    setDraft("");
+  }
+
+  return (
+    <li className="group flex items-center gap-2 py-1">
+      <span
+        aria-hidden
+        // Same footprint as the real checkbox above so the column lines
+        // up perfectly. Faint "+" makes it read as "this row creates a
+        // new item" without resembling an unchecked, clickable checkbox.
+        className="shrink-0 w-4 h-4 flex items-center justify-center text-slate-300 text-base leading-none"
+      >
+        +
+      </span>
+      <input
+        type="text"
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            commit();
+          } else if (e.key === "Escape") {
+            setDraft("");
+            (e.target as HTMLInputElement).blur();
+          }
+        }}
+        placeholder="Add a step…"
+        maxLength={200}
+        disabled={pending}
+        className="flex-1 bg-transparent outline-none text-sm text-slate-800 dark:text-slate-200 placeholder:text-slate-400 disabled:opacity-50"
+      />
+    </li>
+  );
+}
+
+export function ChecklistSection({
+  taskId,
+  readOnly = false,
+}: {
+  taskId: string;
+  // When true, hides the "+ Add" ghost row and the × delete button on
+  // each item, AND collapses the whole section if there are zero items.
+  // TaskDetail flips this in view mode so empty fields don't take space.
+  readOnly?: boolean;
+}) {
+  const { data: items = [] } = useChecklist(taskId);
+  const createItem = useCreateChecklistItem(taskId);
+  const updateItem = useUpdateChecklistItem(taskId);
+  const deleteItem = useDeleteChecklistItem(taskId);
+
+  const total = items.length;
+  const done = items.filter((i) => i.done).length;
+
+  // Hide entirely when there's nothing to show and the user can't add.
+  if (readOnly && total === 0) return null;
+
+  return (
+    <section className="space-y-2 pt-6 border-t border-slate-200 dark:border-slate-800">
+      <h2 className="text-sm font-semibold uppercase text-muted-foreground">
+        Checklist{" "}
+        {total > 0 && (
+          <span className="text-slate-400 dark:text-slate-500">
+            ({done}/{total})
+          </span>
+        )}
+      </h2>
+      <ul className="space-y-0">
+        {items.map((it) => (
+          <ChecklistRow
+            key={it.id}
+            item={it}
+            onToggle={(next) =>
+              updateItem.mutate({ itemId: it.id, payload: { done: next } })
+            }
+            onRename={(next) =>
+              updateItem.mutate({ itemId: it.id, payload: { text: next } })
+            }
+            onDelete={() => deleteItem.mutate(it.id)}
+          />
+        ))}
+        <AddRow
+          onCommit={(text) => createItem.mutateAsync(text).then(() => undefined)}
+          pending={createItem.isPending}
+        />
+      </ul>
+    </section>
+  );
+}
+
+// Helper exported for TaskDetail's "marked done with unchecked items" toast.
+// Returns the count of unchecked items for a task without re-fetching.
+// Implemented as a hook so TaskDetail can simply read the count.
+export function useUncheckedCount(taskId: string): number {
+  const { data: items = [] } = useChecklist(taskId);
+  return items.filter((i) => !i.done).length;
+}

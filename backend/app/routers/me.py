@@ -31,6 +31,7 @@ def get_me(
 ) -> MeResponse:
     email: str | None = None
     display_name: str | None = None
+    avatar_url: str | None = None
     if creds is not None:
         try:
             payload = verify_and_decode_supabase_jwt(
@@ -39,6 +40,7 @@ def get_me(
             email = payload.get("email")
             user_meta = payload.get("user_metadata") or {}
             display_name = user_meta.get("display_name")
+            avatar_url = user_meta.get("avatar_url")
         except InvalidTokenError:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
@@ -53,6 +55,7 @@ def get_me(
         id=user_id,
         email=email,
         display_name=display_name,
+        avatar_url=avatar_url,
         workspaces=workspace_summaries,
     )
 
@@ -68,6 +71,10 @@ def update_profile(
     updates: dict = {}
     if body.display_name is not None:
         updates["display_name"] = body.display_name
+    if body.avatar_url is not None:
+        # Empty string clears the avatar — converted to None so the metadata
+        # field disappears instead of holding "".
+        updates["avatar_url"] = body.avatar_url or None
 
     if updates:
         try:
@@ -84,6 +91,7 @@ def update_profile(
     # Re-read from the admin API to get fresh metadata
     email: str | None = None
     display_name: str | None = None
+    avatar_url: str | None = None
     if creds is not None:
         try:
             payload = verify_and_decode_supabase_jwt(
@@ -100,6 +108,7 @@ def update_profile(
             email = email or user_obj.user.email
             meta = user_obj.user.user_metadata or {}
             display_name = meta.get("display_name")
+            avatar_url = meta.get("avatar_url")
     except Exception:
         pass
 
@@ -112,8 +121,39 @@ def update_profile(
         id=user_id,
         email=email,
         display_name=display_name,
+        avatar_url=avatar_url,
         workspaces=workspace_summaries,
     )
+
+
+@router.delete("/me", status_code=status.HTTP_204_NO_CONTENT)
+def delete_me(
+    user_id: str = Depends(get_current_user_id),
+    supabase: Client = Depends(get_supabase_admin),
+):
+    """Permanently delete the caller's account.
+
+    Deletes auth.users(id = user_id); FK cascades take care of the rest:
+      - workspaces.owner_id CASCADE     → owned workspaces and everything in
+                                          them (projects, tasks, sprints,
+                                          watchers, activity, etc.)
+      - workspace_members.user_id CASCADE → membership in other workspaces
+      - task_watchers.user_id CASCADE     → watch subscriptions
+      - workspace_invitations.invited_by CASCADE → invites they sent
+      - notifications.user_id CASCADE     → their inbox
+
+    Tasks/comments/activity they touched in OTHER workspaces stay (FK SET
+    NULL), so collaborators don't lose work; their attribution just becomes
+    "Someone".
+    """
+    try:
+        supabase.auth.admin.delete_user(user_id)
+    except Exception as exc:
+        logger.exception("Failed to delete user %s", user_id)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to delete account",
+        ) from exc
 
 
 @router.get("/me/dashboard", response_model=DashboardResponse)

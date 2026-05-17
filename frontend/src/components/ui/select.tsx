@@ -11,6 +11,12 @@ type Props<T extends string> = {
   options: Option<T>[];
   className?: string;
   placeholder?: string;
+  // Custom render for each option (used both in the dropdown list and
+  // for the currently-selected value in the trigger). Useful for
+  // rendering colored chips per option — status / priority pickers
+  // pass in their pill component so users can see the color before
+  // they pick.
+  renderOption?: (option: Option<T>) => React.ReactNode;
 };
 
 /**
@@ -24,6 +30,7 @@ export function Select<T extends string>({
   options,
   className = "",
   placeholder,
+  renderOption,
 }: Props<T>) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -53,17 +60,19 @@ export function Select<T extends string>({
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="w-full flex items-center justify-between rounded border border-slate-300 bg-white px-2.5 py-1.5 text-sm text-slate-700 hover:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-300"
+        className="w-full flex items-center justify-between rounded border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2.5 py-1.5 text-sm text-slate-700 dark:text-slate-300 hover:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-300"
       >
         <span className="truncate">
-          {current?.label ?? (
-            <span className="text-slate-400">{placeholder ?? "Select…"}</span>
+          {current ? (
+            renderOption ? renderOption(current) : current.label
+          ) : (
+            <span className="text-slate-400 dark:text-slate-500">{placeholder ?? "Select…"}</span>
           )}
         </span>
-        <span className="text-slate-400 text-xs ml-2 shrink-0">▾</span>
+        <span className="text-slate-400 dark:text-slate-500 text-xs ml-2 shrink-0">▾</span>
       </button>
       {open && (
-        <div className="absolute z-20 mt-1 left-0 right-0 max-h-60 overflow-auto rounded-md border border-slate-200 bg-white shadow-lg py-1">
+        <div className="absolute z-20 mt-1 left-0 right-0 max-h-60 overflow-auto rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-lg py-1">
           {options.map((o) => (
             <button
               key={o.value}
@@ -74,13 +83,13 @@ export function Select<T extends string>({
               }}
               className={
                 o.value === value
-                  ? "w-full text-left px-3 py-1.5 text-sm bg-slate-50 font-medium flex items-center justify-between"
-                  : "w-full text-left px-3 py-1.5 text-sm hover:bg-slate-50 flex items-center justify-between"
+                  ? "w-full text-left px-3 py-1.5 text-sm bg-slate-50 dark:bg-slate-800/40 font-medium flex items-center justify-between"
+                  : "w-full text-left px-3 py-1.5 text-sm hover:bg-slate-50 dark:hover:bg-slate-800/50 flex items-center justify-between"
               }
             >
-              <span>{o.label}</span>
+              <span>{renderOption ? renderOption(o) : o.label}</span>
               {o.value === value && (
-                <span className="text-slate-400 text-xs">✓</span>
+                <span className="text-slate-400 dark:text-slate-500 text-xs">✓</span>
               )}
             </button>
           ))}

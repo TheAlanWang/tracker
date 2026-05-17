@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from postgrest.exceptions import APIError
 
-from app.routers import activity, comments, tasks, labels, me, members, notifications, projects, resolve, search, sprints, workspaces
+from app.routers import activity, charts, checklist, comments, dependencies, tasks, goals, invitations, labels, me, members, notifications, projects, resolve, search, sprints, watchers, workspaces
 
 app = FastAPI(title="tracker-api")
 
@@ -47,14 +47,20 @@ def health() -> dict[str, str]:
 
 
 app.include_router(activity.router)
+app.include_router(charts.router)
+app.include_router(checklist.router)
 app.include_router(comments.router)
+app.include_router(dependencies.router)
 app.include_router(tasks.router)
+app.include_router(goals.router)
 app.include_router(labels.router)
 app.include_router(me.router)
 app.include_router(notifications.router)
 app.include_router(workspaces.router)
 app.include_router(members.router)
+app.include_router(invitations.router)
 app.include_router(projects.router)
 app.include_router(resolve.router)
 app.include_router(search.router)
 app.include_router(sprints.router)
+app.include_router(watchers.router)

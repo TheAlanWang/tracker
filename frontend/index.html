@@ -4,7 +4,22 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>web</title>
+    <title>Tracker</title>
+    <!-- Apply persisted theme before React mounts so the first paint
+         matches the user's preference. Without this, light styles
+         flash for ~100ms when the page loads in dark mode. -->
+    <script>
+      (function () {
+        try {
+          var v = localStorage.getItem("tracker-theme");
+          var dark =
+            v === "dark" ||
+            ((v === "system" || !v) &&
+              window.matchMedia("(prefers-color-scheme: dark)").matches);
+          if (dark) document.documentElement.classList.add("dark");
+        } catch (_) {}
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

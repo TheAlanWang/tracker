@@ -34,7 +34,35 @@ def list_my_notifications(
     if unread_only:
         query = query.is_("read_at", "null")
     rows = query.limit(50).execute().data
-    return [NotificationResponse(**r) for r in rows]
+
+    # Enrich with actor email + display_name from auth.users (so the UI can
+    # show "Assigned by Alan" / "by alan@gmail.com" instead of a UUID).
+    actor_ids = list({r["actor_id"] for r in rows if r.get("actor_id")})
+    actor_info: dict[str, dict[str, str | None]] = {}
+    if actor_ids:
+        try:
+            users = supabase.auth.admin.list_users()
+            for u in users:
+                if u.id in actor_ids:
+                    meta = u.user_metadata or {}
+                    actor_info[u.id] = {
+                        "email": u.email,
+                        "display_name": meta.get("display_name"),
+                    }
+        except Exception:
+            pass  # graceful: row falls back to UUID display
+
+    enriched: list[NotificationResponse] = []
+    for r in rows:
+        info = actor_info.get(r.get("actor_id") or "", {})
+        enriched.append(
+            NotificationResponse(
+                **r,
+                actor_email=info.get("email"),
+                actor_display_name=info.get("display_name"),
+            )
+        )
+    return enriched
 
 
 def mark_read(

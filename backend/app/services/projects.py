@@ -163,14 +163,56 @@ def update_project(
     if not updates:
         return current
 
-    updated = (
+    # Empty-string color from the frontend means "clear back to default";
+    # store as NULL so the frontend falls back to the hash-derived hue.
+    if "color" in updates and updates["color"] == "":
+        updates["color"] = None
+
+    # Key changes are special: they need to atomically rewrite every task
+    # identifier in the project. Defer that to the rename_project_key RPC
+    # so the rename + project.key update happen in one DB transaction.
+    new_key = updates.pop("key", None)
+    if new_key is not None and new_key != current.key:
+        # Reject collision early — same (workspace_id, key) unique constraint
+        # that protects creates. We surface as ProjectKeyExistsError so the
+        # router can return 409 with a helpful message.
+        existing = (
+            supabase.table("projects")
+            .select("id")
+            .eq("workspace_id", current.workspace_id)
+            .eq("key", new_key)
+            .neq("id", project_id)
+            .execute()
+            .data
+        )
+        if existing:
+            raise ProjectKeyExistsError(new_key)
+        try:
+            supabase.rpc(
+                "rename_project_key",
+                {"p_project_id": project_id, "p_new_key": new_key},
+            ).execute()
+        except APIError as exc:
+            # Race: another project grabbed this key between our check and
+            # the RPC. Translate to ProjectKeyExistsError uniformly.
+            if exc.code == "23505":
+                raise ProjectKeyExistsError(new_key) from exc
+            raise
+
+    if updates:
+        supabase.table("projects").update(updates).eq("id", project_id).execute()
+
+    # Always re-fetch — the RPC bypassed PostgREST so we don't have its
+    # post-update row, and the partial update only returned its own row.
+    refreshed = (
         supabase.table("projects")
-        .update(updates)
+        .select("*")
         .eq("id", project_id)
+        .single()
         .execute()
-        .data[0]
+        .data
     )
-    return ProjectResponse(**updated)
+    return ProjectResponse(**refreshed)
 
 
 def delete_project(

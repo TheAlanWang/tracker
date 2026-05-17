@@ -3,17 +3,19 @@ import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { ProjectLayout } from "@/components/ProjectLayout";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { WorkspaceLayout } from "@/components/WorkspaceLayout";
+import { useAuth } from "@/lib/auth";
 import AuthCallback from "@/pages/AuthCallback";
 import Backlog from "@/pages/Backlog";
 import Board from "@/pages/Board";
 import Browse from "@/pages/Browse";
 import Dashboard from "@/pages/Dashboard";
+import Goals from "@/pages/Goals";
 import Home from "@/pages/Home";
-import Inbox from "@/pages/Inbox";
+import Landing from "@/pages/Landing";
 import TaskDetail from "@/pages/TaskDetail";
 import TaskList from "@/pages/TaskList";
-import Login from "@/pages/Login";
 import MyIssues from "@/pages/MyIssues";
+import NotFound from "@/pages/NotFound";
 import ProfileSettings from "@/pages/ProfileSettings";
 import ProjectSettings from "@/pages/ProjectSettings";
 import SprintDetail from "@/pages/SprintDetail";
@@ -21,20 +23,32 @@ import SprintList from "@/pages/SprintList";
 import WorkspaceHome from "@/pages/WorkspaceHome";
 import WorkspaceSettings from "@/pages/WorkspaceSettings";
 
+// Root route: anonymous visitors see the marketing landing; signed-in users
+// flow into the workspace via Home (which redirects to the last workspace).
+function RootRoute() {
+  const { session, loading } = useAuth();
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-muted-foreground">Loading…</p>
+      </div>
+    );
+  }
+  return session ? <Home /> : <Landing />;
+}
+
 export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/login" element={<Login />} />
-        <Route path="/auth/callback" element={<AuthCallback />} />
+        {/* Legacy /login URL — keep functional but redirect to landing with
+            the modal auto-open. */}
         <Route
-          path="/"
-          element={
-            <ProtectedRoute>
-              <Home />
-            </ProtectedRoute>
-          }
+          path="/login"
+          element={<Navigate to="/?login=open" replace />}
         />
+        <Route path="/auth/callback" element={<AuthCallback />} />
+        <Route path="/" element={<RootRoute />} />
         <Route
           path="/browse/:identifier"
           element={
@@ -53,7 +67,7 @@ export default function App() {
         >
           <Route index element={<WorkspaceHome />} />
           <Route path="dashboard" element={<Dashboard />} />
-          <Route path="inbox" element={<Inbox />} />
+          <Route path="goals" element={<Goals />} />
           <Route path="my-issues" element={<MyIssues />} />
           <Route path="settings" element={<WorkspaceSettings />} />
           <Route path="profile" element={<ProfileSettings />} />
@@ -68,7 +82,7 @@ export default function App() {
             <Route path="sprints/:sprintId" element={<SprintDetail />} />
           </Route>
         </Route>
-        <Route path="*" element={<Navigate to="/" replace />} />
+        <Route path="*" element={<NotFound />} />
       </Routes>
     </BrowserRouter>
   );

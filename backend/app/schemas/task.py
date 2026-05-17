@@ -32,6 +32,7 @@ class TaskUpdate(BaseModel):
     assignee_id: str | None = None
     due_date: date | None = None
     sprint_id: str | None = None
+    goal_id: str | None = None
 
 
 class TaskResponse(BaseModel):
@@ -40,6 +41,7 @@ class TaskResponse(BaseModel):
     project_id: str
     sprint_id: str | None
     parent_id: str | None
+    goal_id: str | None = None
     identifier: str
     title: str
     description: str

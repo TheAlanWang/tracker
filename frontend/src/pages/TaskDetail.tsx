@@ -1,11 +1,51 @@
-import { useEffect, useState } from "react";
+// Task detail — the big read/edit-a-task page.
+//
+// Two entry points share this code via the exported `TaskDetailContent`:
+//   1. `/w/:wsSlug/p/:pKey/tasks/:identifier` — full page (default export
+//      below resolves the identifier to a task id and renders Content).
+//   2. <TaskDetailModal> — the modal used from Dashboard / List / Board.
+//
+// Edit model: starts in view mode. "Edit" enters edit mode, which mounts
+// inline controls (Select / input / textarea) and a draft state per field;
+// "Save" commits via useUpdateTask, "Discard" reverts. The Watch / Edit
+// (or Watch / Discard) button pair lives on the top-right of the title row.
+//
+// Side rails:
+//   - Right aside: Status, Priority, Due date, Sprint, Assignee, Created,
+//     Updated. Inline-edit controls swap in when isEditing is true.
+//   - Below the description: Comments + Activity. Activity uses styled
+//     status/priority pills for value changes (renderActivityValue), with
+//     field-specific "default" labels ("Unassigned", "No due date", etc.)
+//     so reading "from X to Y" history is meaningful.
+
+import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { toast } from "sonner";
 
+import { Avatar } from "@/components/Avatar";
+import {
+  DependenciesSection,
+  type PendingDepAdd,
+} from "@/components/DependenciesSection";
+import {
+  useCreateDependency,
+  useDeleteDependency,
+  useDependencies,
+} from "@/features/dependencies/api";
+import { useTaskLabels } from "@/features/labels/api";
+import { LabelsEditor } from "@/components/LabelsEditor";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
+import { CommentBody } from "@/components/CommentBody";
+import { MentionTextarea } from "@/components/MentionTextarea";
+import { ChecklistSection } from "@/components/ChecklistSection";
+import { Skeleton } from "@/components/ui/skeleton";
+import { GoalPicker } from "@/components/GoalPicker";
+import { useChecklist } from "@/features/checklist/api";
+import { useGoals } from "@/features/goals/api";
+import { useWorkspaces } from "@/features/workspaces/api";
 import { type Activity, useTaskActivity } from "@/features/activity/api";
 import {
   useComments,
@@ -22,11 +62,106 @@ import {
 } from "@/features/tasks/api";
 import { useMembers } from "@/features/members/api";
 import { useSprints } from "@/features/sprints/api";
-import { PRIORITY_LABELS, STATUS_LABELS } from "@/features/tasks/labels";
+import {
+  useTaskWatchers,
+  useWatchTask,
+  useUnwatchTask,
+} from "@/features/watchers/api";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
+import {
+  PRIORITY_LABELS,
+  PRIORITY_PILL,
+  PRIORITY_STYLE,
+  STATUS_LABELS,
+  STATUS_PILL,
+  STATUS_STYLE,
+} from "@/features/tasks/labels";
 
 const STATUSES: { value: TaskStatus; label: string }[] = (
   Object.entries(STATUS_LABELS) as [TaskStatus, string][]
 ).map(([value, label]) => ({ value, label }));
+
+// Eye icon — filled when watching, outlined when not. Inline so we avoid a
+// new dependency just for one shape.
+// Three-dot overflow menu for destructive / secondary task actions. Kept
+// inline here because it's only used in one place and the surface area is
+// tiny — a separate file would obscure the wiring more than it helps. The
+// menu is always available (edit-mode-independent) because Delete is a
+// task-level action, not a save-flow action.
+function TaskActionsMenu({
+  onDelete,
+  deleteDisabled,
+}: {
+  onDelete: () => void;
+  deleteDisabled: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onClickAway = (e: MouseEvent) => {
+      if (!ref.current?.contains(e.target as Node)) setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("mousedown", onClickAway);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onClickAway);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
+  return (
+    <div className="relative" ref={ref}>
+      <Button
+        type="button"
+        variant="outline"
+        onClick={() => setOpen((v) => !v)}
+        aria-label="More actions"
+        className="px-2"
+      >
+        <span className="leading-none text-base">⋯</span>
+      </Button>
+      {open && (
+        <div className="absolute right-0 top-full mt-1 z-20 w-44 rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-lg py-1 text-sm">
+          <button
+            type="button"
+            onClick={() => {
+              setOpen(false);
+              onDelete();
+            }}
+            disabled={deleteDisabled}
+            className="w-full text-left px-3 py-1.5 text-red-600 hover:bg-red-50 disabled:opacity-50 disabled:hover:bg-transparent"
+          >
+            Delete task
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function WatchIcon({ filled }: { filled: boolean }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill={filled ? "currentColor" : "none"}
+      stroke="currentColor"
+      strokeWidth={1.8}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="w-4 h-4"
+      aria-hidden
+    >
+      <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z" />
+      <circle cx="12" cy="12" r="3" fill={filled ? "white" : "none"} />
+    </svg>
+  );
+}
 
 const PRIORITIES: { value: TaskPriority; label: string }[] = (
   Object.entries(PRIORITY_LABELS) as [TaskPriority, string][]
@@ -55,11 +190,38 @@ function formatRelativeTime(iso: string): string {
   return new Date(iso).toLocaleDateString();
 }
 
+type ActivityContext = {
+  resolveActor: (id: string | null) => string;
+  // Renders an activity-log raw value as JSX. Status / priority become
+  // colored pills (matching how they look elsewhere in the app); foreign-key
+  // fields resolve to names; dates format locally.
+  renderValue: (field: string, value: unknown) => React.ReactNode;
+};
+
+// Inline arrow used between from→to values in activity rows. Crisp SVG
+// reads better than the unicode "→" character at body-text size.
+function FromToArrow() {
+  return (
+    <svg
+      viewBox="0 0 20 20"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.8}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="inline-block w-3.5 h-3.5 mx-1 text-slate-400 dark:text-slate-500 align-[-2px]"
+      aria-hidden
+    >
+      <path d="M4 10h12M12 6l4 4-4 4" />
+    </svg>
+  );
+}
+
 function renderActivityLine(
   a: Activity,
-  resolveActor: (id: string | null) => string,
+  ctx: ActivityContext,
 ): React.ReactNode {
-  const actor = resolveActor(a.actor_id);
+  const actor = ctx.resolveActor(a.actor_id);
   const time = formatRelativeTime(a.created_at);
   const p = a.payload as Record<
     string,
@@ -86,12 +248,12 @@ function renderActivityLine(
           body = <>edited the {label}</>;
         } else {
           body = (
-            <>
-              changed {label}{" "}
-              <span className="text-slate-500">{String(c.from ?? "—")}</span>
-              {" → "}
-              <span className="text-slate-900">{String(c.to ?? "—")}</span>
-            </>
+            <span className="inline-flex items-center flex-wrap gap-x-1">
+              changed {label}
+              {ctx.renderValue(f, c.from)}
+              <FromToArrow />
+              {ctx.renderValue(f, c.to)}
+            </span>
           );
         }
       } else {
@@ -106,8 +268,8 @@ function renderActivityLine(
 
   return (
     <>
-      <span className="font-medium text-slate-900">{actor}</span> {body}{" "}
-      <span className="text-slate-400">· {time}</span>
+      <span className="font-medium text-slate-900 dark:text-slate-100">{actor}</span> {body}{" "}
+      <span className="text-slate-400 dark:text-slate-500">· {time}</span>
     </>
   );
 }
@@ -132,6 +294,40 @@ function ArrowLeftIcon() {
 // Self-contained task editor: handles its own data fetching, draft state,
 // save/discard/delete, comments, and activity. Used by both the full-page
 // TaskDetail and the TaskDetailModal (board card click).
+// Skeleton matching TaskDetail's two-column layout — title row, content
+// block, and an aside with stacked metadata. Sized to keep the page
+// height stable while data loads.
+function TaskDetailSkeleton() {
+  return (
+    <div className="grid grid-cols-3 gap-8 max-w-6xl">
+      <div className="col-span-2 space-y-4">
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex-1 space-y-2">
+            <Skeleton className="h-4 w-16" />
+            <Skeleton className="h-9 w-3/4" />
+          </div>
+          <div className="flex gap-2 shrink-0">
+            <Skeleton className="h-9 w-24" />
+            <Skeleton className="h-9 w-20" />
+          </div>
+        </div>
+        <Skeleton className="h-4 w-24 mt-4" />
+        <Skeleton className="h-32 w-full" />
+        <Skeleton className="h-4 w-28 mt-6" />
+        <Skeleton className="h-24 w-full" />
+      </div>
+      <aside className="space-y-5">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <div key={i} className="space-y-1.5">
+            <Skeleton className="h-3 w-16" />
+            <Skeleton className="h-7 w-full" />
+          </div>
+        ))}
+      </aside>
+    </div>
+  );
+}
+
 export function TaskDetailContent({
   taskId,
   onDeleted,
@@ -147,9 +343,52 @@ export function TaskDetailContent({
 
   const updateMutation = useUpdateTask(task?.id ?? "");
   const deleteMutation = useDeleteTask();
+  // Dependency mutations are fired by onSave so we can batch them with
+  // the main task update — keeps the "draft → Save" flow consistent
+  // with every other editable field in the aside.
+  const createDepMutation = useCreateDependency();
+  const deleteDepMutation = useDeleteDependency();
 
   const { data: sprints = [] } = useSprints(task?.project_id ?? "");
   const { data: members = [] } = useMembers(task?.workspace_id ?? "");
+  const { data: goals = [] } = useGoals(task?.workspace_id ?? "");
+  // Goals is opt-in per workspace. When the owner hasn't enabled it,
+  // suppress the Goal picker in the aside entirely — otherwise users
+  // would see (and could pick) goals that have no surface elsewhere.
+  const { data: workspaces = [] } = useWorkspaces();
+  const goalsEnabled = !!workspaces.find((w) => w.id === task?.workspace_id)
+    ?.features?.goals;
+  const { data: checklistItems = [] } = useChecklist(task?.id ?? "");
+  const uncheckedCount = checklistItems.filter((i) => !i.done).length;
+  const { data: deps } = useDependencies(task?.id ?? "");
+  // For the empty-section hiding rule — TaskDetail needs to know whether
+  // Labels has any content so it can collapse the row in view mode.
+  const { data: taskLabels = [] } = useTaskLabels(task?.id ?? "");
+  // Open blockers right now: any blocker task not yet done/cancelled.
+  // Used to warn the user when they try to push this task forward
+  // (Save → in_progress / in_review) while dependencies are still open.
+  const openBlockers =
+    deps?.blockers.filter(
+      (l) => l.task.status !== "done" && l.task.status !== "cancelled",
+    ) ?? [];
+
+
+  // Watchers: the current user can subscribe to a task's lifecycle even when
+  // they're not the assignee. `isWatching` drives the Watch / Watching toggle.
+  const { data: me } = useCurrentUser();
+  const { data: watchers = [] } = useTaskWatchers(task?.id);
+  const watchMutation = useWatchTask(task?.id);
+  const unwatchMutation = useUnwatchTask(task?.id);
+  const isWatching = !!me && watchers.some((w) => w.user_id === me.id);
+  const watchBusy = watchMutation.isPending || unwatchMutation.isPending;
+  function toggleWatch() {
+    if (isWatching) unwatchMutation.mutate();
+    else watchMutation.mutate();
+  }
+
+  // View mode by default — tasks are mostly read. Click "Edit" to enter
+  // edit mode; Save/Discard returns to view.
+  const [isEditing, setIsEditing] = useState(false);
 
   // --- Draft state: changes pending until user clicks Save ---
   const [titleDraft, setTitleDraft] = useState("");
@@ -160,7 +399,24 @@ export function TaskDetailContent({
   const [dueDateDraft, setDueDateDraft] = useState("");
   const [sprintDraft, setSprintDraft] = useState<string | null>(null);
   const [assigneeDraft, setAssigneeDraft] = useState<string | null>(null);
+  const [goalDraft, setGoalDraft] = useState<string | null>(null);
+  // Dependency draft: pending adds (not yet persisted) and ids of
+  // backend dependencies that the user has marked for removal. Both
+  // arrays/sets reset on entering edit or on Discard, and get drained
+  // by onSave (one create / delete mutation per entry).
+  const [pendingDepAdds, setPendingDepAdds] = useState<PendingDepAdd[]>([]);
+  const [pendingDepRemoveIds, setPendingDepRemoveIds] = useState<Set<string>>(
+    new Set(),
+  );
 
+  // Hydrate draft fields from the loaded task. useQuery returns a stable
+  // reference until the task id changes, so this effect fires once per
+  // task-open, not on every render — the "cascading renders" failure mode
+  // the eslint rule is paranoid about doesn't apply here. Splitting this
+  // 600-line component into outer-loader + inner-drafts would pipe 8+ hooks
+  // through props and obscure the page logic, which is why we suppress
+  // locally instead.
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (task) {
       setTitleDraft(task.title);
@@ -170,8 +426,13 @@ export function TaskDetailContent({
       setDueDateDraft(task.due_date ?? "");
       setSprintDraft(task.sprint_id);
       setAssigneeDraft(task.assignee_id);
+      setGoalDraft(task.goal_id);
+      setPendingDepAdds([]);
+      setPendingDepRemoveIds(new Set());
+      setIsEditing(false); // reset to view mode when opening a different task
     }
   }, [task]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const dirty =
     !!task &&
@@ -181,7 +442,10 @@ export function TaskDetailContent({
       priorityDraft !== task.priority ||
       (dueDateDraft || null) !== task.due_date ||
       sprintDraft !== task.sprint_id ||
-      assigneeDraft !== task.assignee_id);
+      assigneeDraft !== task.assignee_id ||
+      goalDraft !== task.goal_id ||
+      pendingDepAdds.length > 0 ||
+      pendingDepRemoveIds.size > 0);
 
   const { data: comments = [] } = useComments(task?.id ?? "");
   const createCommentMutation = useCreateComment(task?.id ?? "");
@@ -190,10 +454,82 @@ export function TaskDetailContent({
 
   const { data: activity = [] } = useTaskActivity(task?.id ?? "");
 
+  // Prefer display_name → email → first 8 chars of user_id (fallback so a
+  // missing profile never shows a full UUID).
   const resolveActor = (id: string | null) => {
     if (!id) return "Someone";
     const m = members.find((mb) => mb.user_id === id);
-    return m?.email ?? `${id.slice(0, 8)}…`;
+    return m?.display_name?.trim() || m?.email || `${id.slice(0, 8)}…`;
+  };
+
+  // Renders an activity-log value as JSX. Status / priority pills reuse
+  // STATUS_STYLE / PRIORITY_STYLE so the colors line up with how those
+  // values look on the board / list / dashboard. Foreign-key fields resolve
+  // to names; dates format locally; everything else falls through as text.
+  const renderActivityValue = (
+    field: string,
+    value: unknown,
+  ): React.ReactNode => {
+    const isEmpty = value == null || value === "";
+    const s = isEmpty ? "" : String(value);
+    const pillBase =
+      "inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide";
+    // Field-specific "default" / empty label — much more useful than a
+    // generic em-dash. Tells the reader exactly what state the task was in.
+    const empty = (text: string) => (
+      <span className="italic text-slate-500 dark:text-slate-400">{text}</span>
+    );
+
+    switch (field) {
+      case "status": {
+        // Status is always an enum value, but defensive default just in case.
+        if (isEmpty) return empty("No status");
+        const label = STATUS_LABELS[s as TaskStatus] ?? s.replace(/_/g, " ");
+        const cls =
+          STATUS_STYLE[s as TaskStatus] ?? "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400";
+        return <span className={`${pillBase} ${cls}`}>{label}</span>;
+      }
+      case "priority": {
+        // "no_priority" is the enum value, never literally null in payload.
+        if (isEmpty) return empty("No priority");
+        const label =
+          PRIORITY_LABELS[s as TaskPriority] ?? s.replace(/_/g, " ");
+        const cls =
+          PRIORITY_STYLE[s as TaskPriority] ?? "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400";
+        return <span className={`${pillBase} ${cls}`}>{label}</span>;
+      }
+      case "assignee_id":
+        if (isEmpty) return empty("Unassigned");
+        return (
+          <span className="font-medium text-slate-900 dark:text-slate-100">{resolveActor(s)}</span>
+        );
+      case "reporter_id":
+        if (isEmpty) return empty("No reporter");
+        return (
+          <span className="font-medium text-slate-900 dark:text-slate-100">{resolveActor(s)}</span>
+        );
+      case "sprint_id":
+        if (isEmpty) return empty("Backlog (no sprint)");
+        return (
+          <span className="font-medium text-slate-900 dark:text-slate-100">
+            {sprints.find((sp) => sp.id === s)?.name ?? "—"}
+          </span>
+        );
+      case "due_date":
+        if (isEmpty) return empty("No due date");
+        return (
+          <span className="font-medium text-slate-900 dark:text-slate-100">
+            {new Date(s).toLocaleDateString(undefined, {
+              year: "numeric",
+              month: "short",
+              day: "numeric",
+            })}
+          </span>
+        );
+      default:
+        if (isEmpty) return empty("—");
+        return <span className="font-medium text-slate-900 dark:text-slate-100">{s}</span>;
+    }
   };
 
   async function onSave() {
@@ -207,9 +543,65 @@ export function TaskDetailContent({
     if (dd !== task.due_date) payload.due_date = dd;
     if (sprintDraft !== task.sprint_id) payload.sprint_id = sprintDraft;
     if (assigneeDraft !== task.assignee_id) payload.assignee_id = assigneeDraft;
+    if (goalDraft !== task.goal_id) payload.goal_id = goalDraft;
     try {
-      await updateMutation.mutateAsync(payload as never);
+      // Main task fields go first. If this fails the whole save aborts,
+      // leaving the dependency drafts intact so the user can fix and retry.
+      if (Object.keys(payload).length > 0) {
+        await updateMutation.mutateAsync(payload as never);
+      }
+      // Commit dependency drafts after the main update — creates first
+      // (the backend may 409 on a cycle and the user needs to see that
+      // specific entry rejected), then removes. Both run serially so
+      // we can surface a precise error if one fails mid-batch.
+      for (const add of pendingDepAdds) {
+        const depPayload =
+          add.direction === "blocker"
+            ? { blocker_task_id: add.task.id, blocked_task_id: task.id }
+            : { blocker_task_id: task.id, blocked_task_id: add.task.id };
+        await createDepMutation.mutateAsync(depPayload);
+      }
+      for (const depId of pendingDepRemoveIds) {
+        await deleteDepMutation.mutateAsync(depId);
+      }
+      setPendingDepAdds([]);
+      setPendingDepRemoveIds(new Set());
       toast.success("Saved");
+      setIsEditing(false);
+      // Soft reminder: if the user just marked this task as done but the
+      // checklist still has unchecked items, surface that as a non-blocking
+      // toast. Checklist state and task status are decoupled by design —
+      // this is just a "did you forget?" nudge, never a gate.
+      if (
+        task &&
+        statusDraft === "done" &&
+        task.status !== "done" &&
+        uncheckedCount > 0
+      ) {
+        toast.message(
+          `Marked done with ${uncheckedCount} unchecked checklist item${
+            uncheckedCount === 1 ? "" : "s"
+          }`,
+        );
+      }
+      // Soft warning: user just moved a still-blocked task into an
+      // active state. Doesn't block the move — by design, the user can
+      // override dependencies — but flags that the blocker is still
+      // open so they're aware.
+      const wasMovingForward =
+        statusDraft !== task.status &&
+        (statusDraft === "in_progress" || statusDraft === "in_review");
+      if (wasMovingForward && openBlockers.length > 0) {
+        const blockerNames = openBlockers
+          .slice(0, 2)
+          .map((l) => l.task.identifier)
+          .join(", ");
+        const suffix =
+          openBlockers.length > 2 ? ` +${openBlockers.length - 2} more` : "";
+        toast.message(
+          `Still blocked by ${blockerNames}${suffix} — moved anyway.`,
+        );
+      }
     } catch (err) {
       const detail =
         (err as { response?: { data?: { detail?: string } } }).response?.data
@@ -227,6 +619,10 @@ export function TaskDetailContent({
     setDueDateDraft(task.due_date ?? "");
     setSprintDraft(task.sprint_id);
     setAssigneeDraft(task.assignee_id);
+    setGoalDraft(task.goal_id);
+    setPendingDepAdds([]);
+    setPendingDepRemoveIds(new Set());
+    setIsEditing(false);
   }
 
   async function onPostComment(e: React.FormEvent) {
@@ -269,81 +665,150 @@ export function TaskDetailContent({
 
   if (taskError) {
     return (
-      <p className="text-slate-700">
+      <p className="text-slate-700 dark:text-slate-300">
         This task could not be loaded (access denied).
       </p>
     );
   }
   if (taskLoading || !task) {
-    return <p className="text-muted-foreground">Loading…</p>;
+    return <TaskDetailSkeleton />;
   }
 
   return (
     <div className="grid grid-cols-3 gap-8">
       <div className="col-span-2 space-y-4">
-        <input
-          className="w-full bg-transparent text-2xl font-bold text-slate-900 outline-none focus:bg-slate-100 rounded px-1 py-0.5 -mx-1"
-          value={titleDraft}
-          onChange={(e) => setTitleDraft(e.target.value)}
-          placeholder="Title"
-        />
-
+        {/* Title block — two rows now (was one):
+            Row 1: identifier eyebrow on the left, action button cluster
+                   on the right. Identifier is short, so the cluster sits
+                   with breathing room without crowding anything.
+            Row 2: title (input/h1) gets the FULL container width. No
+                   button cluster competing for horizontal space, so
+                   long titles read normally instead of getting squeezed
+                   under the buttons. */}
         <div className="space-y-2">
+          <div className="flex items-center justify-between gap-4 min-h-[36px]">
+            {task ? (
+              <p className="font-mono text-xs text-slate-500 dark:text-slate-400 tracking-wide select-all">
+                {task.identifier}
+              </p>
+            ) : (
+              <span />
+            )}
+            <div className="flex items-center gap-2 shrink-0">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={toggleWatch}
+                disabled={watchBusy || !task}
+                title={
+                  isWatching
+                    ? "Stop receiving notifications for this task"
+                    : "Get notified about comments and status changes"
+                }
+                className={
+                  isWatching
+                    ? "gap-1.5 bg-slate-100 dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100"
+                    : "gap-1.5"
+                }
+              >
+                <WatchIcon filled={isWatching} />
+                <span>{isWatching ? "Watching" : "Watch"}</span>
+                {watchers.length > 0 && (
+                  <span className="text-xs text-slate-500 dark:text-slate-400 tabular-nums">
+                    {watchers.length}
+                  </span>
+                )}
+              </Button>
+              {/* Edit / Save+Discard pair — commits the WHOLE task, not
+                  just the description. Save sits left of Discard so the
+                  eye lands on the primary action first. */}
+              {isEditing ? (
+                <>
+                  <Button
+                    type="button"
+                    onClick={onSave}
+                    disabled={!dirty || updateMutation.isPending}
+                  >
+                    {updateMutation.isPending ? "Saving…" : "Save"}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={onDiscard}
+                    disabled={updateMutation.isPending}
+                  >
+                    Discard
+                  </Button>
+                </>
+              ) : (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsEditing(true)}
+                >
+                  Edit
+                </Button>
+              )}
+              <TaskActionsMenu
+                onDelete={onDelete}
+                deleteDisabled={deleteMutation.isPending}
+              />
+            </div>
+          </div>
+          {isEditing ? (
+            <input
+              className="w-full bg-transparent text-2xl font-bold text-slate-900 dark:text-slate-100 outline-none hover:bg-slate-100/50 dark:hover:bg-slate-800/40 focus:bg-slate-100/80 dark:focus:bg-slate-800/60 rounded px-1.5 py-0.5 transition-colors"
+              value={titleDraft}
+              onChange={(e) => setTitleDraft(e.target.value)}
+              placeholder="Title"
+            />
+          ) : (
+            <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 px-1.5 py-0.5 break-words">
+              {titleDraft}
+            </h1>
+          )}
+        </div>
+
+        {/* Hide the whole Description block in view mode when empty —
+            in edit mode keep showing it so the textarea is reachable. */}
+        {(isEditing || descDraft.trim()) && (
           <div className="space-y-1">
             <p className="text-xs font-medium uppercase text-muted-foreground">
               Description
             </p>
-            <textarea
-              className="w-full rounded border border-slate-200 bg-white p-2 text-sm"
-              rows={6}
-              value={descDraft}
-              onChange={(e) => setDescDraft(e.target.value)}
-              placeholder="Add a description…"
-            />
-          </div>
-
-          <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            {dirty && (
-              <span className="text-xs text-amber-600 mr-1">
-                Unsaved changes
-              </span>
+            {isEditing ? (
+              <textarea
+                className="w-full rounded border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-2 text-sm"
+                rows={6}
+                value={descDraft}
+                onChange={(e) => setDescDraft(e.target.value)}
+                placeholder="Add a description…"
+              />
+            ) : (
+              // Tweaks vs. raw @tailwindcss/typography: fenced <pre>
+              // blocks get a light slate bg + dark text (the default
+              // near-black dominates a mostly-prose description); inline
+              // <code> becomes a subtle pill with the plugin's auto
+              // backtick pseudo-elements suppressed.
+              <div className="prose prose-sm max-w-none text-slate-700 dark:text-slate-300 prose-pre:bg-slate-100 dark:prose-pre:bg-slate-800/60 prose-pre:text-slate-800 dark:prose-pre:text-slate-200 prose-pre:rounded-md prose-pre:p-3 prose-pre:text-[13px] prose-code:bg-slate-100 dark:prose-code:bg-slate-800/60 prose-code:text-slate-800 dark:prose-code:text-slate-200 prose-code:rounded prose-code:px-1 prose-code:py-0.5 prose-code:text-[0.85em] prose-code:font-normal prose-code:before:hidden prose-code:after:hidden">
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                  {descDraft}
+                </ReactMarkdown>
+              </div>
             )}
-            <Button
-              type="button"
-              variant="outline"
-              onClick={onDiscard}
-              disabled={!dirty || updateMutation.isPending}
-            >
-              Discard
-            </Button>
-            <Button
-              type="button"
-              onClick={onSave}
-              disabled={!dirty || updateMutation.isPending}
-            >
-              {updateMutation.isPending ? "Saving…" : "Save"}
-            </Button>
           </div>
-          <Button
-            variant="outline"
-            onClick={onDelete}
-            disabled={deleteMutation.isPending}
-            className="text-red-600 hover:bg-red-50"
-          >
-            Delete
-          </Button>
-          </div>
-        </div>
+        )}
 
-        <section className="space-y-3 pt-6 border-t border-slate-200">
+        {task && <ChecklistSection taskId={task.id} readOnly={!isEditing} />}
+
+        <section className="space-y-3 pt-6 border-t border-slate-200 dark:border-slate-800">
           <h2 className="text-sm font-semibold uppercase text-muted-foreground">
             Comments ({comments.length})
           </h2>
           {comments.map((c) => (
             <div
               key={c.id}
-              className="rounded border border-slate-200 bg-white p-3"
+              className="rounded border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3"
             >
               <div className="flex justify-between items-baseline">
                 <p className="text-xs text-muted-foreground">
@@ -358,21 +823,20 @@ export function TaskDetailContent({
                   Delete
                 </button>
               </div>
-              <div className="prose prose-sm max-w-none mt-1">
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                  {c.body}
-                </ReactMarkdown>
+              <div className="mt-1">
+                <CommentBody body={c.body} members={members} />
               </div>
             </div>
           ))}
           <form onSubmit={onPostComment} className="space-y-2">
-            <textarea
-              className="w-full rounded border border-slate-300 bg-white p-2 text-sm"
-              rows={3}
+            <MentionTextarea
               value={commentDraft}
-              onChange={(e) => setCommentDraft(e.target.value)}
-              placeholder="Write a comment…"
+              onChange={setCommentDraft}
+              members={members}
+              placeholder="Write a comment… use @ to mention a teammate"
+              rows={3}
               maxLength={10000}
+              className="w-full rounded border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 p-2 text-sm"
             />
             <Button
               type="submit"
@@ -385,8 +849,8 @@ export function TaskDetailContent({
           </form>
         </section>
 
-        <details className="pt-6 border-t border-slate-200 group">
-          <summary className="cursor-pointer list-none flex items-center gap-1.5 text-sm font-semibold uppercase text-muted-foreground hover:text-slate-700">
+        <details className="pt-6 border-t border-slate-200 dark:border-slate-800 group">
+          <summary className="cursor-pointer list-none flex items-center gap-1.5 text-sm font-semibold uppercase text-muted-foreground hover:text-slate-700 dark:hover:text-slate-300">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               viewBox="0 0 20 20"
@@ -401,22 +865,25 @@ export function TaskDetailContent({
             </svg>
             <span>Activity</span>
             {activity.length > 0 && (
-              <span className="text-slate-400 font-medium normal-case tracking-normal">
+              <span className="text-slate-400 dark:text-slate-500 font-medium normal-case tracking-normal">
                 ({activity.length})
               </span>
             )}
           </summary>
           <div className="mt-3">
             {activity.length === 0 ? (
-              <p className="text-xs text-slate-400">No activity yet.</p>
+              <p className="text-xs text-slate-400 dark:text-slate-500">No activity yet.</p>
             ) : (
               <ol className="space-y-1.5">
                 {[...activity].reverse().map((a) => (
                   <li
                     key={a.id}
-                    className="text-xs text-slate-700 leading-relaxed"
+                    className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed"
                   >
-                    {renderActivityLine(a, resolveActor)}
+                    {renderActivityLine(a, {
+                      resolveActor,
+                      renderValue: renderActivityValue,
+                    })}
                   </li>
                 ))}
               </ol>
@@ -425,86 +892,276 @@ export function TaskDetailContent({
         </details>
       </div>
 
-      <aside className="space-y-4 border-l border-slate-200 pl-6 self-start sticky top-0 pb-4">
+      <aside className="space-y-4 border-l border-slate-200 dark:border-slate-800 pl-6 self-start sticky top-0 pb-4">
         <div className="space-y-1">
           <p className="text-xs font-medium uppercase text-muted-foreground">
             Status
           </p>
-          <Select
-            value={statusDraft}
-            onChange={(v) => setStatusDraft(v as TaskStatus)}
-            options={STATUSES}
-            className="[&_button]:uppercase [&_button]:tracking-wide"
-          />
+          {isEditing ? (
+            <Select
+              value={statusDraft}
+              onChange={(v) => setStatusDraft(v as TaskStatus)}
+              options={STATUSES}
+              renderOption={(o) => (
+                <span
+                  className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium ${STATUS_PILL[o.value as TaskStatus] ?? ""}`}
+                >
+                  {STATUS_LABELS[o.value as TaskStatus] ?? o.label}
+                </span>
+              )}
+            />
+          ) : (
+            <span
+              className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium ${STATUS_PILL[statusDraft] ?? ""}`}
+            >
+              {STATUS_LABELS[statusDraft]}
+            </span>
+          )}
         </div>
 
-        <div className="space-y-1">
-          <p className="text-xs font-medium uppercase text-muted-foreground">
-            Priority
-          </p>
-          <Select
-            value={priorityDraft}
-            onChange={(v) => setPriorityDraft(v as TaskPriority)}
-            options={PRIORITIES}
-            className="[&_button]:uppercase [&_button]:tracking-wide"
-          />
-        </div>
+        {/* Priority — hide entire block in view mode when "No priority". */}
+        {(isEditing || priorityDraft !== "no_priority") && (
+          <div className="space-y-1">
+            <p className="text-xs font-medium uppercase text-muted-foreground">
+              Priority
+            </p>
+            {isEditing ? (
+              <Select
+                value={priorityDraft}
+                onChange={(v) => setPriorityDraft(v as TaskPriority)}
+                options={PRIORITIES}
+                renderOption={(o) => (
+                  <span
+                    className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium ${PRIORITY_PILL[o.value as TaskPriority] ?? ""}`}
+                  >
+                    {PRIORITY_LABELS[o.value as TaskPriority] ?? o.label}
+                  </span>
+                )}
+              />
+            ) : (
+              <span
+                className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium ${PRIORITY_PILL[priorityDraft] ?? ""}`}
+              >
+                {PRIORITY_LABELS[priorityDraft]}
+              </span>
+            )}
+          </div>
+        )}
 
-        <div className="space-y-1">
-          <p className="text-xs font-medium uppercase text-muted-foreground">
-            Due date
-          </p>
-          <input
-            type="date"
-            className="w-full rounded border border-slate-300 bg-white px-2 py-1.5 text-sm"
-            value={dueDateDraft}
-            onChange={(e) => setDueDateDraft(e.target.value)}
-          />
-        </div>
+        {/* Due date — hide in view mode when unset. */}
+        {(isEditing || dueDateDraft) && (
+          <div className="space-y-1">
+            <p className="text-xs font-medium uppercase text-muted-foreground">
+              Due date
+            </p>
+            {isEditing ? (
+              <input
+                type="date"
+                className="w-full rounded border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2 py-1.5 text-sm"
+                value={dueDateDraft}
+                onChange={(e) => setDueDateDraft(e.target.value)}
+              />
+            ) : (
+              <p className="text-sm text-slate-700 dark:text-slate-300">
+                {new Date(dueDateDraft).toLocaleDateString(undefined, {
+                  year: "numeric",
+                  month: "short",
+                  day: "numeric",
+                })}
+              </p>
+            )}
+          </div>
+        )}
 
-        <div className="space-y-1">
-          <p className="text-xs font-medium uppercase text-muted-foreground">
-            Sprint
-          </p>
-          <Select
-            value={sprintDraft ?? ""}
-            onChange={(v) => setSprintDraft(v === "" ? null : v)}
-            options={[
-              { value: "", label: "Backlog (no sprint)" },
-              ...sprints
-                .filter((s) => s.status !== "completed")
-                .map((s) => ({
-                  value: s.id,
-                  label:
-                    s.status === "active" ? `${s.name} (active)` : s.name,
-                })),
-            ]}
-          />
-        </div>
+        {/* Sprint — hide in view mode when the task is in backlog (no sprint). */}
+        {(isEditing || sprintDraft) && (
+          <div className="space-y-1">
+            <p className="text-xs font-medium uppercase text-muted-foreground">
+              Sprint
+            </p>
+            {isEditing ? (
+              <Select
+                value={sprintDraft ?? ""}
+                onChange={(v) => setSprintDraft(v === "" ? null : v)}
+                options={[
+                  { value: "", label: "Backlog (no sprint)" },
+                  ...sprints
+                    .filter((s) => s.status !== "completed")
+                    .map((s) => ({
+                      value: s.id,
+                      label:
+                        s.status === "active" ? `${s.name} (active)` : s.name,
+                    })),
+                ]}
+              />
+            ) : (
+              <p className="text-sm text-slate-700 dark:text-slate-300">
+                {sprints.find((s) => s.id === sprintDraft)?.name ?? "Unknown"}
+              </p>
+            )}
+          </div>
+        )}
 
-        <div className="space-y-1">
-          <p className="text-xs font-medium uppercase text-muted-foreground">
-            Assignee
-          </p>
-          <Select
-            value={assigneeDraft ?? ""}
-            onChange={(v) => setAssigneeDraft(v === "" ? null : v)}
-            options={[
-              { value: "", label: "Unassigned" },
-              ...members.map((m) => ({
-                value: m.user_id,
-                label: m.email ?? m.user_id,
-              })),
-            ]}
-          />
-        </div>
+        {/* Hide entire Goal block in view mode when no goal is linked. */}
+        {goalsEnabled && (isEditing || goalDraft) && (
+          <div className="space-y-1">
+            <p className="text-xs font-medium uppercase text-muted-foreground">
+              Goal
+            </p>
+            {isEditing ? (
+              <GoalPicker
+                value={goalDraft}
+                onChange={setGoalDraft}
+                workspaceId={task?.workspace_id ?? ""}
+              />
+            ) : (
+              <p className="text-sm text-slate-700 dark:text-slate-300">
+                {goals.find((g) => g.id === goalDraft)?.title ?? "Unknown"}
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* Assignee — hide in view mode when unassigned. */}
+        {(isEditing || assigneeDraft) && (
+          <div className="space-y-1">
+            <p className="text-xs font-medium uppercase text-muted-foreground">
+              Assignee
+            </p>
+            {isEditing ? (
+              <Select
+                value={assigneeDraft ?? ""}
+                onChange={(v) => setAssigneeDraft(v === "" ? null : v)}
+                options={[
+                  { value: "", label: "Unassigned" },
+                  ...members.map((m) => ({
+                    value: m.user_id,
+                    label: m.display_name || m.email || m.user_id,
+                  })),
+                ]}
+                // Render name + email so identically-named members
+                // ("Ben" + "Ben") stay disambiguated. Email is muted +
+                // smaller so it doesn't compete with the name visually.
+                renderOption={(o) => {
+                  if (o.value === "") {
+                    return (
+                      <span className="text-slate-500 dark:text-slate-400">
+                        Unassigned
+                      </span>
+                    );
+                  }
+                  const m = members.find((mm) => mm.user_id === o.value);
+                  const name = m?.display_name?.trim();
+                  const email = m?.email;
+                  if (name && email) {
+                    return (
+                      <span className="inline-flex items-baseline gap-1.5 min-w-0">
+                        <span className="text-slate-900 dark:text-slate-100">
+                          {name}
+                        </span>
+                        <span className="text-xs text-slate-500 dark:text-slate-400 truncate">
+                          {email}
+                        </span>
+                      </span>
+                    );
+                  }
+                  return <span>{name || email || o.label}</span>;
+                }}
+              />
+            ) : assigneeDraft ? (
+            (() => {
+              const m = members.find((mm) => mm.user_id === assigneeDraft);
+              const name = m?.display_name?.trim();
+              const email = m?.email;
+              return (
+                <div
+                  className="flex items-center gap-2 min-w-0"
+                  title={
+                    name && email ? `${name} · ${email}` : name || email || ""
+                  }
+                >
+                  <Avatar
+                    displayName={m?.display_name ?? null}
+                    email={m?.email ?? null}
+                    size={22}
+                    className="ring-0"
+                  />
+                  {/* Single line: name (bold) + email (muted) flow inline. */}
+                  {/* truncation falls on email so the name stays readable. */}
+                  <p className="text-sm text-slate-700 dark:text-slate-300 truncate min-w-0">
+                    <span className="font-medium text-slate-900 dark:text-slate-100">
+                      {name || email || assigneeDraft}
+                    </span>
+                    {name && email && (
+                      <span className="ml-1.5 text-xs text-slate-500 dark:text-slate-400">
+                        {email}
+                      </span>
+                    )}
+                  </p>
+                </div>
+              );
+            })()
+          ) : null}
+          </div>
+        )}
+
+        {(isEditing || taskLabels.length > 0) && (
+          <div className="space-y-1">
+            <p className="text-xs font-medium uppercase text-muted-foreground">
+              Labels
+            </p>
+            <LabelsEditor
+              taskId={task.id}
+              workspaceId={task.workspace_id}
+              readOnly={!isEditing}
+            />
+          </div>
+        )}
+
+        <DependenciesSection
+          taskId={task.id}
+          workspaceId={task.workspace_id}
+          readOnly={!isEditing}
+          pendingAdds={pendingDepAdds}
+          removedDepIds={pendingDepRemoveIds}
+          onAdd={(direction, t) =>
+            setPendingDepAdds((prev) => [...prev, { direction, task: t }])
+          }
+          onRemovePersisted={(depId) =>
+            setPendingDepRemoveIds((prev) => {
+              const next = new Set(prev);
+              next.add(depId);
+              return next;
+            })
+          }
+          onCancelPendingAdd={(tid, direction) =>
+            setPendingDepAdds((prev) =>
+              prev.filter(
+                (p) => !(p.task.id === tid && p.direction === direction),
+              ),
+            )
+          }
+        />
 
         <div className="space-y-1">
           <p className="text-xs font-medium uppercase text-muted-foreground">
             Created
           </p>
-          <p className="text-xs text-slate-500">
-            {new Date(task.created_at).toLocaleString()}
+          {/* Matches Due Date's format ("May 12, 2026") with the time
+              tucked alongside in muted slate so the value reads as one
+              breath rather than a wall of digits. */}
+          <p className="text-sm text-slate-700 dark:text-slate-300">
+            {new Date(task.created_at).toLocaleDateString(undefined, {
+              year: "numeric",
+              month: "short",
+              day: "numeric",
+            })}
+            <span className="ml-1.5 text-xs text-slate-400 dark:text-slate-500">
+              {new Date(task.created_at).toLocaleTimeString(undefined, {
+                hour: "numeric",
+                minute: "2-digit",
+              })}
+            </span>
           </p>
         </div>
       </aside>
@@ -515,6 +1172,7 @@ export function TaskDetailContent({
 type BackOrigin = { path: string; label: string };
 
 export default function TaskDetail() {
+  useDocumentTitle("Task");
   const { wsSlug, pKey, identifier } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
@@ -535,7 +1193,7 @@ export default function TaskDetail() {
   if (resolveError) {
     return (
       <div className="space-y-2">
-        <p className="text-slate-700">
+        <p className="text-slate-700 dark:text-slate-300">
           This task could not be loaded (not found).
         </p>
         <button
@@ -558,7 +1216,7 @@ export default function TaskDetail() {
         <button
           type="button"
           onClick={goBack}
-          className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-900"
+          className="inline-flex items-center gap-1.5 text-sm text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100"
         >
           <ArrowLeftIcon />
           <span>Back to {backLabel}</span>

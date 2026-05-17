@@ -4,6 +4,7 @@ import ReactDOM from "react-dom/client";
 
 import App from "./App.tsx";
 import "./index.css";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider } from "@/lib/auth";
 
@@ -15,11 +16,16 @@ const queryClient = new QueryClient({
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <App />
-        <Toaster />
-      </AuthProvider>
-    </QueryClientProvider>
+    {/* ErrorBoundary outside QueryClientProvider so it catches errors in
+        every part of the app (including QueryClient itself). Toaster
+        stays inside the boundary so error toasts in the fallback work. */}
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <App />
+          <Toaster />
+        </AuthProvider>
+      </QueryClientProvider>
+    </ErrorBoundary>
   </React.StrictMode>,
 );

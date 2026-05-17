@@ -1,4 +1,19 @@
-"""Cross-workspace personal dashboard aggregation."""
+"""Personal dashboard aggregation.
+
+Bundles the data the Dashboard page needs into a single response so the
+frontend doesn't fan out to 6+ endpoints on every load:
+- stats (open / done this week / overdue / in review — exact counts via
+  PostgREST head=true to skip row payloads)
+- assigned_to_me (open tasks I own, latest 20)
+- due_this_week / overdue (subsets of the above by date)
+- done_this_week_tasks (the actual rows behind the throughput stat)
+- active_sprints across the user's workspaces
+- recent_activity (last 15 entries, enriched with actor display name +
+  email via the supabase admin API)
+
+When workspace_id is passed, results are scoped to that single workspace;
+otherwise they span every workspace the caller is a member of.
+"""
 
 from datetime import date, datetime, timedelta, timezone
 
@@ -19,6 +34,7 @@ def _empty_response() -> DashboardResponse:
         active_sprints=[],
         due_this_week=[],
         overdue=[],
+        done_this_week_tasks=[],
         stats=DashboardStats(open=0, done_this_week=0, overdue=0, in_review=0),
         recent_activity=[],
     )
@@ -61,12 +77,13 @@ def get_dashboard(
 
     proj_rows = (
         supabase.table("projects")
-        .select("id, key, workspace_id")
+        .select("id, key, name, workspace_id")
         .in_("workspace_id", ws_ids)
         .execute()
         .data
     )
     proj_key_map: dict[str, str] = {r["id"]: r["key"] for r in proj_rows}
+    proj_name_map: dict[str, str] = {r["id"]: r["name"] for r in proj_rows}
     proj_ws_map: dict[str, str] = {r["id"]: r["workspace_id"] for r in proj_rows}
     proj_ids = list(proj_key_map.keys())
 
@@ -111,6 +128,20 @@ def get_dashboard(
         .not_.in_("status", ["done", "cancelled"])
         .lt("due_date", today.isoformat())
         .order("due_date", desc=False)
+        .limit(20)
+        .execute()
+        .data
+    )
+
+    # 3b. Done this week (assigned to me, status=done, updated within 7 days)
+    done_week_rows = (
+        supabase.table("tasks")
+        .select("id, identifier, title, status, project_id, due_date, updated_at")
+        .eq("assignee_id", user_id)
+        .in_("workspace_id", ws_ids)
+        .eq("status", "done")
+        .gte("updated_at", week_ago_dt.isoformat())
+        .order("updated_at", desc=True)
         .limit(20)
         .execute()
         .data
@@ -170,6 +201,7 @@ def get_dashboard(
     activity_rows: list[dict] = []
     activity_task_map: dict[str, dict] = {}
     actor_email_map: dict[str, str] = {}
+    actor_display_name_map: dict[str, str] = {}
     if proj_ids:
         # Fetch recent tasks across all my projects to scope activity_log
         recent_task_rows = (
@@ -198,13 +230,19 @@ def get_dashboard(
                 {r["actor_id"] for r in activity_rows if r.get("actor_id")}
             )
             if actor_ids:
-                # email lives on auth.users, not workspace_members; use the
-                # auth admin API (same pattern as services/members.py).
+                # email + display_name live on auth.users / user_metadata,
+                # not workspace_members; use the auth admin API (same pattern
+                # as services/members.py).
                 try:
                     users = supabase.auth.admin.list_users()
                     for u in users:
-                        if u.id in actor_ids and u.email:
-                            actor_email_map[u.id] = u.email
+                        if u.id in actor_ids:
+                            if u.email:
+                                actor_email_map[u.id] = u.email
+                            meta = u.user_metadata or {}
+                            dn = meta.get("display_name")
+                            if dn:
+                                actor_display_name_map[u.id] = dn
                 except Exception:
                     pass  # graceful: activity feed shows "Someone" if lookup fails
 
@@ -218,6 +256,7 @@ def get_dashboard(
             status=row["status"],
             workspace_slug=ws_slug_map.get(wid, ""),
             project_key=proj_key_map.get(pid, ""),
+            project_name=proj_name_map.get(pid, ""),
             due_date=row.get("due_date"),
             updated_at=row["updated_at"],
         )
@@ -240,6 +279,7 @@ def get_dashboard(
             return None
         pid = task["project_id"]
         wid = proj_ws_map.get(pid, "")
+        aid = row.get("actor_id")
         return DashboardActivity(
             id=row["id"],
             task_id=row["task_id"],
@@ -247,8 +287,9 @@ def get_dashboard(
             task_title=task["title"],
             workspace_slug=ws_slug_map.get(wid, ""),
             project_key=proj_key_map.get(pid, ""),
-            actor_id=row.get("actor_id"),
-            actor_email=actor_email_map.get(row["actor_id"]) if row.get("actor_id") else None,
+            actor_id=aid,
+            actor_email=actor_email_map.get(aid) if aid else None,
+            actor_display_name=actor_display_name_map.get(aid) if aid else None,
             action=row["action"],
             payload=row.get("payload") or {},
             created_at=row["created_at"],
@@ -263,6 +304,7 @@ def get_dashboard(
         active_sprints=[_enrich_sprint(r) for r in active_sprint_rows],
         due_this_week=[_enrich_task(r) for r in due_rows],
         overdue=[_enrich_task(r) for r in overdue_rows],
+        done_this_week_tasks=[_enrich_task(r) for r in done_week_rows],
         stats=DashboardStats(
             open=open_count,
             done_this_week=done_this_week_count,

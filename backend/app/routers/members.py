@@ -2,14 +2,11 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from supabase import Client
 
 from app.core.deps import get_current_user_id, get_supabase_admin
-from app.schemas.member import MemberInvite, MemberResponse, MemberRoleUpdate
+from app.schemas.member import MemberResponse, MemberRoleUpdate
 from app.services.members import (
-    AlreadyMemberError,
     CannotModifyOwnerError,
     MemberPermissionError,
     NotAMemberError,
-    UserNotFoundError,
-    invite_member,
     list_members,
     remove_member,
     update_member_role,
@@ -32,31 +29,9 @@ def list_(
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN) from exc
 
 
-@router.post(
-    "/workspaces/{ws_id}/members",
-    response_model=MemberResponse,
-    status_code=status.HTTP_201_CREATED,
-)
-def invite_(
-    ws_id: str,
-    body: MemberInvite,
-    user_id: str = Depends(get_current_user_id),
-    supabase: Client = Depends(get_supabase_admin),
-):
-    try:
-        return invite_member(supabase, user_id=user_id, workspace_id=ws_id, email=body.email)
-    except MemberPermissionError as exc:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
-    except UserNotFoundError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"No user with email {body.email}",
-        ) from exc
-    except AlreadyMemberError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="User is already a member of this workspace",
-        ) from exc
+# NB: adding a member no longer happens via POST /workspaces/:id/members.
+# Use POST /workspaces/:id/invitations to send an invitation; the user joins
+# the workspace once they accept it.
 
 
 @router.patch(

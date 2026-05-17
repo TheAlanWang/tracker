@@ -2,17 +2,29 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { apiClient } from "@/api/client";
 
+// Known feature-flag keys. Stored as a sparse map in `workspaces.features`
+// (jsonb) — a missing key means "off". Owners flip these in Workspace
+// Settings to opt their team into in-progress / experimental UI.
+export type WorkspaceFeatures = {
+  goals?: boolean;
+};
+
 export type Workspace = {
   id: string;
   name: string;
   slug: string;
   owner_id: string;
+  features: WorkspaceFeatures;
   created_at: string;
   updated_at: string;
 };
 
 export type WorkspaceCreate = { name: string; slug: string };
-export type WorkspaceUpdate = { name?: string };
+export type WorkspaceUpdate = {
+  name?: string;
+  // Partial merge — only keys you send are changed.
+  features?: WorkspaceFeatures;
+};
 
 export function useWorkspaces() {
   return useQuery<Workspace[]>({

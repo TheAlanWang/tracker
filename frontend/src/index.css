@@ -87,6 +87,12 @@
   }
   html {
     font-family: var(--font-sans, sans-serif);
+    /* Reserve scrollbar gutter even when not scrolling. Without this,
+       pages that are tall enough to scroll get a vertical scrollbar that
+       narrows the viewport by ~15px, and `mx-auto`-centered content shifts
+       horizontally as users navigate between long and short pages
+       (most visible when switching workspaces in Workspace Settings). */
+    scrollbar-gutter: stable;
   }
 }
 

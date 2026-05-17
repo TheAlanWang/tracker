@@ -9,6 +9,7 @@ class DashboardTask(BaseModel):
     status: str
     workspace_slug: str
     project_key: str
+    project_name: str
     due_date: date | None
     updated_at: datetime
 
@@ -38,6 +39,7 @@ class DashboardActivity(BaseModel):
     project_key: str
     actor_id: str | None
     actor_email: str | None
+    actor_display_name: str | None
     action: str
     payload: dict
     created_at: datetime
@@ -48,5 +50,6 @@ class DashboardResponse(BaseModel):
     active_sprints: list[DashboardSprint]
     due_this_week: list[DashboardTask]
     overdue: list[DashboardTask]
+    done_this_week_tasks: list[DashboardTask]
     stats: DashboardStats
     recent_activity: list[DashboardActivity]

@@ -22,3 +22,4 @@ class MemberResponse(BaseModel):
     role: WorkspaceRole
     created_at: datetime
     email: str | None = None
+    display_name: str | None = None

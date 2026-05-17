@@ -1,3 +1,15 @@
+"""Workspace member management: list / change role / remove.
+
+Inviting a new user is NOT here — see app/services/invitations.py. The
+historical invite_member function (direct workspace_members insert with no
+acceptance step) was retired when the proper invitation flow landed.
+
+Permissions enforced at the service layer (workspace_members.role check):
+- list_members: any current member can list.
+- update_member_role: owner or admin.
+- remove_member: owner only (intentionally tighter than role updates).
+"""
+
 from supabase import Client
 
 from app.schemas.member import MemberResponse
@@ -41,20 +53,35 @@ def _get_caller_role(supabase: Client, *, user_id: str, workspace_id: str) -> st
 
 
 def _lookup_user_emails(supabase: Client, user_ids: list[str]) -> dict[str, str]:
-    """Return a dict mapping user_id -> email for the given ids.
-
-    Uses supabase.auth.admin.list_users() which returns a list of GoTrueUser
-    objects (supabase-py v2). Each object has .id and .email attributes.
-    """
+    """Return user_id -> email (legacy helper kept for invite flow)."""
     if not user_ids:
         return {}
     try:
         users = supabase.auth.admin.list_users()
-        # supabase-py v2: list_users() returns a list of UserModel objects directly
         return {u.id: (u.email or "") for u in users if u.id in user_ids}
     except Exception:
-        # Fall back gracefully if admin API is unavailable (e.g. in tests)
         return {}
+
+
+def _lookup_user_profiles(
+    supabase: Client, user_ids: list[str]
+) -> dict[str, dict[str, str | None]]:
+    """Return user_id -> {email, display_name} for the given ids."""
+    if not user_ids:
+        return {}
+    result: dict[str, dict[str, str | None]] = {}
+    try:
+        users = supabase.auth.admin.list_users()
+        for u in users:
+            if u.id in user_ids:
+                meta = u.user_metadata or {}
+                result[u.id] = {
+                    "email": u.email,
+                    "display_name": meta.get("display_name"),
+                }
+    except Exception:
+        pass
+    return result
 
 
 def list_members(
@@ -80,57 +107,18 @@ def list_members(
         .data
     )
 
-    # Look up emails for all members
+    # Look up email + display_name for all members
     all_user_ids = [r["user_id"] for r in rows]
-    email_map = _lookup_user_emails(supabase, all_user_ids)
+    profile_map = _lookup_user_profiles(supabase, all_user_ids)
 
     return [
-        MemberResponse(**r, email=email_map.get(r["user_id"]))
+        MemberResponse(
+            **r,
+            email=profile_map.get(r["user_id"], {}).get("email"),
+            display_name=profile_map.get(r["user_id"], {}).get("display_name"),
+        )
         for r in rows
     ]
-
-
-def invite_member(
-    supabase: Client, *, user_id: str, workspace_id: str, email: str
-) -> MemberResponse:
-    """Invite a user by email to the workspace. Caller must be owner or admin."""
-    caller_role = _get_caller_role(supabase, user_id=user_id, workspace_id=workspace_id)
-    if caller_role not in ("owner", "admin"):
-        raise MemberPermissionError("Only owner or admin can invite members")
-
-    # Look up user by email via admin API
-    try:
-        users = supabase.auth.admin.list_users()
-        target = next((u for u in users if u.email == email), None)
-    except Exception as exc:
-        raise UserNotFoundError(email) from exc
-
-    if target is None:
-        raise UserNotFoundError(email)
-
-    target_user_id = target.id
-
-    # Check if already a member
-    existing = (
-        supabase.table("workspace_members")
-        .select("role")
-        .eq("workspace_id", workspace_id)
-        .eq("user_id", target_user_id)
-        .execute()
-        .data
-    )
-    if existing:
-        raise AlreadyMemberError(target_user_id)
-
-    row = (
-        supabase.table("workspace_members")
-        .insert(
-            {"workspace_id": workspace_id, "user_id": target_user_id, "role": "member"}
-        )
-        .execute()
-        .data[0]
-    )
-    return MemberResponse(**row, email=email)
 
 
 def update_member_role(
@@ -176,10 +164,10 @@ def update_member_role(
 def remove_member(
     supabase: Client, *, user_id: str, workspace_id: str, target_user_id: str
 ) -> None:
-    """Remove a member from the workspace. Caller must be owner or admin."""
+    """Remove a member from the workspace. Only the workspace owner can do this."""
     caller_role = _get_caller_role(supabase, user_id=user_id, workspace_id=workspace_id)
-    if caller_role not in ("owner", "admin"):
-        raise MemberPermissionError("Only owner or admin can remove members")
+    if caller_role != "owner":
+        raise MemberPermissionError("Only the workspace owner can remove members")
 
     # Get target's current role
     target_rows = (

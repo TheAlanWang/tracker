@@ -18,10 +18,13 @@ import { CSS } from "@dnd-kit/utilities";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 
+import { AssigneePicker } from "@/components/AssigneePicker";
+import { Avatar } from "@/components/Avatar";
 import { InlineTaskCreator } from "@/components/InlineTaskCreator";
 import { TaskDetailModal } from "@/components/TaskDetailModal";
 import { PRIORITY_STYLE } from "@/features/tasks/labels";
-import { useMembers } from "@/features/members/api";
+import { useBlockedTaskIds } from "@/features/dependencies/api";
+import { type Member, useMembers } from "@/features/members/api";
 import {
   Task,
   TaskPriority,
@@ -32,6 +35,7 @@ import {
 import { useProjects } from "@/features/projects/api";
 import { useProjectTasksRealtime } from "@/features/realtime/useProjectTasksRealtime";
 import { useWorkspaces } from "@/features/workspaces/api";
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 
 const COLUMNS: { status: TaskStatus; label: string }[] = [
   { status: "backlog", label: "Backlog" },
@@ -78,15 +82,16 @@ function ColumnsIcon() {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 20 20"
-      fill="currentColor"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.7}
+      strokeLinecap="round"
+      strokeLinejoin="round"
       className="w-4 h-4"
     >
-      <path
-        fillRule="evenodd"
-        d="M3 4.5A1.5 1.5 0 0 1 4.5 3h2A1.5 1.5 0 0 1 8 4.5v11A1.5 1.5 0 0 1 6.5 17h-2A1.5 1.5 0 0 1 3 15.5v-11Zm6 0A1.5 1.5 0 0 1 10.5 3h2A1.5 1.5 0 0 1 14 4.5v11a1.5 1.5 0 0 1-1.5 1.5h-2A1.5 1.5 0 0 1 9 15.5v-11Zm6.5-1.5A1.5 1.5 0 0 0 14 4.5v11a1.5 1.5 0 0 0 1.5 1.5H17V3h-1.5Z"
-        clipRule="evenodd"
-      />
+      <rect x="3" y="4.5" width="18" height="15" rx="1.5" />
+      <path d="M9 4.5v15M15 4.5v15" />
     </svg>
   );
 }
@@ -146,23 +151,23 @@ function ColumnVisibilityMenu({
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="inline-flex items-center gap-1.5 text-sm text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-md px-2.5 py-1.5 transition-colors"
+        className="inline-flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md px-2.5 py-1 transition-colors"
       >
         <ColumnsIcon />
         <span>Columns</span>
       </button>
       {open && (
-        <div className="absolute right-0 mt-1 w-48 bg-white rounded-md border border-slate-200 shadow-lg z-10 py-1">
+        <div className="absolute right-0 mt-1 w-48 bg-white dark:bg-slate-900 rounded-md border border-slate-200 dark:border-slate-800 shadow-lg z-10 py-1">
           {COLUMNS.map((col) => (
             <label
               key={col.status}
-              className="flex items-center gap-2 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.08em] text-slate-600 hover:bg-slate-50 cursor-pointer select-none"
+              className="flex items-center gap-2 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.08em] text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer select-none"
             >
               <input
                 type="checkbox"
                 checked={!hidden.has(col.status)}
                 onChange={() => onToggle(col.status)}
-                className="rounded border-slate-300"
+                className="rounded border-slate-300 dark:border-slate-700"
               />
               <span>{col.label}</span>
             </label>
@@ -184,7 +189,7 @@ function DueDateBadge({ date }: { date: string }) {
     ? "text-red-600"
     : soon
       ? "text-amber-600"
-      : "text-slate-500";
+      : "text-slate-500 dark:text-slate-400";
   return (
     <span className={`inline-flex items-center gap-0.5 text-[11px] ${cls}`}>
       <CalendarIcon />
@@ -193,49 +198,117 @@ function DueDateBadge({ date }: { date: string }) {
   );
 }
 
-function Avatar({ email, size = 22 }: { email: string; size?: number }) {
-  const initial = (email[0] ?? "?").toUpperCase();
-  const hue =
-    Array.from(email).reduce((a, c) => a + c.charCodeAt(0), 0) % 360;
+// Small amber pill flagging a task that has at least one OPEN blocker
+// (a linked task whose status isn't done/cancelled). Same visual weight
+// as Priority/Due so it sits alongside them in the meta row, but warm
+// enough to draw the eye when scanning a column.
+function BlockedBadge() {
   return (
-    <div
-      title={email}
-      style={{
-        width: size,
-        height: size,
-        backgroundColor: `hsl(${hue} 55% 50%)`,
-      }}
-      className="rounded-full flex items-center justify-center text-white text-[10px] font-semibold shrink-0 ring-2 ring-white"
+    <span
+      title="Blocked by another task"
+      className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide bg-amber-100 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300"
     >
-      {initial}
-    </div>
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className="w-2.5 h-2.5"
+        aria-hidden
+      >
+        <rect x="5" y="11" width="14" height="9" rx="1.5" />
+        <path d="M8 11V8a4 4 0 0 1 8 0v3" />
+      </svg>
+      Blocked
+    </span>
   );
 }
 
 function CardBody({
   task,
-  assigneeEmail,
+  assignee,
+  members,
+  interactive = true,
 }: {
   task: Task;
-  assigneeEmail: string | undefined;
+  assignee: Member | undefined;
+  members: Member[];
+  interactive?: boolean;
 }) {
+  // Lookup the workspace's "currently blocked" set — React Query dedupes
+  // across every card subscribing, so this is one network call regardless
+  // of how many cards are on screen.
+  const { data: blockedIds } = useBlockedTaskIds(task.workspace_id);
+  const isBlocked = blockedIds?.has(task.id) ?? false;
+
   // Show meta row only if there's something to show — otherwise the title
   // is the entire card (cleaner for unprioritized, undated, unassigned tasks).
   const hasMeta =
     (task.priority !== "no_priority" && task.priority !== "low") ||
     task.due_date ||
-    assigneeEmail;
+    assignee ||
+    isBlocked ||
+    interactive;
 
   return (
     <>
-      <div className="text-sm text-slate-800 leading-snug">{task.title}</div>
+      {/* Identifier eyebrow — small mono label above the title. Matches
+          Linear/Jira's pattern of showing the task ID on every card so
+          you can refer to it in conversations without opening detail. */}
+      <p className="font-mono text-[10px] text-slate-400 dark:text-slate-500 tracking-wide mb-0.5">
+        {task.identifier}
+      </p>
+      <div className="text-sm text-slate-800 dark:text-slate-200 leading-snug">{task.title}</div>
       {hasMeta && (
         <div className="mt-2 flex items-center justify-between gap-2">
           <div className="flex items-center gap-1.5 min-w-0 flex-wrap">
+            {isBlocked && <BlockedBadge />}
             <PriorityBadge priority={task.priority} />
             {task.due_date && <DueDateBadge date={task.due_date} />}
           </div>
-          {assigneeEmail ? <Avatar email={assigneeEmail} /> : null}
+          {interactive ? (
+            <AssigneePicker
+              taskId={task.id}
+              currentAssigneeId={task.assignee_id}
+              members={members}
+            >
+              {({ open, triggerRef }) => (
+                <button
+                  ref={triggerRef}
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    open();
+                  }}
+                  onPointerDown={(e) => e.stopPropagation()}
+                  className="shrink-0 hover:ring-2 hover:ring-blue-300 rounded-full transition-shadow"
+                  title={
+                    assignee
+                      ? `Assigned to ${assignee.display_name || assignee.email}`
+                      : "Click to assign"
+                  }
+                >
+                  {assignee ? (
+                    <Avatar
+                      displayName={assignee.display_name}
+                      email={assignee.email}
+                      size={22}
+                    />
+                  ) : (
+                    <div className="w-[22px] h-[22px] rounded-full border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-slate-500 transition-colors" />
+                  )}
+                </button>
+              )}
+            </AssigneePicker>
+          ) : assignee ? (
+            <Avatar
+              displayName={assignee.display_name}
+              email={assignee.email}
+              size={22}
+            />
+          ) : null}
         </div>
       )}
     </>
@@ -244,11 +317,13 @@ function CardBody({
 
 function SortableCard({
   task,
-  assigneeEmail,
+  assignee,
+  members,
   onOpen,
 }: {
   task: Task;
-  assigneeEmail: string | undefined;
+  assignee: Member | undefined;
+  members: Member[];
   onOpen: (taskId: string) => void;
 }) {
   const {
@@ -268,14 +343,14 @@ function SortableCard({
         transition,
         opacity: isDragging ? 0.3 : 1,
       }}
-      className="rounded border border-slate-200 bg-white p-2.5 cursor-grab active:cursor-grabbing hover:border-slate-300 hover:shadow-sm select-none transition-shadow"
+      className="rounded border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-2.5 cursor-grab active:cursor-grabbing hover:border-slate-300 hover:shadow-sm select-none transition-shadow"
       {...attributes}
       {...listeners}
       onClick={() => {
         if (!isDragging) onOpen(task.id);
       }}
     >
-      <CardBody task={task} assigneeEmail={assigneeEmail} />
+      <CardBody task={task} assignee={assignee} members={members} />
     </div>
   );
 }
@@ -283,14 +358,16 @@ function SortableCard({
 function Column({
   col,
   items,
-  emailById,
+  memberById,
+  members,
   isDropTarget,
   onOpen,
   projectId,
 }: {
   col: { status: TaskStatus; label: string };
   items: Task[];
-  emailById: Map<string, string>;
+  memberById: Map<string, Member>;
+  members: Member[];
   isDropTarget: boolean;
   onOpen: (taskId: string) => void;
   projectId: string;
@@ -304,12 +381,12 @@ function Column({
       className={`group rounded-lg p-2 min-h-[120px] flex flex-col transition-colors ${
         highlight
           ? "bg-blue-50 ring-2 ring-blue-300"
-          : "bg-slate-100"
+          : "bg-slate-100 dark:bg-slate-800"
       }`}
     >
-      <div className="mb-2 px-1 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-600">
+      <div className="mb-2 px-1 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-600 dark:text-slate-400">
         <span>{col.label}</span>
-        <span className="text-slate-400 font-medium tracking-normal normal-case">
+        <span className="text-slate-400 dark:text-slate-500 font-medium tracking-normal normal-case">
           {items.length}
         </span>
       </div>
@@ -319,7 +396,7 @@ function Column({
         <InlineTaskCreator
           projectId={projectId}
           status={col.status}
-          triggerClassName="w-full text-left text-xs text-slate-500 hover:text-slate-900 hover:bg-slate-200/60 rounded px-2 py-1.5 transition-opacity opacity-0 group-hover:opacity-100"
+          triggerClassName="w-full text-left text-xs text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/60 rounded px-2 py-1.5 transition-opacity opacity-0 group-hover:opacity-100"
         />
       ) : (
         <>
@@ -332,11 +409,12 @@ function Column({
                 <SortableCard
                   key={task.id}
                   task={task}
-                  assigneeEmail={
+                  assignee={
                     task.assignee_id
-                      ? emailById.get(task.assignee_id)
+                      ? memberById.get(task.assignee_id)
                       : undefined
                   }
+                  members={members}
                   onOpen={onOpen}
                 />
               ))}
@@ -346,7 +424,7 @@ function Column({
             <InlineTaskCreator
               projectId={projectId}
               status={col.status}
-              triggerClassName="w-full text-left text-xs text-slate-500 hover:text-slate-900 hover:bg-slate-200/60 rounded px-2 py-1.5 transition-colors"
+              triggerClassName="w-full text-left text-xs text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/60 rounded px-2 py-1.5 transition-colors"
             />
           </div>
         </>
@@ -356,6 +434,7 @@ function Column({
 }
 
 export default function Board() {
+  useDocumentTitle("Board");
   const { wsSlug, pKey } = useParams();
 
   const { data: workspaces = [] } = useWorkspaces();
@@ -367,9 +446,9 @@ export default function Board() {
   const moveMutation = useMoveTask(currentProject?.id ?? "");
   useProjectTasksRealtime(currentProject?.id);
 
-  const emailById = useMemo(() => {
-    const m = new Map<string, string>();
-    for (const mb of members) if (mb.email) m.set(mb.user_id, mb.email);
+  const memberById = useMemo(() => {
+    const m = new Map<string, Member>();
+    for (const mb of members) m.set(mb.user_id, mb);
     return m;
   }, [members]);
 
@@ -437,8 +516,10 @@ export default function Board() {
     const dragged = findTask(String(active.id));
     if (!dragged) return;
 
-    let newStatus: TaskStatus = dragged.status;
-    let newPosition = dragged.position;
+    // Both are assigned in every non-return branch below — declared without
+    // initial values so eslint's no-useless-assignment is happy.
+    let newStatus: TaskStatus;
+    let newPosition: number;
 
     const overId = String(over.id);
     const overTask = findTask(overId);
@@ -501,7 +582,7 @@ export default function Board() {
 
   return (
     <div>
-      <div className="flex items-center justify-end h-9 mb-2">
+      <div className="flex items-center justify-end mb-2">
         <ColumnVisibilityMenu hidden={hiddenColumns} onToggle={toggleColumn} />
       </div>
       <DndContext
@@ -525,7 +606,8 @@ export default function Board() {
                 key={col.status}
                 col={col}
                 items={tasksByStatus(col.status)}
-                emailById={emailById}
+                memberById={memberById}
+                members={members}
                 isDropTarget={
                   activeColumn === col.status &&
                   activeTask?.status !== col.status
@@ -538,14 +620,16 @@ export default function Board() {
         </div>
         <DragOverlay dropAnimation={null}>
           {activeTask ? (
-            <div className="rounded border border-slate-300 bg-white p-2.5 shadow-xl cursor-grabbing rotate-1">
+            <div className="rounded border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 p-2.5 shadow-xl cursor-grabbing rotate-1">
               <CardBody
                 task={activeTask}
-                assigneeEmail={
+                assignee={
                   activeTask.assignee_id
-                    ? emailById.get(activeTask.assignee_id)
+                    ? memberById.get(activeTask.assignee_id)
                     : undefined
                 }
+                members={members}
+                interactive={false}
               />
             </div>
           ) : null}

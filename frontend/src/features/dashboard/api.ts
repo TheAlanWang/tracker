@@ -9,6 +9,7 @@ export type DashboardTask = {
   status: string;
   workspace_slug: string;
   project_key: string;
+  project_name: string;
   due_date: string | null;
   updated_at: string;
 };
@@ -38,6 +39,7 @@ export type DashboardActivity = {
   project_key: string;
   actor_id: string | null;
   actor_email: string | null;
+  actor_display_name: string | null;
   action: string;
   payload: Record<string, unknown>;
   created_at: string;
@@ -48,6 +50,7 @@ export type Dashboard = {
   active_sprints: DashboardSprint[];
   due_this_week: DashboardTask[];
   overdue: DashboardTask[];
+  done_this_week_tasks: DashboardTask[];
   stats: DashboardStats;
   recent_activity: DashboardActivity[];
 };

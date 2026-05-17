@@ -82,6 +82,11 @@ def update(
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN) from exc
     except ProjectNotFoundError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND) from exc
+    except ProjectKeyExistsError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Key '{exc.args[0]}' is already used by another project in this workspace.",
+        ) from exc
 
 
 @router.delete("/projects/{p_id}", status_code=status.HTTP_204_NO_CONTENT)

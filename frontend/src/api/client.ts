@@ -28,7 +28,7 @@ apiClient.interceptors.response.use(
       if (!refreshErr && data.session) {
         return apiClient.request(error.config);
       }
-      window.location.href = "/login";
+      window.location.href = "/?login=open";
     }
     return Promise.reject(error);
   },

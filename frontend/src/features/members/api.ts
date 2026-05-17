@@ -1,4 +1,9 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  keepPreviousData,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 
 import { apiClient } from "@/api/client";
 
@@ -10,6 +15,7 @@ export type Member = {
   role: WorkspaceRole;
   created_at: string;
   email: string | null;
+  display_name: string | null;
 };
 
 export function useMembers(wsId: string) {
@@ -22,24 +28,15 @@ export function useMembers(wsId: string) {
       return data;
     },
     enabled: !!wsId,
+    // Keep the previous workspace's member rows visible while the new
+    // workspace's data loads — avoids a "Loading…" flash + layout jump in
+    // Workspace Settings when switching between workspaces.
+    placeholderData: keepPreviousData,
   });
 }
 
-export function useInviteMember(wsId: string) {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: async (payload: { email: string }) => {
-      const { data } = await apiClient.post<Member>(
-        `/workspaces/${wsId}/members`,
-        payload,
-      );
-      return data;
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["workspaces", wsId, "members"] });
-    },
-  });
-}
+// Inviting a user no longer adds them directly — use useCreateInvitation
+// from @/features/invitations/api instead.
 
 export function useUpdateMemberRole(wsId: string) {
   const qc = useQueryClient();

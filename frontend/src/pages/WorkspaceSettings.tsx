@@ -1,3 +1,13 @@
+// Workspace Settings page.
+//
+// Sections:
+//   - General: rename workspace (owner-only).
+//   - Members: send invitations (admins+), list current members with role
+//     management (admins+ change roles, owner-only Remove), plus pending
+//     invitations inline as "Waiting" rows so admins always know what's
+//     outstanding.
+//   - Danger zone: delete workspace (owner-only, confirms via window.confirm).
+
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
@@ -7,19 +17,25 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   type WorkspaceRole,
-  useInviteMember,
   useMembers,
   useRemoveMember,
   useUpdateMemberRole,
 } from "@/features/members/api";
+import {
+  useCreateInvitation,
+  useRevokeInvitation,
+  useWorkspaceInvitations,
+} from "@/features/invitations/api";
 import {
   useDeleteWorkspace,
   useUpdateWorkspace,
   useWorkspaces,
 } from "@/features/workspaces/api";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 
 export default function WorkspaceSettings() {
+  useDocumentTitle("Workspace Settings");
   const { wsSlug } = useParams();
   const navigate = useNavigate();
   const { data: workspaces = [] } = useWorkspaces();
@@ -29,7 +45,9 @@ export default function WorkspaceSettings() {
   const isOwner = !!me && currentWs?.owner_id === me.id;
 
   const { data: members = [], isLoading } = useMembers(wsId);
-  const inviteMutation = useInviteMember(wsId);
+  const { data: invitations = [] } = useWorkspaceInvitations(wsId);
+  const inviteMutation = useCreateInvitation(wsId);
+  const revokeMutation = useRevokeInvitation(wsId);
   const updateRoleMutation = useUpdateMemberRole(wsId);
   const removeMutation = useRemoveMember(wsId);
 
@@ -39,9 +57,16 @@ export default function WorkspaceSettings() {
   const [inviteEmail, setInviteEmail] = useState("");
   const [wsName, setWsName] = useState("");
 
+  // Sync the rename draft to the current workspace name on workspace switch.
+  // Keeping the component mounted (rather than the previous key-remount
+  // pattern) prevents the whole settings pane from flashing "Loading…" each
+  // time the user picks a different workspace in the sidebar — useQuery's
+  // placeholderData keeps the old rows visible while new ones load.
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (currentWs) setWsName(currentWs.name);
   }, [currentWs]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   async function onRenameWorkspace(e: React.FormEvent) {
     e.preventDefault();
@@ -90,12 +115,25 @@ export default function WorkspaceSettings() {
     if (!inviteEmail.trim()) return;
     try {
       await inviteMutation.mutateAsync({ email: inviteEmail.trim() });
-      toast.success(`Invited ${inviteEmail.trim()}`);
+      toast.success(`Invitation sent to ${inviteEmail.trim()}`);
       setInviteEmail("");
     } catch (err) {
       const detail =
         (err as { response?: { data?: { detail?: string } } }).response?.data
-          ?.detail ?? "Failed to invite member";
+          ?.detail ?? "Failed to send invitation";
+      toast.error(detail);
+    }
+  }
+
+  async function onRevoke(invitationId: string, email: string) {
+    if (!confirm(`Revoke pending invitation for ${email}?`)) return;
+    try {
+      await revokeMutation.mutateAsync(invitationId);
+      toast.success("Invitation revoked");
+    } catch (err) {
+      const detail =
+        (err as { response?: { data?: { detail?: string } } }).response?.data
+          ?.detail ?? "Failed to revoke";
       toast.error(detail);
     }
   }
@@ -128,12 +166,12 @@ export default function WorkspaceSettings() {
   return (
     <SettingsLayout>
       <header className="mb-10">
-        <h1 className="text-3xl font-semibold text-slate-900">
+        <h1 className="text-3xl font-semibold text-slate-900 dark:text-slate-100">
           Workspace Settings
         </h1>
-        <p className="mt-2 text-slate-500">
+        <p className="mt-2 text-slate-500 dark:text-slate-400">
           General configuration, members, and lifecycle for{" "}
-          <span className="font-medium text-slate-700">
+          <span className="font-medium text-slate-700 dark:text-slate-300">
             {currentWs?.name ?? "this workspace"}
           </span>
           .
@@ -142,25 +180,26 @@ export default function WorkspaceSettings() {
 
       <div className="space-y-10 min-w-0">
         <section className="space-y-4">
-          <h2 className="text-xl font-medium text-slate-900">
+          <h2 className="text-xl font-medium text-slate-900 dark:text-slate-100 dark:text-slate-100">
             General settings
           </h2>
           <form onSubmit={onRenameWorkspace}>
-            <div className="rounded-lg border border-slate-200 bg-white">
+            <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
               <SettingRow
                 label="Workspace name"
                 description="Displayed throughout the app."
               >
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-3 w-full">
                   <Input
                     value={wsName}
                     onChange={(e) => setWsName(e.target.value)}
                     maxLength={100}
                     disabled={!isOwner}
-                    className="max-w-xs"
+                    className="max-w-xs flex-1"
                   />
                   <Button
                     type="submit"
+                    className="ml-auto shrink-0"
                     disabled={
                       !isOwner ||
                       updateWsMutation.isPending ||
@@ -172,7 +211,7 @@ export default function WorkspaceSettings() {
                   </Button>
                 </div>
                 {!isOwner && (
-                  <p className="mt-2 text-xs text-slate-500">
+                  <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
                     Only the workspace owner can rename.
                   </p>
                 )}
@@ -182,56 +221,88 @@ export default function WorkspaceSettings() {
         </section>
 
         <section className="space-y-4">
-          <h2 className="text-xl font-medium text-slate-900">Members</h2>
-          <div className="rounded-lg border border-slate-200 bg-white">
-            <form
-              onSubmit={onInvite}
-              className="flex gap-2 p-4 border-b border-slate-200"
-            >
-              <Input
-                type="email"
-                className="flex-1"
-                placeholder="Invite by email…"
-                value={inviteEmail}
-                onChange={(e) => setInviteEmail(e.target.value)}
-                required
-              />
-              <Button
-                type="submit"
-                disabled={inviteMutation.isPending || !inviteEmail.trim()}
-              >
-                {inviteMutation.isPending ? "Inviting…" : "Invite"}
-              </Button>
-            </form>
+          <h2 className="text-xl font-medium text-slate-900 dark:text-slate-100 dark:text-slate-100">Members</h2>
+          <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden">
+            {/* Header zone — WHITE background. Title + summary on the
+                left, invite form on the right (owner only). The slate
+                tint goes on the column-header row below, not here, so
+                this zone reads as content while the next reads as a
+                table guide rail. */}
+            <div className="px-5 py-4 border-b border-slate-200 dark:border-slate-800">
+              <div className="flex items-center justify-between gap-4">
+                <div className="min-w-0">
+                  <h3 className="text-base font-medium text-slate-900 dark:text-slate-100">
+                    Workspace members
+                  </h3>
+                  <p className="mt-0.5 text-sm text-slate-500 dark:text-slate-400">
+                    {members.length === 1
+                      ? "1 member can access this workspace."
+                      : `All ${members.length} members can access this workspace.`}
+                  </p>
+                </div>
+                {isOwner && (
+                  <form
+                    onSubmit={onInvite}
+                    className="flex items-center gap-2 shrink-0"
+                  >
+                    <Input
+                      type="email"
+                      placeholder="name@company.com"
+                      value={inviteEmail}
+                      onChange={(e) => setInviteEmail(e.target.value)}
+                      required
+                      className="w-52"
+                    />
+                    <Button
+                      type="submit"
+                      variant="outline"
+                      disabled={
+                        inviteMutation.isPending || !inviteEmail.trim()
+                      }
+                    >
+                      {inviteMutation.isPending ? "Sending…" : "Invite"}
+                    </Button>
+                  </form>
+                )}
+              </div>
+            </div>
 
-            <div className="px-4 py-2 grid grid-cols-[1fr_140px_80px] gap-4 text-xs uppercase text-slate-400 font-medium border-b border-slate-200">
+            {/* Column headers — slate-50 tinted so the row reads as a
+                table guide separate from the data rows beneath. */}
+            <div className="bg-slate-50/70 dark:bg-slate-800/40 px-5 py-2 grid grid-cols-[1fr_160px_60px] gap-4 text-[10px] uppercase tracking-[0.08em] text-slate-500 dark:text-slate-400 font-medium border-b border-slate-200 dark:border-slate-800">
               <span>Member</span>
               <span>Role</span>
               <span />
             </div>
 
             {isLoading ? (
-              <p className="px-4 py-4 text-sm text-slate-500">Loading…</p>
+              <p className="px-5 py-4 text-sm text-slate-500 dark:text-slate-400">Loading…</p>
             ) : (
-              <div className="divide-y divide-slate-100">
+              <div className="divide-y divide-slate-100 dark:divide-slate-800 dark:divide-slate-800">
                 {members.map((m) => {
                   const display = m.email ?? m.user_id;
                   const memberIsOwner = m.role === "owner";
+                  const isMe = me?.id === m.user_id;
                   return (
                     <div
-                      key={m.user_id}
-                      className="grid grid-cols-[1fr_140px_80px] gap-4 items-center px-4 py-3"
+                      key={`m-${m.user_id}`}
+                      className="group grid grid-cols-[1fr_160px_60px] gap-4 items-center px-5 py-3"
                     >
-                      <span className="text-sm text-slate-700 truncate">
-                        {display}
-                      </span>
-                      {memberIsOwner ? (
-                        <span className="text-xs font-medium text-amber-700 bg-amber-50 px-2 py-0.5 rounded w-fit">
-                          Owner
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="text-sm text-slate-800 dark:text-slate-200 truncate">
+                          {display}
                         </span>
-                      ) : (
+                        {isMe && (
+                          <span className="text-[10px] font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400 border border-slate-300 dark:border-slate-700 rounded-full px-1.5 py-0.5">
+                            You
+                          </span>
+                        )}
+                      </div>
+                      {memberIsOwner ? (
+                        <span className="text-sm text-slate-600 dark:text-slate-400">Owner</span>
+                      ) : isOwner ? (
                         <select
-                          className="rounded border border-slate-300 bg-white px-2 py-1 text-sm w-fit"
+                          className="rounded border border-transparent hover:border-slate-300 focus:border-slate-300 bg-transparent px-1.5 py-0.5 text-sm text-slate-700 dark:text-slate-300 w-fit -ml-1.5"
                           value={m.role}
                           onChange={(e) =>
                             onChangeRole(
@@ -244,15 +315,67 @@ export default function WorkspaceSettings() {
                           <option value="admin">Admin</option>
                           <option value="member">Member</option>
                         </select>
+                      ) : (
+                        <span className="text-sm text-slate-600 dark:text-slate-400 capitalize">
+                          {m.role}
+                        </span>
                       )}
-                      {!memberIsOwner ? (
+                      {/* Remove only when current user is owner & target
+                          isn't the owner. Hover-revealed so the row stays
+                          calm by default. */}
+                      {isOwner && !memberIsOwner ? (
                         <button
                           type="button"
-                          className="text-xs text-red-600 hover:underline justify-self-end"
+                          className="text-xs text-slate-400 dark:text-slate-500 hover:text-red-600 justify-self-end opacity-0 group-hover:opacity-100 transition-opacity"
                           onClick={() => onRemove(m.user_id, display)}
                           disabled={removeMutation.isPending}
                         >
                           Remove
+                        </button>
+                      ) : (
+                        <span />
+                      )}
+                    </div>
+                  );
+                })}
+                {/* Pending invitations sit in the same list with a "Waiting"
+                    badge instead of a role — they're not members yet, but
+                    keeping them visible reminds admins an invite is in
+                    flight. */}
+                {invitations.map((inv) => {
+                  const inviter =
+                    inv.invited_by_display_name ??
+                    inv.invited_by_email ??
+                    "Someone";
+                  const sent = new Date(inv.created_at).toLocaleDateString(
+                    undefined,
+                    { month: "short", day: "numeric" },
+                  );
+                  return (
+                    <div
+                      key={`i-${inv.id}`}
+                      className="group grid grid-cols-[1fr_160px_60px] gap-4 items-center px-5 py-3"
+                    >
+                      <div className="min-w-0">
+                        <span className="text-sm text-slate-800 dark:text-slate-200 truncate block">
+                          {inv.invited_email}
+                        </span>
+                        <span className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5 block truncate">
+                          Invited by {inviter} · {sent}
+                        </span>
+                      </div>
+                      <span className="text-sm text-amber-600 flex items-center gap-1.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                        Waiting
+                      </span>
+                      {isOwner ? (
+                        <button
+                          type="button"
+                          className="text-xs text-slate-400 dark:text-slate-500 hover:text-red-600 justify-self-end opacity-0 group-hover:opacity-100 transition-opacity"
+                          onClick={() => onRevoke(inv.id, inv.invited_email)}
+                          disabled={revokeMutation.isPending}
+                        >
+                          Revoke
                         </button>
                       ) : (
                         <span />
@@ -266,32 +389,70 @@ export default function WorkspaceSettings() {
         </section>
 
         <section className="space-y-4">
-          <h2 className="text-xl font-medium text-red-700">Danger zone</h2>
-          <div className="rounded-lg border border-red-200 bg-white">
-            <SettingRow
-              label="Delete Workspace"
-              description="Permanently delete this workspace and everything in it. This cannot be undone."
-            >
-              {isOwner ? (
-                <div className="flex justify-end">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={onDeleteWorkspace}
-                    disabled={deleteWsMutation.isPending}
-                    className="border-red-300 text-red-700 hover:bg-red-50"
-                  >
-                    {deleteWsMutation.isPending
-                      ? "Deleting…"
-                      : "Delete Workspace"}
-                  </Button>
-                </div>
-              ) : (
-                <p className="text-sm text-slate-500">
-                  Only the workspace owner can delete this workspace.
-                </p>
-              )}
-            </SettingRow>
+          <h2 className="text-xl font-medium text-slate-900 dark:text-slate-100 dark:text-slate-100">Features</h2>
+          <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 divide-y divide-slate-100 dark:divide-slate-800 dark:divide-slate-800">
+            {/* Each feature row: title + Beta pill + multi-line description
+                on the left (flexes to fill), Toggle switch on the right.
+                List-of-rows pattern matching Linear/Stripe — when we add a
+                second feature, just append another <FeatureRow>. */}
+            <FeatureRow
+              title="Goals"
+              description="Strategic objectives — a workspace-scoped recursive tree. Tasks attach to a goal to show which intent they serve."
+              checked={!!currentWs?.features?.goals}
+              disabled={!isOwner || updateWsMutation.isPending}
+              onChange={(next) => {
+                if (!currentWs) return;
+                updateWsMutation.mutate({
+                  wsId: currentWs.id,
+                  payload: { features: { goals: next } },
+                });
+              }}
+              note={
+                !isOwner
+                  ? "Only the workspace owner can toggle features."
+                  : undefined
+              }
+            />
+          </div>
+        </section>
+
+        <section className="space-y-4">
+          <h2 className="text-xl font-medium text-red-700 dark:text-red-400">Danger zone</h2>
+          {/* Stacked block (same shape as Profile Settings' Danger zone):
+              title → full-width prose → action button at bottom-right.
+              Avoids the cramped SettingRow grid where the description gets
+              wrapped into a narrow column. */}
+          {/* Tinted background gives the danger zone a visual "stop sign" —
+              you can tell at a glance this region is destructive without
+              having to read the heading. */}
+          <div className="rounded-lg border border-red-200 dark:border-red-900/40 bg-red-50/50 dark:bg-red-950/20 p-5 space-y-4">
+            <div className="space-y-2">
+              <h3 className="font-medium text-red-900 dark:text-red-300">Delete workspace</h3>
+              <p className="text-sm text-red-900/70 dark:text-red-300/70 leading-relaxed">
+                Permanently delete this workspace and everything in it — every
+                project, task, sprint, comment, invitation, and watcher
+                subscription scoped to it. Members will lose access
+                immediately. This cannot be undone.
+              </p>
+            </div>
+            {isOwner ? (
+              <div className="flex justify-end">
+                <Button
+                  type="button"
+                  onClick={onDeleteWorkspace}
+                  disabled={deleteWsMutation.isPending}
+                  className="bg-red-600 hover:bg-red-700 text-white"
+                >
+                  {deleteWsMutation.isPending
+                    ? "Deleting…"
+                    : "Delete workspace"}
+                </Button>
+              </div>
+            ) : (
+              <p className="text-sm text-red-900/60 italic">
+                Only the workspace owner can delete this workspace.
+              </p>
+            )}
           </div>
         </section>
       </div>
@@ -311,12 +472,95 @@ function SettingRow({
   return (
     <div className="grid grid-cols-[280px_1fr] items-start gap-6 p-5">
       <div>
-        <div className="font-medium text-slate-900">{label}</div>
+        <div className="font-medium text-slate-900 dark:text-slate-100">{label}</div>
         {description && (
-          <p className="mt-1 text-sm text-slate-500">{description}</p>
+          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{description}</p>
         )}
       </div>
       <div className="min-w-0">{children}</div>
     </div>
+  );
+}
+
+// FeatureRow — one entry inside the Features card. Description spans the
+// full left column (no narrow constraint like SettingRow), Toggle sits
+// vertically centered on the right. Optional `note` shows under the row
+// content (used for the "only owner can toggle" message).
+function FeatureRow({
+  title,
+  description,
+  checked,
+  disabled,
+  onChange,
+  note,
+}: {
+  title: string;
+  description: string;
+  checked: boolean;
+  disabled?: boolean;
+  onChange: (next: boolean) => void;
+  note?: string;
+}) {
+  return (
+    <div className="p-5">
+      <div className="flex items-start gap-6">
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <h3 className="font-medium text-slate-900 dark:text-slate-100">{title}</h3>
+            <span className="text-[10px] font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400 border border-slate-300 dark:border-slate-700 rounded-full px-1.5 py-0.5">
+              Beta
+            </span>
+          </div>
+          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
+            {description}
+          </p>
+        </div>
+        <div className="pt-0.5 shrink-0">
+          <Toggle
+            checked={checked}
+            onChange={onChange}
+            disabled={disabled}
+            label={title}
+          />
+        </div>
+      </div>
+      {note && (
+        <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">{note}</p>
+      )}
+    </div>
+  );
+}
+
+// Toggle — iOS-style switch. Kept inline because it's only used here for
+// now; promote to components/ui if a second caller appears.
+function Toggle({
+  checked,
+  onChange,
+  disabled,
+  label,
+}: {
+  checked: boolean;
+  onChange: (next: boolean) => void;
+  disabled?: boolean;
+  label: string;
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      aria-label={label}
+      disabled={disabled}
+      onClick={() => onChange(!checked)}
+      className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 focus-visible:ring-offset-2 ${
+        checked ? "bg-blue-600" : "bg-slate-300"
+      }`}
+    >
+      <span
+        className={`inline-block h-4 w-4 rounded-full bg-white dark:bg-slate-900 shadow-sm transition-transform ${
+          checked ? "translate-x-[18px]" : "translate-x-[2px]"
+        }`}
+      />
+    </button>
   );
 }

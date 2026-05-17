@@ -69,40 +69,46 @@ export function ProjectLayout() {
 
   const tabClass = ({ isActive }: { isActive: boolean }) =>
     isActive
-      ? "inline-flex items-center h-9 border-b-2 border-slate-900 px-3 text-sm font-medium text-slate-900"
-      : "inline-flex items-center h-9 border-b-2 border-transparent px-3 text-sm text-slate-500 hover:text-slate-900";
+      ? "inline-flex items-center h-9 border-b-2 border-slate-900 dark:border-slate-100 px-3 text-sm font-medium text-slate-900 dark:text-slate-100"
+      : "inline-flex items-center h-9 border-b-2 border-transparent px-3 text-sm text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100";
 
   return (
-    <div className="space-y-0">
-      <div className="border-b border-slate-200 -mt-8 -mx-8 px-8 pt-5 pb-0 bg-white">
-        <div className="flex items-center justify-between">
-          <h1 className="text-lg font-semibold text-slate-900">
+    <div>
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
             {currentProject.name}
           </h1>
-          <Button
-            type="button"
-            onClick={() => {
-              setTaskTitle("");
-              setTaskDesc("");
-              setNewTaskOpen(true);
-            }}
-          >
-            + New Task
-          </Button>
+          {currentProject.description && (
+            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400 max-w-2xl">
+              {currentProject.description}
+            </p>
+          )}
         </div>
-        <nav className="mt-3 flex items-center gap-1">
-          {TABS.map((t) => (
-            <NavLink
-              key={t.to}
-              to={`/w/${wsSlug}/p/${pKey}/${t.to}`}
-              className={tabClass}
-              end={false}
-            >
-              {t.label}
-            </NavLink>
-          ))}
-        </nav>
+        <Button
+          type="button"
+          className="shrink-0"
+          onClick={() => {
+            setTaskTitle("");
+            setTaskDesc("");
+            setNewTaskOpen(true);
+          }}
+        >
+          + New Task
+        </Button>
       </div>
+      <nav className="mt-3 flex items-center gap-1 border-b border-slate-200 dark:border-slate-800">
+        {TABS.map((t) => (
+          <NavLink
+            key={t.to}
+            to={`/w/${wsSlug}/p/${pKey}/${t.to}`}
+            className={tabClass}
+            end={false}
+          >
+            {t.label}
+          </NavLink>
+        ))}
+      </nav>
       <div className="pt-3">
         <Outlet />
       </div>
@@ -114,11 +120,11 @@ export function ProjectLayout() {
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-md rounded-lg bg-white shadow-xl p-5 space-y-4"
+            className="w-full max-w-md rounded-lg bg-white dark:bg-slate-900 shadow-xl p-5 space-y-4"
           >
-            <h2 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-2">
               <span>New Task in</span>
-              <span className="inline-flex items-center rounded-md bg-slate-100 px-2 py-0.5">
+              <span className="inline-flex items-center rounded-md bg-slate-100 dark:bg-slate-800 px-2 py-0.5">
                 {currentProject.name}
               </span>
             </h2>
@@ -140,14 +146,14 @@ export function ProjectLayout() {
                 <Label htmlFor="new-task-desc">Description (optional)</Label>
                 <textarea
                   id="new-task-desc"
-                  className="w-full rounded border border-slate-300 bg-white p-2 text-sm"
+                  className="w-full rounded border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 p-2 text-sm"
                   rows={3}
                   value={taskDesc}
                   onChange={(e) => setTaskDesc(e.target.value)}
                   maxLength={10000}
                 />
               </div>
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-slate-500 dark:text-slate-400">
                 The task lands in <span className="font-medium">Backlog</span> with no
                 priority. Set a priority and drag it to the board when ready.
               </p>

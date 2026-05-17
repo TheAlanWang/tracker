@@ -11,6 +11,7 @@ import {
   useWorkspaces,
 } from "@/features/workspaces/api";
 import { slugifyWorkspace } from "@/lib/slug";
+import { projectDotColor } from "@/lib/projectColor";
 
 type Props = {
   children: React.ReactNode;
@@ -69,7 +70,7 @@ export function SettingsLayout({ children }: Props) {
       <div className="grid grid-cols-[240px_1fr] gap-10">
         <aside className="space-y-6">
           <section className="space-y-1">
-            <p className="text-[11px] uppercase tracking-wide text-slate-400 font-semibold px-2 pb-1">
+            <p className="text-[11px] uppercase tracking-wide text-slate-400 dark:text-slate-500 font-semibold px-2 pb-1">
               Workspaces
             </p>
             {workspaces.map((w) => {
@@ -81,8 +82,8 @@ export function SettingsLayout({ children }: Props) {
                   onClick={() => navigate(`/w/${w.slug}/settings`)}
                   className={
                     active
-                      ? "block w-full text-left rounded px-2 py-1.5 text-sm bg-slate-100 font-medium text-slate-900"
-                      : "block w-full text-left rounded px-2 py-1.5 text-sm text-slate-700 hover:bg-slate-50"
+                      ? "block w-full text-left rounded px-2 py-1.5 text-sm bg-slate-100 dark:bg-slate-800 font-medium text-slate-900 dark:text-slate-100"
+                      : "block w-full text-left rounded px-2 py-1.5 text-sm text-slate-700 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50"
                   }
                 >
                   {w.name}
@@ -92,7 +93,7 @@ export function SettingsLayout({ children }: Props) {
             <button
               type="button"
               onClick={() => setNewWsOpen(true)}
-              className="w-full text-left rounded px-2 py-1.5 text-sm text-slate-500 hover:bg-slate-50 hover:text-slate-900 inline-flex items-center gap-1.5"
+              className="w-full text-left rounded px-2 py-1.5 text-sm text-slate-500 dark:text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-slate-200 inline-flex items-center gap-1.5"
             >
               <span className="text-base leading-none">+</span>
               <span>New Workspace</span>
@@ -101,11 +102,11 @@ export function SettingsLayout({ children }: Props) {
 
           {currentWs && (
             <section className="space-y-1">
-              <p className="text-[11px] uppercase tracking-wide text-slate-400 font-semibold px-2 pb-1">
+              <p className="text-[11px] uppercase tracking-wide text-slate-400 dark:text-slate-500 font-semibold px-2 pb-1">
                 Projects in {currentWs.name}
               </p>
               {projects.length === 0 ? (
-                <p className="px-2 text-xs text-slate-400">
+                <p className="px-2 text-xs text-slate-400 dark:text-slate-500">
                   No projects in this workspace.
                 </p>
               ) : (
@@ -120,11 +121,20 @@ export function SettingsLayout({ children }: Props) {
                       }
                       className={
                         active
-                          ? "block w-full text-left rounded px-2 py-1.5 text-sm bg-slate-100 font-medium text-slate-900"
-                          : "block w-full text-left rounded px-2 py-1.5 text-sm text-slate-700 hover:bg-slate-50"
+                          ? "flex items-center gap-2 w-full text-left rounded px-2 py-1.5 text-sm bg-slate-100 dark:bg-slate-800 font-medium text-slate-900 dark:text-slate-100"
+                          : "flex items-center gap-2 w-full text-left rounded px-2 py-1.5 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50"
                       }
                     >
-                      {p.name}
+                      <span
+                        className="w-1.5 h-1.5 rounded-full shrink-0"
+                        style={{
+                          backgroundColor: projectDotColor({
+                            key: p.key,
+                            color: p.color,
+                          }),
+                        }}
+                      />
+                      <span className="truncate">{p.name}</span>
                     </button>
                   );
                 })
@@ -133,7 +143,11 @@ export function SettingsLayout({ children }: Props) {
           )}
         </aside>
 
-        <main className="min-w-0">{children}</main>
+        {/* Constrain main content to ~720px so line lengths stay readable.
+            Settings pages (Linear, Supabase, Vercel) all sit around this
+            width — sprawling to full-width forces the eye to travel
+            across descriptions that are short by nature. */}
+        <main className="min-w-0 max-w-3xl">{children}</main>
       </div>
 
       {newWsOpen && (
@@ -142,7 +156,7 @@ export function SettingsLayout({ children }: Props) {
           onClick={() => setNewWsOpen(false)}
         >
           <div
-            className="w-full max-w-md rounded-lg bg-white shadow-2xl p-6"
+            className="w-full max-w-md rounded-lg bg-white dark:bg-slate-900 shadow-2xl p-6"
             onClick={(e) => e.stopPropagation()}
           >
             <h2 className="text-base font-semibold mb-4">New Workspace</h2>
@@ -158,7 +172,7 @@ export function SettingsLayout({ children }: Props) {
                   maxLength={100}
                 />
                 {newWsName.trim() && (
-                  <p className="text-xs text-slate-500">
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
                     URL slug:{" "}
                     <span className="font-mono">
                       {slugifyWorkspace(newWsName) || "—"}

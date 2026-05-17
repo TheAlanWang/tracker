@@ -42,3 +42,54 @@ export const PRIORITY_STYLE: Record<TaskPriority, string> = {
   low: "bg-slate-100 text-slate-500",
   no_priority: "text-slate-400",
 };
+
+// Linear-style dot indicators for compact-row list views (no pill bg).
+// Dot color carries the semantic, label text stays neutral grey for
+// quiet readability — pills look heavy on every row, dots don't.
+export const STATUS_DOT: Record<TaskStatus, string> = {
+  backlog: "bg-slate-300 dark:bg-slate-600",
+  todo: "bg-slate-500 dark:bg-slate-400",
+  in_progress: "bg-blue-500",
+  in_review: "bg-purple-500",
+  done: "bg-emerald-500",
+  cancelled: "bg-slate-300 dark:bg-slate-700",
+};
+
+export const PRIORITY_DOT: Record<TaskPriority, string> = {
+  urgent: "bg-red-500",
+  high: "bg-orange-500",
+  medium: "bg-amber-500",
+  low: "bg-slate-400 dark:bg-slate-500",
+  no_priority: "bg-transparent",
+};
+
+// Text color paired with PRIORITY_DOT — gives a subtle hue to the
+// label without going full pill. Slate for low / no_priority since
+// they shouldn't pop visually.
+export const PRIORITY_TEXT: Record<TaskPriority, string> = {
+  urgent: "text-red-700 dark:text-red-300",
+  high: "text-orange-700 dark:text-orange-300",
+  medium: "text-amber-700 dark:text-amber-300",
+  low: "text-slate-600 dark:text-slate-400",
+  no_priority: "text-slate-400 dark:text-slate-500",
+};
+
+// Notion-style pill: rounded-full chip with a soft tinted background
+// and matching tint text. Pairs with the colored DOT for redundancy
+// (so colorblind users still get a label even if the tint is subtle).
+export const STATUS_PILL: Record<TaskStatus, string> = {
+  backlog: "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400",
+  todo: "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300",
+  in_progress: "bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300",
+  in_review: "bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300",
+  done: "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300",
+  cancelled: "bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500",
+};
+
+export const PRIORITY_PILL: Record<TaskPriority, string> = {
+  urgent: "bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300",
+  high: "bg-orange-50 dark:bg-orange-950/40 text-orange-700 dark:text-orange-300",
+  medium: "bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300",
+  low: "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400",
+  no_priority: "bg-transparent text-slate-400 dark:text-slate-500",
+};

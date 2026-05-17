@@ -24,6 +24,7 @@ export type Task = {
   project_id: string;
   sprint_id: string | null;
   parent_id: string | null;
+  goal_id: string | null;
   identifier: string;
   title: string;
   description: string;
@@ -54,6 +55,7 @@ export type TaskUpdate = Partial<{
   assignee_id: string | null;
   due_date: string | null;
   sprint_id: string | null;
+  goal_id: string | null;
 }>;
 
 export function useWorkspaceTasks(
