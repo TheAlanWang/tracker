@@ -23,7 +23,8 @@ import {
   useGoalTasks,
   useGoals,
 } from "@/features/goals/api";
-import { STATUS_LABELS, STATUS_STYLE } from "@/features/tasks/labels";
+import { StatusPill } from "@/components/StatusPill";
+import { STATUS } from "@/features/tasks/labels";
 
 type ColumnKey = string | null; // parent_goal_id of the column; null = root
 
@@ -111,7 +112,7 @@ function TaskRow({
     id: string;
     identifier: string;
     title: string;
-    status: keyof typeof STATUS_LABELS;
+    status: keyof typeof STATUS;
   };
   onOpen: (taskId: string) => void;
 }) {
@@ -131,11 +132,7 @@ function TaskRow({
       <span className="flex-1 truncate text-sm text-slate-800 dark:text-slate-200">
         {task.title}
       </span>
-      <span
-        className={`text-[10px] px-1.5 py-0.5 rounded ${STATUS_STYLE[task.status]}`}
-      >
-        {STATUS_LABELS[task.status]}
-      </span>
+      <StatusPill status={task.status} size="sm" />
     </button>
   );
 }

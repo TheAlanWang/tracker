@@ -11,27 +11,11 @@ import {
   type FilterField,
 } from "@/features/tasks/filters";
 import {
-  PRIORITY_LABELS,
-  STATUS_LABELS,
+  PRIORITY,
+  PRIORITY_ORDER,
+  STATUS,
+  STATUS_ORDER,
 } from "@/features/tasks/labels";
-import type { TaskPriority, TaskStatus } from "@/features/tasks/api";
-
-const STATUS_OPTIONS: TaskStatus[] = [
-  "backlog",
-  "todo",
-  "in_progress",
-  "in_review",
-  "done",
-  "cancelled",
-];
-
-const PRIORITY_OPTIONS: TaskPriority[] = [
-  "urgent",
-  "high",
-  "medium",
-  "low",
-  "no_priority",
-];
 
 // ---- Portal popover helpers ----
 
@@ -84,13 +68,13 @@ function summarizeFilter(
 ): string {
   if (f.field === "status") {
     if (f.values.length === 0) return "Status: any";
-    if (f.values.length === 1) return `Status: ${STATUS_LABELS[f.values[0]]}`;
+    if (f.values.length === 1) return `Status: ${STATUS[f.values[0]].label}`;
     return `Status: ${f.values.length} selected`;
   }
   if (f.field === "priority") {
     if (f.values.length === 0) return "Priority: any";
     if (f.values.length === 1)
-      return `Priority: ${PRIORITY_LABELS[f.values[0]]}`;
+      return `Priority: ${PRIORITY[f.values[0]].label}`;
     return `Priority: ${f.values.length} selected`;
   }
   if (f.field === "project") {
@@ -150,8 +134,8 @@ function FilterChip({
           >
             {filter.field === "status" && (
               <CheckboxList
-                options={STATUS_OPTIONS}
-                labelFor={(s) => STATUS_LABELS[s]}
+                options={STATUS_ORDER as TaskStatus[]}
+                labelFor={(s) => STATUS[s].label}
                 selected={filter.values}
                 onChange={(next) =>
                   onChange({ field: "status", values: next as TaskStatus[] })
@@ -160,8 +144,8 @@ function FilterChip({
             )}
             {filter.field === "priority" && (
               <CheckboxList
-                options={PRIORITY_OPTIONS}
-                labelFor={(p) => PRIORITY_LABELS[p]}
+                options={PRIORITY_ORDER as TaskPriority[]}
+                labelFor={(p) => PRIORITY[p].label}
                 selected={filter.values}
                 onChange={(next) =>
                   onChange({

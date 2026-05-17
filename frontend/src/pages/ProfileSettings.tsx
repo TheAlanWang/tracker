@@ -14,6 +14,7 @@
 import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { Camera } from "lucide-react";
 
 import { Avatar } from "@/components/Avatar";
 import { Button } from "@/components/ui/button";
@@ -153,51 +154,50 @@ function ProfileSettingsContent({
           <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 divide-y divide-slate-200 dark:divide-slate-800">
             <SettingRow
               label="Avatar"
-              description="PNG / JPEG / WebP / GIF, up to 2 MB. Shown in the header, mentions, and assignee pickers."
+              description="PNG / JPEG / WebP / GIF, up to 2 MB."
             >
               <div className="flex items-center gap-4">
-                <Avatar
-                  displayName={me.display_name}
-                  email={me.email}
-                  avatarUrl={me.avatar_url}
-                  size={56}
-                  className="ring-1 ring-slate-200"
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept={ALLOWED_TYPES.join(",")}
+                  className="hidden"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) onAvatarChosen(f);
+                  }}
                 />
-                <div className="flex flex-wrap items-center gap-2">
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept={ALLOWED_TYPES.join(",")}
-                    className="hidden"
-                    onChange={(e) => {
-                      const f = e.target.files?.[0];
-                      if (f) onAvatarChosen(f);
-                    }}
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploading || updateMutation.isPending}
+                  aria-label={me.avatar_url ? "Change avatar" : "Upload avatar"}
+                  className="group relative h-14 w-14 rounded-full overflow-hidden ring-1 ring-slate-200 dark:ring-slate-700 shadow-sm disabled:opacity-60 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                >
+                  <Avatar
+                    displayName={me.display_name}
+                    email={me.email}
+                    avatarUrl={me.avatar_url}
+                    size={56}
                   />
-                  <Button
+                  <div className="absolute inset-0 bg-black/45 opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity flex items-center justify-center">
+                    {uploading ? (
+                      <span className="text-white text-[10px] font-medium">Uploading…</span>
+                    ) : (
+                      <Camera className="h-4 w-4 text-white" strokeWidth={2} />
+                    )}
+                  </div>
+                </button>
+                {me.avatar_url && (
+                  <button
                     type="button"
-                    variant="outline"
-                    onClick={() => fileInputRef.current?.click()}
+                    onClick={onAvatarRemoved}
                     disabled={uploading || updateMutation.isPending}
+                    className="text-sm text-rose-600 dark:text-rose-400 hover:underline disabled:opacity-50"
                   >
-                    {uploading
-                      ? "Uploading…"
-                      : me.avatar_url
-                        ? "Change avatar"
-                        : "Upload avatar"}
-                  </Button>
-                  {me.avatar_url && (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={onAvatarRemoved}
-                      disabled={uploading || updateMutation.isPending}
-                      className="text-red-600 border-red-200 hover:bg-red-50"
-                    >
-                      Remove
-                    </Button>
-                  )}
-                </div>
+                    Remove
+                  </button>
+                )}
               </div>
             </SettingRow>
             <SettingRow

@@ -24,12 +24,9 @@ import { useProjectTasksRealtime } from "@/features/realtime/useProjectTasksReal
 import { useWorkspaces } from "@/features/workspaces/api";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 
-import {
-  PRIORITY_LABELS,
-  PRIORITY_STYLE,
-  STATUS_LABELS,
-  STATUS_STYLE,
-} from "@/features/tasks/labels";
+import { EmptyState } from "@/components/EmptyState";
+import { PriorityPill, StatusPill } from "@/components/StatusPill";
+import { TaskTableCard, TaskTableHead } from "@/components/TaskTableCard";
 
 type ColKey =
   | "id"
@@ -290,136 +287,142 @@ function TaskListContent() {
       </div>
 
       {isLoading && <p>Loading tasks…</p>}
-      {!isLoading && (
-        <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40">
-              <tr className="text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                {COLUMNS.map((c) => {
-                  if (!show(c.key)) return null;
-                  const sortField = COL_SORT_FIELD[c.key];
-                  return (
-                    <th
-                      key={c.key}
-                      className="px-3 py-2 text-left whitespace-nowrap"
-                    >
-                      {sortField ? (
-                        <SortableHeader
-                          field={sortField}
-                          label={c.label}
-                          sort={sort}
-                          onSortChange={setSort}
-                        />
-                      ) : (
-                        c.label
-                      )}
-                    </th>
-                  );
-                })}
-              </tr>
-            </thead>
-            <tbody>
-              {displayedTasks.length === 0 && (
-                <tr>
-                  <td
-                    colSpan={COLUMNS.filter((c) => show(c.key)).length}
-                    className="px-3 py-10 text-center text-sm text-slate-400 dark:text-slate-500 border-t border-slate-100 dark:border-slate-800"
-                  >
-                    {filters.length > 0
-                      ? "No tasks match the current filters."
-                      : "No tasks yet."}
-                  </td>
-                </tr>
-              )}
-              {displayedTasks.map((t) => {
-                const assigneeEmail = t.assignee_id
-                  ? memberByUser.get(t.assignee_id)
-                  : undefined;
-                const sprintName = t.sprint_id
-                  ? sprintById.get(t.sprint_id)
-                  : undefined;
+      {!isLoading && displayedTasks.length === 0 && (
+        <EmptyState
+          title={filters.length > 0 ? "No tasks match" : "No tasks yet"}
+          description={
+            filters.length > 0
+              ? "Adjust the filters above, or clear them to see all tasks."
+              : "Create your first task to get started."
+          }
+        />
+      )}
+      {!isLoading && displayedTasks.length > 0 && (
+        <TaskTableCard>
+          <TaskTableHead>
+            <tr className="text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400">
+              {COLUMNS.map((c) => {
+                if (!show(c.key)) return null;
+                const sortField = COL_SORT_FIELD[c.key];
+                const widthCls =
+                  c.key === "id"
+                    ? "w-24"
+                    : c.key === "title"
+                      ? "w-2/5"
+                      : c.key === "status"
+                        ? "w-32"
+                        : c.key === "priority"
+                          ? "w-28"
+                          : c.key === "assignee"
+                            ? "w-40"
+                            : c.key === "due"
+                              ? "w-24"
+                              : c.key === "sprint"
+                                ? "w-32"
+                                : c.key === "created"
+                                  ? "w-24"
+                                  : "";
                 return (
-                  <tr
-                    key={t.id}
-                    className="cursor-pointer border-t border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50"
-                    onClick={() => setOpenTaskId(t.id)}
+                  <th
+                    key={c.key}
+                    className={`px-3 py-2.5 text-left whitespace-nowrap font-medium ${widthCls}`}
                   >
-                    {show("id") && (
-                      <td className="px-3 py-2.5 font-mono text-xs text-slate-500 dark:text-slate-400">
-                        {t.identifier}
-                      </td>
+                    {sortField ? (
+                      <SortableHeader
+                        field={sortField}
+                        label={c.label}
+                        sort={sort}
+                        onSortChange={setSort}
+                      />
+                    ) : (
+                      c.label
                     )}
-                    {show("title") && (
-                      <td className="px-3 py-2.5 text-slate-900 dark:text-slate-100 truncate">
-                        {t.title}
-                      </td>
-                    )}
-                    {show("status") && (
-                      <td className="px-3 py-2.5">
-                        <span
-                          className={`inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${STATUS_STYLE[t.status]}`}
-                        >
-                          {STATUS_LABELS[t.status]}
-                        </span>
-                      </td>
-                    )}
-                    {show("priority") && (
-                      <td className="px-3 py-2.5">
-                        <span
-                          className={`inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${PRIORITY_STYLE[t.priority]}`}
-                        >
-                          {PRIORITY_LABELS[t.priority]}
-                        </span>
-                      </td>
-                    )}
-                    {show("assignee") && (
-                      <td className="px-3 py-2.5">
-                        {assigneeEmail ? (
-                          <div className="flex items-center gap-1.5 min-w-0">
-                            <Avatar email={assigneeEmail} />
-                            <span className="text-xs text-slate-700 dark:text-slate-300 truncate">
-                              {assigneeEmail}
-                            </span>
-                          </div>
-                        ) : (
-                          <span className="text-xs text-slate-400 dark:text-slate-500">—</span>
-                        )}
-                      </td>
-                    )}
-                    {show("due") && (
-                      <td className="px-3 py-2.5">
-                        {t.due_date ? (
-                          <DueDateCell date={t.due_date} />
-                        ) : (
-                          <span className="text-xs text-slate-400 dark:text-slate-500">—</span>
-                        )}
-                      </td>
-                    )}
-                    {show("sprint") && (
-                      <td className="px-3 py-2.5">
-                        {sprintName ? (
-                          <span className="text-xs text-slate-700 dark:text-slate-300 truncate block">
-                            {sprintName}
-                          </span>
-                        ) : (
-                          <span className="text-xs text-slate-400 dark:text-slate-500">—</span>
-                        )}
-                      </td>
-                    )}
-                    {show("created") && (
-                      <td className="px-3 py-2.5 text-xs text-slate-500 dark:text-slate-400">
-                        {new Date(t.created_at).toLocaleDateString(undefined, {
-                          month: "short",
-                          day: "numeric",
-                        })}
-                      </td>
-                    )}
-                  </tr>
+                  </th>
                 );
               })}
-            </tbody>
-          </table>
-        </div>
+            </tr>
+          </TaskTableHead>
+          <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+            {displayedTasks.map((t) => {
+              const assigneeEmail = t.assignee_id
+                ? memberByUser.get(t.assignee_id)
+                : undefined;
+              const sprintName = t.sprint_id
+                ? sprintById.get(t.sprint_id)
+                : undefined;
+              return (
+                <tr
+                  key={t.id}
+                  className="cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors"
+                  onClick={() => setOpenTaskId(t.id)}
+                >
+                  {show("id") && (
+                    <td className="px-3 py-2.5 font-mono text-xs text-slate-500 dark:text-slate-400">
+                      {t.identifier}
+                    </td>
+                  )}
+                  {show("title") && (
+                    <td className="px-3 py-2.5 text-slate-800 dark:text-slate-200" title={t.title}>
+                      <div className="truncate">{t.title}</div>
+                    </td>
+                  )}
+                  {show("status") && (
+                    <td className="px-3 py-2.5">
+                      <StatusPill status={t.status} />
+                    </td>
+                  )}
+                  {show("priority") && (
+                    <td className="px-3 py-2.5">
+                      <PriorityPill priority={t.priority} hideNoPriority />
+                    </td>
+                  )}
+                  {show("assignee") && (
+                    <td className="px-3 py-2.5">
+                      {assigneeEmail ? (
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <Avatar email={assigneeEmail} />
+                          <span className="text-xs text-slate-700 dark:text-slate-300 truncate">
+                            {assigneeEmail}
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="text-xs text-slate-300 dark:text-slate-600">—</span>
+                      )}
+                    </td>
+                  )}
+                  {show("due") && (
+                    <td className="px-3 py-2.5">
+                      {t.due_date ? (
+                        <DueDateCell date={t.due_date} />
+                      ) : (
+                        <span className="text-xs text-slate-300 dark:text-slate-600">—</span>
+                      )}
+                    </td>
+                  )}
+                  {show("sprint") && (
+                    <td className="px-3 py-2.5">
+                      {sprintName ? (
+                        <span className="text-xs text-slate-700 dark:text-slate-300 truncate block">
+                          {sprintName}
+                        </span>
+                      ) : (
+                        <span className="text-xs text-slate-300 dark:text-slate-600">—</span>
+                      )}
+                    </td>
+                  )}
+                  {show("created") && (
+                    <td className="px-3 py-2.5 text-xs text-slate-500 dark:text-slate-400">
+                      {new Date(t.created_at).toLocaleDateString(undefined, {
+                        month: "short",
+                        day: "numeric",
+                      })}
+                    </td>
+                  )}
+                </tr>
+              );
+            })}
+          </tbody>
+        </TaskTableCard>
       )}
       <TaskDetailModal
         taskId={openTaskId}

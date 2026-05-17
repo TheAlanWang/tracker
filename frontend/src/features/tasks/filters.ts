@@ -165,21 +165,17 @@ export function applyFilters(tasks: Task[], filters: Filter[]): Task[] {
 
 // ---- Sort ----
 
-const PRIORITY_ORDER: Record<TaskPriority, number> = {
-  urgent: 0,
-  high: 1,
-  medium: 2,
-  low: 3,
-  no_priority: 4,
-};
-const STATUS_ORDER: Record<TaskStatus, number> = {
-  backlog: 0,
-  todo: 1,
-  in_progress: 2,
-  in_review: 3,
-  done: 4,
-  cancelled: 5,
-};
+// Sort weights derived from the canonical order in labels.ts — that file is
+// the one place that owns "what order the statuses appear in". Inverting it
+// to a Record<status, index> here so the comparator is O(1).
+import { PRIORITY_ORDER as PRIORITY_KEYS, STATUS_ORDER as STATUS_KEYS } from "./labels";
+
+const PRIORITY_ORDER: Record<TaskPriority, number> = Object.fromEntries(
+  PRIORITY_KEYS.map((p, i) => [p, i]),
+) as Record<TaskPriority, number>;
+const STATUS_ORDER: Record<TaskStatus, number> = Object.fromEntries(
+  STATUS_KEYS.map((s, i) => [s, i]),
+) as Record<TaskStatus, number>;
 
 export function applySort<T extends Task>(items: T[], sort: SortState): T[] {
   if (!sort) return items;

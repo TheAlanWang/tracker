@@ -22,7 +22,8 @@ import { AssigneePicker } from "@/components/AssigneePicker";
 import { Avatar } from "@/components/Avatar";
 import { InlineTaskCreator } from "@/components/InlineTaskCreator";
 import { TaskDetailModal } from "@/components/TaskDetailModal";
-import { PRIORITY_STYLE } from "@/features/tasks/labels";
+import { PriorityPill } from "@/components/StatusPill";
+import { STATUS, STATUS_ORDER } from "@/features/tasks/labels";
 import { useBlockedTaskIds } from "@/features/dependencies/api";
 import { type Member, useMembers } from "@/features/members/api";
 import {
@@ -37,28 +38,21 @@ import { useProjectTasksRealtime } from "@/features/realtime/useProjectTasksReal
 import { useWorkspaces } from "@/features/workspaces/api";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 
-const COLUMNS: { status: TaskStatus; label: string }[] = [
-  { status: "backlog", label: "Backlog" },
-  { status: "todo", label: "To do" },
-  { status: "in_progress", label: "In progress" },
-  { status: "in_review", label: "In review" },
-  { status: "done", label: "Done" },
-  { status: "cancelled", label: "Cancelled" },
-];
+// Columns derive from the canonical STATUS_ORDER in labels.ts. Adding a
+// status anywhere in the app updates the board automatically.
+const COLUMNS: { status: TaskStatus; label: string }[] = STATUS_ORDER.map((s) => ({
+  status: s,
+  label: STATUS[s].label,
+}));
 
 // Columns hidden by default on first visit (user can toggle in the menu).
 // Cancelled is noise on a working board — opt-in via the menu.
 const DEFAULT_HIDDEN: TaskStatus[] = ["cancelled"];
 
 function PriorityBadge({ priority }: { priority: TaskPriority }) {
+  // Board cards are dense — hide quiet priorities to reduce visual noise.
   if (priority === "no_priority" || priority === "low") return null;
-  return (
-    <span
-      className={`inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${PRIORITY_STYLE[priority]}`}
-    >
-      {priority}
-    </span>
-  );
+  return <PriorityPill priority={priority} size="sm" />;
 }
 
 function CalendarIcon() {

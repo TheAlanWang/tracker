@@ -30,7 +30,7 @@ import {
   type DashboardTask,
   useDashboard,
 } from "@/features/dashboard/api";
-import { STATUS_STYLE } from "@/features/tasks/labels";
+import { StatusPill } from "@/components/StatusPill";
 import { type TaskStatus } from "@/features/tasks/api";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
@@ -47,10 +47,6 @@ const FIELD_LABEL: Record<string, string> = {
   sprint_id: "sprint",
   due_date: "due date",
 };
-
-function formatStatus(s: string): string {
-  return s.replace(/_/g, " ");
-}
 
 function formatRelative(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
@@ -620,14 +616,7 @@ function FocusCard({
                   )}
                 </td>
                 <td className="px-3 py-2.5 align-middle">
-                  <span
-                    className={`inline-flex items-center justify-center rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide w-fit ${
-                      STATUS_STYLE[task.status as TaskStatus] ??
-                      "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
-                    }`}
-                  >
-                    {formatStatus(task.status)}
-                  </span>
+                  <StatusPill status={task.status as TaskStatus} />
                 </td>
               </tr>
             );
@@ -810,13 +799,7 @@ function TaskRow({
         )}
       </td>
       <td className="px-3 py-2 align-middle">
-        <span
-          className={`inline-flex items-center justify-center rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide w-fit ${
-            STATUS_STYLE[task.status as TaskStatus] ?? "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
-          }`}
-        >
-          {formatStatus(task.status)}
-        </span>
+        <StatusPill status={task.status as TaskStatus} />
       </td>
     </tr>
   );

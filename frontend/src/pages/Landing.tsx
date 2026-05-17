@@ -141,14 +141,11 @@ function FeatureCard({
 function Logo({ className = "" }: { className?: string }) {
   return (
     <span className={`inline-flex items-center gap-2 font-semibold tracking-tight ${className}`}>
-      <span className="relative inline-block w-6 h-6">
-        {/* Invert all three layers in dark mode so the logo retains the
-            same "frame / page / dot" shape on a dark background instead
-            of disappearing into it. */}
-        <span className="absolute inset-0 rounded-md bg-slate-900 dark:bg-slate-100" />
-        <span className="absolute inset-[5px] rounded-sm bg-white dark:bg-slate-900" />
-        <span className="absolute left-[5px] top-[5px] w-[6px] h-[6px] rounded-[2px] bg-slate-900 dark:bg-slate-100" />
-      </span>
+      <img
+        src="/logo.svg"
+        alt="Tracker logo"
+        className="w-6 h-6 dark:invert dark:hue-rotate-180"
+      />
       <span className="text-slate-900 dark:text-slate-100">tracker</span>
     </span>
   );
@@ -225,7 +222,7 @@ export default function Landing() {
             </h1>
             <p className="mt-5 text-lg leading-relaxed text-slate-500 dark:text-slate-400 max-w-xl">
               A fast, opinionated tracker for teams that move quickly. Sprints,
-              boards, and real-time activity — without the bureaucracy.
+              boards, and real-time activity.
             </p>
             <div className="mt-7 flex flex-wrap items-center gap-3">
               <Button

@@ -2,7 +2,15 @@ import axios from "axios";
 
 import { supabase } from "@/lib/supabase";
 
-const baseURL = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
+// Production builds must have VITE_API_URL set at build time — fall back to a
+// local dev URL only when running `vite dev`. Failing loudly in prod avoids
+// the silent footgun of a deployed frontend trying to call 127.0.0.1:8000.
+const baseURL = import.meta.env.VITE_API_URL ?? (import.meta.env.DEV ? "http://127.0.0.1:8000" : undefined);
+if (!baseURL) {
+  throw new Error(
+    "VITE_API_URL is not set. Configure it in your deployment environment (e.g. Vercel project env vars).",
+  );
+}
 
 export const apiClient = axios.create({
   baseURL,

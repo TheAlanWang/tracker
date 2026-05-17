@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import type { Member } from "@/features/members/api";
 import type { Sprint } from "@/features/sprints/api";
 import type { Task } from "@/features/tasks/api";
-import { PRIORITY_LABELS, STATUS_LABELS } from "@/features/tasks/labels";
+import { PRIORITY, STATUS } from "@/features/tasks/labels";
 import { type CsvColumn, downloadCsv, toCsv } from "@/lib/csv";
 
 type Props = {
@@ -50,13 +50,13 @@ export function ExportTasksButton({
     const columns: CsvColumn<Task>[] = [
       { label: "Identifier", value: (t) => t.identifier },
       { label: "Title", value: (t) => t.title },
-      { label: "Status", value: (t) => STATUS_LABELS[t.status] },
+      { label: "Status", value: (t) => STATUS[t.status].label },
       {
         label: "Priority",
         // Hide the "No priority" placeholder — empty cell reads cleaner
         // in spreadsheets than redundant text.
         value: (t) =>
-          t.priority === "no_priority" ? "" : PRIORITY_LABELS[t.priority],
+          t.priority === "no_priority" ? "" : PRIORITY[t.priority].label,
       },
       {
         label: "Assignee",

@@ -807,6 +807,20 @@ export function WorkspaceLayout() {
             (w-8) trim the header to ~46px tall. */}
         <div className="pl-6 pr-3 py-1.5 flex items-center justify-between">
           <div className="flex items-center gap-4">
+            {/* Brand logo — clickable, jumps to /w/<current>/ as a quick
+                "back home" affordance. Mirrors how GitHub's octocat works. */}
+            <button
+              type="button"
+              onClick={() => navigate(`/w/${wsSlug}`)}
+              className="shrink-0"
+              title="Home"
+            >
+              <img
+                src="/logo.svg"
+                alt="Tracker"
+                className="w-7 h-7 dark:invert dark:hue-rotate-180"
+              />
+            </button>
             {/* Workspace switcher — on settings/profile pages, the workspace
                 name acts as a "back to workspace" link instead of opening the
                 dropdown (the user is intentionally out of the workspace flow). */}

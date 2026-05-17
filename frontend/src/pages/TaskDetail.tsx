@@ -69,18 +69,17 @@ import {
 } from "@/features/watchers/api";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
+import { PriorityPill, StatusPill } from "@/components/StatusPill";
 import {
-  PRIORITY_LABELS,
-  PRIORITY_PILL,
-  PRIORITY_STYLE,
-  STATUS_LABELS,
-  STATUS_PILL,
-  STATUS_STYLE,
+  PRIORITY,
+  PRIORITY_ORDER,
+  STATUS,
+  STATUS_ORDER,
 } from "@/features/tasks/labels";
 
-const STATUSES: { value: TaskStatus; label: string }[] = (
-  Object.entries(STATUS_LABELS) as [TaskStatus, string][]
-).map(([value, label]) => ({ value, label }));
+const STATUSES: { value: TaskStatus; label: string }[] = STATUS_ORDER.map(
+  (value) => ({ value, label: STATUS[value].label }),
+);
 
 // Eye icon — filled when watching, outlined when not. Inline so we avoid a
 // new dependency just for one shape.
@@ -163,9 +162,9 @@ function WatchIcon({ filled }: { filled: boolean }) {
   );
 }
 
-const PRIORITIES: { value: TaskPriority; label: string }[] = (
-  Object.entries(PRIORITY_LABELS) as [TaskPriority, string][]
-).map(([value, label]) => ({ value, label }));
+const PRIORITIES: { value: TaskPriority; label: string }[] = PRIORITY_ORDER.map(
+  (value) => ({ value, label: PRIORITY[value].label }),
+);
 
 const FIELD_LABEL: Record<string, string> = {
   title: "title",
@@ -463,17 +462,15 @@ export function TaskDetailContent({
   };
 
   // Renders an activity-log value as JSX. Status / priority pills reuse
-  // STATUS_STYLE / PRIORITY_STYLE so the colors line up with how those
-  // values look on the board / list / dashboard. Foreign-key fields resolve
-  // to names; dates format locally; everything else falls through as text.
+  // the canonical STATUS / PRIORITY configs so the colors line up with how
+  // those values look on the board / list / dashboard. Foreign-key fields
+  // resolve to names; dates format locally; everything else falls through.
   const renderActivityValue = (
     field: string,
     value: unknown,
   ): React.ReactNode => {
     const isEmpty = value == null || value === "";
     const s = isEmpty ? "" : String(value);
-    const pillBase =
-      "inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide";
     // Field-specific "default" / empty label — much more useful than a
     // generic em-dash. Tells the reader exactly what state the task was in.
     const empty = (text: string) => (
@@ -482,21 +479,20 @@ export function TaskDetailContent({
 
     switch (field) {
       case "status": {
-        // Status is always an enum value, but defensive default just in case.
         if (isEmpty) return empty("No status");
-        const label = STATUS_LABELS[s as TaskStatus] ?? s.replace(/_/g, " ");
-        const cls =
-          STATUS_STYLE[s as TaskStatus] ?? "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400";
-        return <span className={`${pillBase} ${cls}`}>{label}</span>;
+        return STATUS[s as TaskStatus] ? (
+          <StatusPill status={s as TaskStatus} size="sm" />
+        ) : (
+          <span className="italic text-slate-500 dark:text-slate-400">{s.replace(/_/g, " ")}</span>
+        );
       }
       case "priority": {
-        // "no_priority" is the enum value, never literally null in payload.
         if (isEmpty) return empty("No priority");
-        const label =
-          PRIORITY_LABELS[s as TaskPriority] ?? s.replace(/_/g, " ");
-        const cls =
-          PRIORITY_STYLE[s as TaskPriority] ?? "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400";
-        return <span className={`${pillBase} ${cls}`}>{label}</span>;
+        return PRIORITY[s as TaskPriority] ? (
+          <PriorityPill priority={s as TaskPriority} size="sm" />
+        ) : (
+          <span className="italic text-slate-500 dark:text-slate-400">{s.replace(/_/g, " ")}</span>
+        );
       }
       case "assignee_id":
         if (isEmpty) return empty("Unassigned");
@@ -902,20 +898,10 @@ export function TaskDetailContent({
               value={statusDraft}
               onChange={(v) => setStatusDraft(v as TaskStatus)}
               options={STATUSES}
-              renderOption={(o) => (
-                <span
-                  className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium ${STATUS_PILL[o.value as TaskStatus] ?? ""}`}
-                >
-                  {STATUS_LABELS[o.value as TaskStatus] ?? o.label}
-                </span>
-              )}
+              renderOption={(o) => <StatusPill status={o.value as TaskStatus} />}
             />
           ) : (
-            <span
-              className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium ${STATUS_PILL[statusDraft] ?? ""}`}
-            >
-              {STATUS_LABELS[statusDraft]}
-            </span>
+            <StatusPill status={statusDraft} />
           )}
         </div>
 
@@ -930,20 +916,10 @@ export function TaskDetailContent({
                 value={priorityDraft}
                 onChange={(v) => setPriorityDraft(v as TaskPriority)}
                 options={PRIORITIES}
-                renderOption={(o) => (
-                  <span
-                    className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium ${PRIORITY_PILL[o.value as TaskPriority] ?? ""}`}
-                  >
-                    {PRIORITY_LABELS[o.value as TaskPriority] ?? o.label}
-                  </span>
-                )}
+                renderOption={(o) => <PriorityPill priority={o.value as TaskPriority} />}
               />
             ) : (
-              <span
-                className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium ${PRIORITY_PILL[priorityDraft] ?? ""}`}
-              >
-                {PRIORITY_LABELS[priorityDraft]}
-              </span>
+              <PriorityPill priority={priorityDraft} />
             )}
           </div>
         )}

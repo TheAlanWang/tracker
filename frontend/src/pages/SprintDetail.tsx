@@ -16,7 +16,8 @@ import { BurndownChart } from "@/components/BurndownChart";
 import { EmptyState } from "@/components/EmptyState";
 import { ExportTasksButton } from "@/components/ExportTasksButton";
 import { TaskDetailModal } from "@/components/TaskDetailModal";
-import { STATUS_LABELS } from "@/features/tasks/labels";
+import { StatusPill } from "@/components/StatusPill";
+import { TaskTableCard, TaskTableHead } from "@/components/TaskTableCard";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -304,36 +305,34 @@ if (!confirm(`Delete ${sprint.name}?`)) return;
             }
           />
         ) : (
-          <div className="overflow-hidden rounded border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
-            <table className="w-full text-sm">
-              <thead className="border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40">
-                <tr>
-                  <th className="px-3 py-2 text-left font-medium">ID</th>
-                  <th className="px-3 py-2 text-left font-medium">Title</th>
-                  <th className="px-3 py-2 text-left font-medium">Status</th>
+          <TaskTableCard>
+            <TaskTableHead>
+              <tr className="text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                <th className="px-3 py-2.5 text-left whitespace-nowrap font-medium w-24">ID</th>
+                <th className="px-3 py-2.5 text-left whitespace-nowrap font-medium">Title</th>
+                <th className="px-3 py-2.5 text-left whitespace-nowrap font-medium w-32">Status</th>
+              </tr>
+            </TaskTableHead>
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+              {tasks.map((t) => (
+                <tr
+                  key={t.id}
+                  className="cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors"
+                  onClick={() => setOpenTaskId(t.id)}
+                >
+                  <td className="px-3 py-2.5 font-mono text-xs text-slate-500 dark:text-slate-400">
+                    {t.identifier}
+                  </td>
+                  <td className="px-3 py-2.5 text-slate-800 dark:text-slate-200" title={t.title}>
+                    <div className="truncate">{t.title}</div>
+                  </td>
+                  <td className="px-3 py-2.5">
+                    <StatusPill status={t.status} />
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {tasks.map((t) => (
-                  <tr
-                    key={t.id}
-                    className="cursor-pointer border-t border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50"
-                    onClick={() => setOpenTaskId(t.id)}
-                  >
-                    <td className="px-3 py-2 font-mono text-xs text-slate-600 dark:text-slate-400">
-                      {t.identifier}
-                    </td>
-                    <td className="px-3 py-2">{t.title}</td>
-                    <td className="px-3 py-2">
-                      <span className="inline-flex items-center rounded bg-slate-100 dark:bg-slate-800 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-700 dark:text-slate-300">
-                        {STATUS_LABELS[t.status]}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+              ))}
+            </tbody>
+          </TaskTableCard>
         )}
       </section>
       <TaskDetailModal

@@ -1,5 +1,6 @@
 import { NavLink, Outlet, useNavigate, useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
+import { Inbox, Kanban, List as ListIcon, Zap } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -10,10 +11,10 @@ import { useProjects } from "@/features/projects/api";
 import { useWorkspaces } from "@/features/workspaces/api";
 
 const TABS = [
-  { to: "board", label: "Board" },
-  { to: "list", label: "List" },
-  { to: "backlog", label: "Backlog" },
-  { to: "sprints", label: "Sprints" },
+  { to: "board", label: "Board", Icon: Kanban },
+  { to: "list", label: "List", Icon: ListIcon },
+  { to: "backlog", label: "Backlog", Icon: Inbox },
+  { to: "sprints", label: "Sprints", Icon: Zap },
 ] as const;
 
 export function ProjectLayout() {
@@ -69,8 +70,8 @@ export function ProjectLayout() {
 
   const tabClass = ({ isActive }: { isActive: boolean }) =>
     isActive
-      ? "inline-flex items-center h-9 border-b-2 border-slate-900 dark:border-slate-100 px-3 text-sm font-medium text-slate-900 dark:text-slate-100"
-      : "inline-flex items-center h-9 border-b-2 border-transparent px-3 text-sm text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100";
+      ? "inline-flex items-center gap-1.5 h-9 border-b-2 border-slate-900 dark:border-slate-100 px-3 text-sm font-medium text-slate-900 dark:text-slate-100"
+      : "inline-flex items-center gap-1.5 h-9 border-b-2 border-transparent px-3 text-sm text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100";
 
   return (
     <div>
@@ -105,6 +106,7 @@ export function ProjectLayout() {
             className={tabClass}
             end={false}
           >
+            <t.Icon className="w-4 h-4" strokeWidth={1.7} />
             {t.label}
           </NavLink>
         ))}

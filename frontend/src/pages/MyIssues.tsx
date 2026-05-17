@@ -9,12 +9,8 @@ import { SortableHeader } from "@/components/SortableHeader";
 import { TaskDetailModal } from "@/components/TaskDetailModal";
 import { useProjects } from "@/features/projects/api";
 import { useMyWatchedTasks } from "@/features/watchers/api";
-import {
-  PRIORITY_LABELS,
-  PRIORITY_PILL,
-  STATUS_LABELS,
-  STATUS_PILL,
-} from "@/features/tasks/labels";
+import { PriorityPill, StatusPill } from "@/components/StatusPill";
+import { TaskTableCard, TaskTableHead } from "@/components/TaskTableCard";
 import {
   type Task,
   type TaskPriority,
@@ -146,7 +142,7 @@ function ColumnVisibilityMenu({
         <span>Columns</span>
       </button>
       {open && (
-        <div className="absolute right-0 mt-1 w-48 bg-white dark:bg-slate-900 rounded-md border border-slate-200 dark:border-slate-800 shadow-lg z-10 py-1">
+        <div className="absolute right-0 mt-1 w-48 bg-white dark:bg-slate-900 rounded-md border border-slate-200 dark:border-slate-800 shadow-lg z-30 py-1">
           {COLUMNS.map((c) => (
             <label
               key={c.key}
@@ -282,32 +278,39 @@ function MyIssuesContent() {
             {displayedTasks.length} task{displayedTasks.length === 1 ? "" : "s"}
           </span>
         </div>
-        {/* View toggle — assigned (default) vs everything I'm watching.
-            Active button gets a clearer contrast (shadow + bg-white on a
-            slate-100 track) so it doesn't blend with the inactive one. */}
-        <div className="inline-flex rounded-md bg-slate-100 dark:bg-slate-800 p-0.5 text-sm">
-          <button
-            type="button"
-            onClick={() => setView("assigned")}
-            className={`px-3 py-1 rounded transition-colors ${
-              view === "assigned"
-                ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 font-medium shadow-sm"
-                : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100"
-            }`}
-          >
-            Assigned to me
-          </button>
-          <button
-            type="button"
-            onClick={() => setView("watching")}
-            className={`px-3 py-1 rounded transition-colors ${
-              view === "watching"
-                ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 font-medium shadow-sm"
-                : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100"
-            }`}
-          >
-            Watching
-          </button>
+        <div className="flex items-center gap-3">
+          {/* View toggle — assigned (default) vs everything I'm watching.
+              Active button gets a clearer contrast (shadow + bg-white on a
+              slate-100 track) so it doesn't blend with the inactive one. */}
+          <div className="inline-flex rounded-md bg-slate-100 dark:bg-slate-800 p-0.5 text-sm">
+            <button
+              type="button"
+              onClick={() => setView("assigned")}
+              className={`px-3 py-1 rounded transition-colors ${
+                view === "assigned"
+                  ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 font-medium shadow-sm"
+                  : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100"
+              }`}
+            >
+              Assigned to me
+            </button>
+            <button
+              type="button"
+              onClick={() => setView("watching")}
+              className={`px-3 py-1 rounded transition-colors ${
+                view === "watching"
+                  ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 font-medium shadow-sm"
+                  : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100"
+              }`}
+            >
+              Watching
+            </button>
+          </div>
+          <ExportTasksButton
+            tasks={displayedTasks}
+            members={members}
+            filename="My tasks"
+          />
         </div>
       </div>
 
@@ -320,17 +323,10 @@ function MyIssuesContent() {
         availableFilterFields={["project", "status", "priority", "due"]}
         projectOptions={projects.map((p) => ({ id: p.id, name: p.name }))}
         trailing={
-          <div className="flex items-center gap-2">
-            <ExportTasksButton
-              tasks={displayedTasks}
-              members={members}
-              filename="My tasks"
-            />
-            <ColumnVisibilityMenu
-              hidden={hiddenColumns}
-              onToggle={toggleColumn}
-            />
-          </div>
+          <ColumnVisibilityMenu
+            hidden={hiddenColumns}
+            onToggle={toggleColumn}
+          />
         }
       />
 
@@ -358,14 +354,11 @@ function MyIssuesContent() {
       )}
 
       {issues.length > 0 && (
-        // Notion-style: subtle outer card (border + soft shadow), thead
-        // bg as a quiet guide rail, hairline dividers between rows,
-        // rounded-full pills for status/priority. Title column capped at
-        // ~40% so a short title doesn't strand metadata in white space.
-        <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm table-fixed">
-              <thead className="sticky top-0 z-10 bg-slate-50/70 dark:bg-slate-800/40 backdrop-blur border-b border-slate-200 dark:border-slate-800">
+        // Title column capped at ~40% so a short title doesn't strand
+        // metadata in white space. Outer card / thead chrome lives in
+        // TaskTableCard so every list page in the app stays in sync.
+        <TaskTableCard>
+              <TaskTableHead>
                 <tr className="text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400">
                   {COLUMNS.map((c) => {
                     if (!show(c.key)) return null;
@@ -408,7 +401,7 @@ function MyIssuesContent() {
                     );
                   })}
                 </tr>
-              </thead>
+              </TaskTableHead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
                 {displayedTasks.length === 0 && (
                   <tr>
@@ -462,26 +455,12 @@ function MyIssuesContent() {
                       )}
                       {show("status") && (
                         <td className="px-3 py-2.5">
-                          <span
-                            className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium ${STATUS_PILL[issue.status as TaskStatus] ?? ""}`}
-                          >
-                            {STATUS_LABELS[issue.status as TaskStatus] ??
-                              issue.status}
-                          </span>
+                          <StatusPill status={issue.status as TaskStatus} />
                         </td>
                       )}
                       {show("priority") && (
                         <td className="px-3 py-2.5">
-                          {issue.priority === "no_priority" ? (
-                            <span className="text-xs text-slate-300 dark:text-slate-600">—</span>
-                          ) : (
-                            <span
-                              className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium ${PRIORITY_PILL[issue.priority as TaskPriority] ?? ""}`}
-                            >
-                              {PRIORITY_LABELS[issue.priority as TaskPriority] ??
-                                issue.priority}
-                            </span>
-                          )}
+                          <PriorityPill priority={issue.priority as TaskPriority} hideNoPriority />
                         </td>
                       )}
                       {show("due") && (
@@ -505,9 +484,7 @@ function MyIssuesContent() {
                   );
                 })}
             </tbody>
-          </table>
-        </div>
-        </div>
+        </TaskTableCard>
       )}
       <TaskDetailModal
         taskId={openTaskId}

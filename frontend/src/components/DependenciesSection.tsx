@@ -24,7 +24,7 @@ import {
   useDependencies,
 } from "@/features/dependencies/api";
 import { type Task, useWorkspaceTasks } from "@/features/tasks/api";
-import { STATUS_LABELS, STATUS_STYLE } from "@/features/tasks/labels";
+import { StatusPill } from "@/components/StatusPill";
 
 export type Direction = "blocker" | "blocking";
 
@@ -69,11 +69,7 @@ function TaskChip({
         <span className="text-sm text-slate-800 dark:text-slate-200 truncate">
           {task.title}
         </span>
-        <span
-          className={`shrink-0 text-[10px] px-1.5 py-0.5 rounded ${STATUS_STYLE[task.status]}`}
-        >
-          {STATUS_LABELS[task.status]}
-        </span>
+        <StatusPill status={task.status} size="sm" className="shrink-0" />
       </button>
       {onRemove && (
         <button
@@ -192,11 +188,7 @@ function AddDependencyPopover({
               <span className="text-sm text-slate-800 dark:text-slate-200 truncate flex-1">
                 {t.title}
               </span>
-              <span
-                className={`shrink-0 text-[10px] px-1.5 py-0.5 rounded ${STATUS_STYLE[t.status]}`}
-              >
-                {STATUS_LABELS[t.status]}
-              </span>
+              <StatusPill status={t.status} size="sm" className="shrink-0" />
             </button>
           ))
         )}

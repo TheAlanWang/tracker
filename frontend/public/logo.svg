@@ -1,0 +1,39 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="frameGradient" x1="512" y1="202" x2="512" y2="822" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#061A3F"/>
+      <stop offset="0.48" stop-color="#122E63"/>
+      <stop offset="1" stop-color="#31579C"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Outer rounded square with inner cutout, using evenodd fill -->
+  <path fill-rule="evenodd" clip-rule="evenodd"
+        d="M260 205
+           H764
+           C823.647 205 872 253.353 872 313
+           V711
+           C872 770.647 823.647 819 764 819
+           H260
+           C200.353 819 152 770.647 152 711
+           V313
+           C152 253.353 200.353 205 260 205
+           Z
+
+           M327 294
+           C288.34 294 257 325.34 257 364
+           V660
+           C257 698.66 288.34 730 327 730
+           H697
+           C735.66 730 767 698.66 767 660
+           V364
+           C767 325.34 735.66 294 697 294
+           H436
+           V372
+           C436 422.81 394.81 464 344 464
+           H257
+           V364
+           C257 325.34 288.34 294 327 294
+           Z"
+        fill="url(#frameGradient)"/>
+</svg>

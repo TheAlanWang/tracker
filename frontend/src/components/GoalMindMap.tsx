@@ -32,7 +32,7 @@ import {
   useUpdateGoal,
 } from "@/features/goals/api";
 import { type Task, useWorkspaceTasks } from "@/features/tasks/api";
-import { STATUS_STYLE } from "@/features/tasks/labels";
+import { STATUS } from "@/features/tasks/labels";
 
 // Geometry constants — tweak together. Keep ROW_H >= NODE_H + breathing
 // room so subtrees don't overlap when leaves stack vertically.
@@ -422,7 +422,7 @@ function GoalNodeCard({
                   onOpenTask(t.id);
                 }}
                 title={t.title}
-                className={`text-[10px] font-mono px-1.5 py-0.5 rounded ${STATUS_STYLE[t.status]} hover:opacity-80`}
+                className={`text-[10px] font-mono px-1.5 py-0.5 rounded ${STATUS[t.status].pill} hover:opacity-80`}
               >
                 {t.identifier}
               </button>

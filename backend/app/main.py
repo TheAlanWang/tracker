@@ -1,3 +1,5 @@
+import os
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -7,9 +9,17 @@ from app.routers import activity, charts, checklist, comments, dependencies, tas
 
 app = FastAPI(title="tracker-api")
 
+# Comma-separated list of allowed origins. Local dev defaults keep `pnpm dev`
+# working out of the box; in production set CORS_ORIGINS to your deployed
+# frontend URL (e.g. "https://tracker.vercel.app,https://tracker-pr-*.vercel.app").
+_default_origins = "http://127.0.0.1:5173,http://localhost:5173"
+_cors_origins = [
+    o.strip() for o in os.getenv("CORS_ORIGINS", _default_origins).split(",") if o.strip()
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://127.0.0.1:5173", "http://localhost:5173"],
+    allow_origins=_cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
