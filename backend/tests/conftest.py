@@ -13,7 +13,7 @@ TEST_JWT_SECRET = "test-secret-key-padded-for-tests"
 def _env(monkeypatch):
     """Auto-applied: makes Settings load test values for every test."""
     monkeypatch.setenv("SUPABASE_URL", "http://test:54321")
-    monkeypatch.setenv("SUPABASE_ANON_KEY", "anon-test")
+    monkeypatch.setenv("SUPABASE_PUBLISHABLE_KEY", "anon-test")
     monkeypatch.setenv("SUPABASE_SERVICE_KEY", "service-test")
     monkeypatch.setenv("SUPABASE_JWT_SECRET", TEST_JWT_SECRET)
     # clear cached settings so each test re-reads env

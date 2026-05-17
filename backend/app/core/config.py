@@ -12,7 +12,7 @@ APP_ENV = os.getenv("APP_ENV", "dev")
 
 class Settings(BaseSettings):
     supabase_url: str
-    supabase_anon_key: str
+    supabase_publishable_key: str
     supabase_service_key: str
     supabase_jwt_secret: str
 
