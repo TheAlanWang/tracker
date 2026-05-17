@@ -33,8 +33,6 @@ export type PendingDepAdd = {
   task: Task;
 };
 
-type ChipState = "persisted" | "pending";
-
 function TaskChip({
   task,
   pending,

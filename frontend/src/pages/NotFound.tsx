@@ -5,7 +5,7 @@
 
 import { Link, useLocation } from "react-router-dom";
 
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 
 export default function NotFound() {
@@ -45,9 +45,7 @@ export default function NotFound() {
           </p>
         </div>
         <div className="flex items-center justify-center gap-2">
-          <Button asChild>
-            <Link to="/">Go home</Link>
-          </Button>
+          <Link to="/" className={buttonVariants()}>Go home</Link>
         </div>
       </div>
     </div>

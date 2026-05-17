@@ -24,6 +24,7 @@ function BoardMock() {
         { id: "TES-12", title: "Auth: refresh token rotation", pri: "high" },
         { id: "TES-15", title: "Search bar in sidebar", pri: "med" },
       ],
+      highlight: false,
     },
     {
       label: "In progress",
@@ -40,6 +41,7 @@ function BoardMock() {
     {
       label: "Done",
       cards: [{ id: "TES-7", title: "Inline task creator", pri: "low" }],
+      highlight: false,
     },
   ] as const;
 

@@ -16,6 +16,7 @@ import {
   STATUS,
   STATUS_ORDER,
 } from "@/features/tasks/labels";
+import type { TaskPriority, TaskStatus } from "@/features/tasks/api";
 
 // ---- Portal popover helpers ----
 
