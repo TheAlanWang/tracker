@@ -10,10 +10,12 @@ dist/
 build/
 *.egg-info/
 
-# Env
+# Env — ignore every .env.* variant (dev / prd / local / staging …),
+# but keep the committed *.example templates discoverable.
 .env
-.env.local
-.env.*.local
+.env.*
+!.env.example
+!.env.*.example
 
 # Editor
 .vscode/

@@ -1,6 +1,13 @@
+import os
 from functools import lru_cache
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+# Which dotenv file to load. Defaults to .env.dev for local development;
+# set APP_ENV=prd to point at hosted Supabase via .env.prd. In Railway /
+# Vercel / other PaaS, vars are injected directly into the process so
+# the file lookup just no-ops (BaseSettings reads env vars first).
+APP_ENV = os.getenv("APP_ENV", "dev")
 
 
 class Settings(BaseSettings):
@@ -13,7 +20,7 @@ class Settings(BaseSettings):
     api_port: int = 8000
 
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=f".env.{APP_ENV}",
         env_file_encoding="utf-8",
         case_sensitive=False,
         extra="ignore",

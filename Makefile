@@ -1,16 +1,19 @@
-.PHONY: help install dev api web test test-api test-web test-e2e migrate seed clean db-status
+.PHONY: help install dev dev-prd api api-prd web web-prd test test-api test-web test-e2e migrate seed clean db-status
 
 help:
 	@echo "Common targets:"
 	@echo "  install     install all dependencies (api + web)"
-	@echo "  dev         start full stack (supabase + api + web)"
-	@echo "  api         start only the FastAPI server"
-	@echo "  web         start only the Vite dev server"
+	@echo "  dev         start full stack against LOCAL supabase (.env.dev)"
+	@echo "  dev-prd     start full stack against HOSTED supabase (.env.prd) — be careful"
+	@echo "  api         start only the FastAPI server (.env.dev)"
+	@echo "  api-prd     start only the FastAPI server (.env.prd)"
+	@echo "  web         start only the Vite dev server (.env.dev)"
+	@echo "  web-prd     start only the Vite dev server (.env.prd)"
 	@echo "  test        run all tests (api + web + e2e)"
 	@echo "  test-api    run backend pytest"
 	@echo "  test-web    run frontend vitest"
 	@echo "  test-e2e    run Playwright E2E tests"
-	@echo "  migrate     reset and apply migrations (destructive)"
+	@echo "  migrate     reset and apply migrations (destructive, local only)"
 	@echo "  seed        apply seed.sql"
 	@echo "  clean       stop Supabase Local"
 	@echo "  db-status   print Supabase Local URLs and keys"
@@ -23,17 +26,29 @@ dev:
 	@echo "Starting Supabase Local…"
 	@supabase status > /dev/null 2>&1 || supabase start
 	@echo ""
-	@echo "Starting api on :8000 and web on :5173"
-	@echo "Press Ctrl+C to stop. Supabase keeps running; run 'make clean' to stop it."
-	@(cd backend && uv run uvicorn app.main:app --port 8000 --reload) & \
-	 (cd frontend && pnpm dev) ; \
+	@echo "→ Using .env.dev (local Supabase). Starting api :8000 + web :5173"
+	@(cd backend && APP_ENV=dev uv run uvicorn app.main:app --port 8000 --reload) & \
+	 (cd frontend && pnpm dev --mode dev) ; \
+	 wait
+
+dev-prd:
+	@echo "⚠️  Using .env.prd (HOSTED Supabase). No local Supabase needed."
+	@echo "→ Starting api :8000 + web :5173"
+	@(cd backend && APP_ENV=prd uv run uvicorn app.main:app --port 8000 --reload) & \
+	 (cd frontend && pnpm dev --mode prd) ; \
 	 wait
 
 api:
-	cd backend && uv run uvicorn app.main:app --port 8000 --reload
+	cd backend && APP_ENV=dev uv run uvicorn app.main:app --port 8000 --reload
+
+api-prd:
+	cd backend && APP_ENV=prd uv run uvicorn app.main:app --port 8000 --reload
 
 web:
-	cd frontend && pnpm dev
+	cd frontend && pnpm dev --mode dev
+
+web-prd:
+	cd frontend && pnpm dev --mode prd
 
 test: test-api test-web
 
