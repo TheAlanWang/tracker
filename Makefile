@@ -50,6 +50,12 @@ web:
 web-prd:
 	cd frontend && pnpm dev --mode prd
 
+bench:
+	@cd backend && APP_ENV=prd uv run python -m scripts.bench --count 100 --concurrency 1
+
+bench-local:
+	@cd backend && APP_ENV=dev uv run python -m scripts.bench --url http://127.0.0.1:8000 --count 100 --concurrency 1
+
 test: test-api test-web
 
 test-api:
