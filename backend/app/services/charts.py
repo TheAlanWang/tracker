@@ -13,7 +13,7 @@ and is more complexity than this view warrants.
 
 from datetime import date, datetime, timedelta, timezone
 
-from supabase import Client
+from supabase import AsyncClient
 
 from app.schemas.charts import (
     BurndownPoint,
@@ -39,15 +39,14 @@ class PermissionError(ChartError):
     pass
 
 
-def _is_member(supabase: Client, *, user_id: str, workspace_id: str) -> bool:
+async def _is_member(supabase: AsyncClient, *, user_id: str, workspace_id: str) -> bool:
     rows = (
-        supabase.table("workspace_members")
+        await supabase.table("workspace_members")
         .select("role")
         .eq("workspace_id", workspace_id)
         .eq("user_id", user_id)
         .execute()
-        .data
-    )
+    ).data
     return bool(rows)
 
 
@@ -58,21 +57,20 @@ def _parse_date(s: str | None) -> date | None:
     return datetime.fromisoformat(s.replace("Z", "+00:00")).date()
 
 
-def compute_burndown(
-    supabase: Client, *, user_id: str, sprint_id: str
+async def compute_burndown(
+    supabase: AsyncClient, *, user_id: str, sprint_id: str
 ) -> BurndownResponse:
     sprint = (
-        supabase.table("sprints")
+        await supabase.table("sprints")
         .select("*, projects(workspace_id)")
         .eq("id", sprint_id)
         .single()
         .execute()
-        .data
-    )
+    ).data
     if not sprint:
         raise SprintNotFoundError(sprint_id)
     workspace_id = sprint["projects"]["workspace_id"]
-    if not _is_member(supabase, user_id=user_id, workspace_id=workspace_id):
+    if not await _is_member(supabase, user_id=user_id, workspace_id=workspace_id):
         raise PermissionError(sprint_id)
 
     start = _parse_date(sprint.get("start_at"))
@@ -81,12 +79,11 @@ def compute_burndown(
         raise SprintNoDatesError(sprint_id)
 
     tasks = (
-        supabase.table("tasks")
+        await supabase.table("tasks")
         .select("id, status")
         .eq("sprint_id", sprint_id)
         .execute()
-        .data
-    )
+    ).data
     task_ids = [t["id"] for t in tasks]
     total = len(task_ids)
 
@@ -98,14 +95,13 @@ def compute_burndown(
     done_dates: dict[str, date] = {}
     if task_ids:
         events = (
-            supabase.table("activity_log")
+            await supabase.table("activity_log")
             .select("task_id, payload, created_at")
             .in_("task_id", task_ids)
             .eq("action", "status_changed")
             .order("created_at")
             .execute()
-            .data
-        )
+        ).data
         for ev in events:
             payload = ev.get("payload") or {}
             to_status = payload.get("to")
@@ -161,44 +157,41 @@ def compute_burndown(
     )
 
 
-def compute_velocity(
-    supabase: Client, *, user_id: str, project_id: str
+async def compute_velocity(
+    supabase: AsyncClient, *, user_id: str, project_id: str
 ) -> VelocityResponse:
     project = (
-        supabase.table("projects")
+        await supabase.table("projects")
         .select("workspace_id")
         .eq("id", project_id)
         .single()
         .execute()
-        .data
-    )
+    ).data
     if not project:
         raise SprintNotFoundError(project_id)
-    if not _is_member(supabase, user_id=user_id, workspace_id=project["workspace_id"]):
+    if not await _is_member(supabase, user_id=user_id, workspace_id=project["workspace_id"]):
         raise PermissionError(project_id)
 
     completed_sprints = (
-        supabase.table("sprints")
+        await supabase.table("sprints")
         .select("*")
         .eq("project_id", project_id)
         .eq("status", "completed")
         .order("end_at", desc=True)
         .limit(10)
         .execute()
-        .data
-    )
+    ).data
     # Reverse to ascending so the bar chart reads left-to-right oldest→newest.
     completed_sprints.reverse()
 
     bars: list[VelocityBar] = []
     for s in completed_sprints:
         tasks = (
-            supabase.table("tasks")
+            await supabase.table("tasks")
             .select("id, status")
             .eq("sprint_id", s["id"])
             .execute()
-            .data
-        )
+        ).data
         total = len(tasks)
         completed = sum(1 for t in tasks if t["status"] == "done")
         bars.append(

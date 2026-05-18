@@ -13,7 +13,7 @@ def _p(**over):
     return ProjectResponse(**base)
 
 
-def test_list_projects_200(client, make_token):
+async def test_list_projects_200(client, make_token):
     with patch("app.routers.projects.list_projects", return_value=[_p()]):
         token = make_token(sub="user-1")
         response = client.get(
@@ -24,7 +24,7 @@ def test_list_projects_200(client, make_token):
         assert len(response.json()) == 1
 
 
-def test_create_project_201(client, make_token):
+async def test_create_project_201(client, make_token):
     with patch("app.routers.projects.create_project", return_value=_p()):
         token = make_token(sub="user-1")
         response = client.post(

@@ -33,7 +33,7 @@ def mock_supabase():
     return MagicMock()
 
 
-def test_list_activity_member_ok(mock_supabase):
+async def test_list_activity_member_ok(mock_supabase):
     tasks_chain = MagicMock()
     tasks_chain.select.return_value.eq.return_value.single.return_value.execute.return_value.data = _task_row()
     members_chain = MagicMock()
@@ -55,12 +55,12 @@ def test_list_activity_member_ok(mock_supabase):
 
     mock_supabase.table.side_effect = table_router
 
-    result = list_task_activity(mock_supabase, user_id="u-1", task_id="i-1")
+    result = await list_task_activity(mock_supabase, user_id="u-1", task_id="i-1")
     assert len(result) == 2
     assert result[0].action == "status_changed"
 
 
-def test_list_activity_task_not_found(mock_supabase):
+async def test_list_activity_task_not_found(mock_supabase):
     tasks_chain = MagicMock()
     tasks_chain.select.return_value.eq.return_value.single.return_value.execute.return_value.data = None
 
@@ -72,4 +72,4 @@ def test_list_activity_task_not_found(mock_supabase):
     mock_supabase.table.side_effect = table_router
 
     with pytest.raises(TaskNotFoundError):
-        list_task_activity(mock_supabase, user_id="u-1", task_id="missing")
+        await list_task_activity(mock_supabase, user_id="u-1", task_id="missing")

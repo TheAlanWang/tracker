@@ -55,7 +55,7 @@ def mock_supabase():
     return MagicMock()
 
 
-def test_create_sprint_happy_path(mock_supabase):
+async def test_create_sprint_happy_path(mock_supabase):
     project_chain = MagicMock()
     project_chain.select.return_value.eq.return_value.single.return_value.execute.return_value.data = _project_row()
     members_chain = MagicMock()
@@ -70,7 +70,7 @@ def test_create_sprint_happy_path(mock_supabase):
         raise AssertionError(f"unexpected: {name}")
     mock_supabase.table.side_effect = table_router
 
-    result = create_sprint(
+    result = await create_sprint(
         mock_supabase, user_id="u-1", project_id="p-1",
         payload=SprintCreate(name="My sprint"),
     )
@@ -78,7 +78,7 @@ def test_create_sprint_happy_path(mock_supabase):
     assert result.status == "planned"
 
 
-def test_list_sprints_ordered_by_status_then_dates(mock_supabase):
+async def test_list_sprints_ordered_by_status_then_dates(mock_supabase):
     project_chain = MagicMock()
     project_chain.select.return_value.eq.return_value.single.return_value.execute.return_value.data = _project_row()
     members_chain = MagicMock()
@@ -97,12 +97,12 @@ def test_list_sprints_ordered_by_status_then_dates(mock_supabase):
         raise AssertionError(f"unexpected: {name}")
     mock_supabase.table.side_effect = table_router
 
-    result = list_sprints(mock_supabase, user_id="u-1", project_id="p-1")
+    result = await list_sprints(mock_supabase, user_id="u-1", project_id="p-1")
     # Active first, then planned, then completed
     assert [s.id for s in result] == ["s-active", "s-planned1", "s-completed"]
 
 
-def test_get_sprint_member_ok(mock_supabase):
+async def test_get_sprint_member_ok(mock_supabase):
     sprints_chain = MagicMock()
     sprints_chain.select.return_value.eq.return_value.single.return_value.execute.return_value.data = _sprint_row()
     project_chain = MagicMock()
@@ -117,11 +117,11 @@ def test_get_sprint_member_ok(mock_supabase):
         raise AssertionError(f"unexpected: {name}")
     mock_supabase.table.side_effect = table_router
 
-    result = get_sprint(mock_supabase, user_id="u-1", sprint_id="s-1")
+    result = await get_sprint(mock_supabase, user_id="u-1", sprint_id="s-1")
     assert result.id == "s-1"
 
 
-def test_update_sprint_happy_path(mock_supabase):
+async def test_update_sprint_happy_path(mock_supabase):
     sprints_chain_fetch = MagicMock()
     sprints_chain_fetch.select.return_value.eq.return_value.single.return_value.execute.return_value.data = _sprint_row()
     project_chain = MagicMock()
@@ -141,14 +141,14 @@ def test_update_sprint_happy_path(mock_supabase):
         raise AssertionError(f"unexpected: {name}")
     mock_supabase.table.side_effect = table_router
 
-    result = update_sprint(
+    result = await update_sprint(
         mock_supabase, user_id="u-1", sprint_id="s-1",
         payload=SprintUpdate(name="Renamed"),
     )
     assert result.name == "Renamed"
 
 
-def test_start_sprint_planned_to_active(mock_supabase):
+async def test_start_sprint_planned_to_active(mock_supabase):
     sprints_chain_fetch = MagicMock()
     sprints_chain_fetch.select.return_value.eq.return_value.single.return_value.execute.return_value.data = _sprint_row(status="planned")
     project_chain = MagicMock()
@@ -168,11 +168,11 @@ def test_start_sprint_planned_to_active(mock_supabase):
         raise AssertionError(f"unexpected: {name}")
     mock_supabase.table.side_effect = table_router
 
-    result = start_sprint(mock_supabase, user_id="u-1", sprint_id="s-1")
+    result = await start_sprint(mock_supabase, user_id="u-1", sprint_id="s-1")
     assert result.status == "active"
 
 
-def test_start_sprint_unique_violation_translates_to_AnotherActiveSprintError(mock_supabase):
+async def test_start_sprint_unique_violation_translates_to_AnotherActiveSprintError(mock_supabase):
     sprints_chain_fetch = MagicMock()
     sprints_chain_fetch.select.return_value.eq.return_value.single.return_value.execute.return_value.data = _sprint_row(status="planned")
     project_chain = MagicMock()
@@ -195,10 +195,10 @@ def test_start_sprint_unique_violation_translates_to_AnotherActiveSprintError(mo
     mock_supabase.table.side_effect = table_router
 
     with pytest.raises(AnotherActiveSprintError):
-        start_sprint(mock_supabase, user_id="u-1", sprint_id="s-1")
+        await start_sprint(mock_supabase, user_id="u-1", sprint_id="s-1")
 
 
-def test_complete_sprint_calls_rpc(mock_supabase):
+async def test_complete_sprint_calls_rpc(mock_supabase):
     sprints_chain = MagicMock()
     sprints_chain.select.return_value.eq.return_value.single.return_value.execute.return_value.data = _sprint_row(status="active")
     project_chain = MagicMock()
@@ -216,6 +216,6 @@ def test_complete_sprint_calls_rpc(mock_supabase):
         "completed": "s-1", "rolled_over_to": "s-2", "count": 3
     }
 
-    result = complete_sprint(mock_supabase, user_id="u-1", sprint_id="s-1")
+    result = await complete_sprint(mock_supabase, user_id="u-1", sprint_id="s-1")
     assert result == {"completed": "s-1", "rolled_over_to": "s-2", "count": 3}
     mock_supabase.rpc.assert_called_once_with("complete_sprint", {"p_sprint_id": "s-1"})

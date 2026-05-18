@@ -15,9 +15,10 @@ When workspace_id is passed, results are scoped to that single workspace;
 otherwise they span every workspace the caller is a member of.
 """
 
+import asyncio
 from datetime import date, datetime, timedelta, timezone
 
-from supabase import Client
+from supabase import AsyncClient
 
 from app.schemas.dashboard import (
     DashboardActivity,
@@ -40,19 +41,18 @@ def _empty_response() -> DashboardResponse:
     )
 
 
-def get_dashboard(
-    supabase: Client,
+async def get_dashboard(
+    supabase: AsyncClient,
     *,
     user_id: str,
     workspace_id: str | None = None,
 ) -> DashboardResponse:
     member_rows = (
-        supabase.table("workspace_members")
+        await supabase.table("workspace_members")
         .select("workspace_id")
         .eq("user_id", user_id)
         .execute()
-        .data
-    )
+    ).data
     if not member_rows:
         return _empty_response()
 
@@ -66,22 +66,20 @@ def get_dashboard(
     else:
         ws_ids = list(member_ws_ids)
 
-    ws_rows = (
+    # Stage 1: workspaces + projects — independent, fire together.
+    ws_r, proj_r = await asyncio.gather(
         supabase.table("workspaces")
         .select("id, slug")
         .in_("id", ws_ids)
-        .execute()
-        .data
-    )
-    ws_slug_map: dict[str, str] = {r["id"]: r["slug"] for r in ws_rows}
-
-    proj_rows = (
+        .execute(),
         supabase.table("projects")
         .select("id, key, name, workspace_id")
         .in_("workspace_id", ws_ids)
-        .execute()
-        .data
+        .execute(),
     )
+    ws_rows = ws_r.data
+    proj_rows = proj_r.data
+    ws_slug_map: dict[str, str] = {r["id"]: r["slug"] for r in ws_rows}
     proj_key_map: dict[str, str] = {r["id"]: r["key"] for r in proj_rows}
     proj_name_map: dict[str, str] = {r["id"]: r["name"] for r in proj_rows}
     proj_ws_map: dict[str, str] = {r["id"]: r["workspace_id"] for r in proj_rows}
@@ -91,8 +89,11 @@ def get_dashboard(
     week_end = today + timedelta(days=7)
     week_ago_dt = datetime.now(timezone.utc) - timedelta(days=7)
 
-    # 1. Assigned to me (recent 20)
-    assigned_rows = (
+    # Stage 2: the rest of the fan-out. 8 unconditional queries (4 task
+    # lists + 4 KPI counts) and 2 conditional on having projects (active
+    # sprints + recent_tasks). asyncio.gather multiplexes them on the
+    # event loop; collapsing ~15×50ms sequential roundtrips to ~1×50ms.
+    assigned_co = (
         supabase.table("tasks")
         .select("id, identifier, title, status, project_id, due_date, updated_at")
         .eq("assignee_id", user_id)
@@ -101,11 +102,8 @@ def get_dashboard(
         .order("updated_at", desc=True)
         .limit(20)
         .execute()
-        .data
     )
-
-    # 2. Due this week (assigned to me, due_date within next 7 days, not done)
-    due_rows = (
+    due_co = (
         supabase.table("tasks")
         .select("id, identifier, title, status, project_id, due_date, updated_at")
         .eq("assignee_id", user_id)
@@ -116,11 +114,8 @@ def get_dashboard(
         .order("due_date", desc=False)
         .limit(20)
         .execute()
-        .data
     )
-
-    # 3. Overdue (assigned to me, due_date < today, not done/cancelled)
-    overdue_rows = (
+    overdue_co = (
         supabase.table("tasks")
         .select("id, identifier, title, status, project_id, due_date, updated_at")
         .eq("assignee_id", user_id)
@@ -130,11 +125,8 @@ def get_dashboard(
         .order("due_date", desc=False)
         .limit(20)
         .execute()
-        .data
     )
-
-    # 3b. Done this week (assigned to me, status=done, updated within 7 days)
-    done_week_rows = (
+    done_week_co = (
         supabase.table("tasks")
         .select("id, identifier, title, status, project_id, due_date, updated_at")
         .eq("assignee_id", user_id)
@@ -144,13 +136,48 @@ def get_dashboard(
         .order("updated_at", desc=True)
         .limit(20)
         .execute()
-        .data
+    )
+    open_count_co = (
+        supabase.table("tasks")
+        .select("id", count="exact", head=True)
+        .eq("assignee_id", user_id)
+        .in_("workspace_id", ws_ids)
+        .not_.in_("status", ["done", "cancelled"])
+        .execute()
+    )
+    done_week_count_co = (
+        supabase.table("tasks")
+        .select("id", count="exact", head=True)
+        .eq("assignee_id", user_id)
+        .in_("workspace_id", ws_ids)
+        .eq("status", "done")
+        .gte("updated_at", week_ago_dt.isoformat())
+        .execute()
+    )
+    overdue_count_co = (
+        supabase.table("tasks")
+        .select("id", count="exact", head=True)
+        .eq("assignee_id", user_id)
+        .in_("workspace_id", ws_ids)
+        .not_.in_("status", ["done", "cancelled"])
+        .lt("due_date", today.isoformat())
+        .execute()
+    )
+    in_review_count_co = (
+        supabase.table("tasks")
+        .select("id", count="exact", head=True)
+        .eq("assignee_id", user_id)
+        .in_("workspace_id", ws_ids)
+        .eq("status", "in_review")
+        .execute()
     )
 
-    # 4. Active sprints
-    active_sprint_rows: list[dict] = []
+    coros = [
+        assigned_co, due_co, overdue_co, done_week_co,
+        open_count_co, done_week_count_co, overdue_count_co, in_review_count_co,
+    ]
     if proj_ids:
-        active_sprint_rows = (
+        coros.append(
             supabase.table("sprints")
             .select("id, name, project_id, start_at, end_at")
             .in_("project_id", proj_ids)
@@ -158,93 +185,66 @@ def get_dashboard(
             .order("start_at", desc=False)
             .limit(20)
             .execute()
-            .data
         )
-
-    # 5. KPI counts — exact counts (use head=True to skip row payload)
-    def _count(query) -> int:
-        res = query.execute()
-        return res.count or 0
-
-    open_count = _count(
-        supabase.table("tasks")
-        .select("id", count="exact", head=True)
-        .eq("assignee_id", user_id)
-        .in_("workspace_id", ws_ids)
-        .not_.in_("status", ["done", "cancelled"])
-    )
-    done_this_week_count = _count(
-        supabase.table("tasks")
-        .select("id", count="exact", head=True)
-        .eq("assignee_id", user_id)
-        .in_("workspace_id", ws_ids)
-        .eq("status", "done")
-        .gte("updated_at", week_ago_dt.isoformat())
-    )
-    overdue_count = _count(
-        supabase.table("tasks")
-        .select("id", count="exact", head=True)
-        .eq("assignee_id", user_id)
-        .in_("workspace_id", ws_ids)
-        .not_.in_("status", ["done", "cancelled"])
-        .lt("due_date", today.isoformat())
-    )
-    in_review_count = _count(
-        supabase.table("tasks")
-        .select("id", count="exact", head=True)
-        .eq("assignee_id", user_id)
-        .in_("workspace_id", ws_ids)
-        .eq("status", "in_review")
-    )
-
-    # 6. Recent activity across user's workspaces (most recent 15)
-    activity_rows: list[dict] = []
-    activity_task_map: dict[str, dict] = {}
-    actor_email_map: dict[str, str] = {}
-    actor_display_name_map: dict[str, str] = {}
-    if proj_ids:
-        # Fetch recent tasks across all my projects to scope activity_log
-        recent_task_rows = (
+        coros.append(
             supabase.table("tasks")
             .select("id, identifier, title, project_id, updated_at")
             .in_("project_id", proj_ids)
             .order("updated_at", desc=True)
             .limit(200)
             .execute()
-            .data
         )
-        activity_task_map = {t["id"]: t for t in recent_task_rows}
 
-        if activity_task_map:
-            activity_rows = (
-                supabase.table("activity_log")
-                .select("id, task_id, actor_id, action, payload, created_at")
-                .in_("task_id", list(activity_task_map.keys()))
-                .order("created_at", desc=True)
-                .limit(15)
-                .execute()
-                .data
-            )
+    results = await asyncio.gather(*coros)
+    (
+        assigned_r, due_r, overdue_r, done_week_r,
+        open_r, done_w_r, overdue_count_r, in_review_r,
+        *rest,
+    ) = results
+    assigned_rows = assigned_r.data
+    due_rows = due_r.data
+    overdue_rows = overdue_r.data
+    done_week_rows = done_week_r.data
+    open_count = open_r.count or 0
+    done_this_week_count = done_w_r.count or 0
+    overdue_count = overdue_count_r.count or 0
+    in_review_count = in_review_r.count or 0
+    active_sprint_rows: list[dict] = rest[0].data if proj_ids else []
+    recent_task_rows: list[dict] = rest[1].data if proj_ids else []
 
-            actor_ids = list(
-                {r["actor_id"] for r in activity_rows if r.get("actor_id")}
-            )
-            if actor_ids:
-                # email + display_name live on auth.users / user_metadata,
-                # not workspace_members; use the auth admin API (same pattern
-                # as services/members.py).
-                try:
-                    users = supabase.auth.admin.list_users()
-                    for u in users:
-                        if u.id in actor_ids:
-                            if u.email:
-                                actor_email_map[u.id] = u.email
-                            meta = u.user_metadata or {}
-                            dn = meta.get("display_name")
-                            if dn:
-                                actor_display_name_map[u.id] = dn
-                except Exception:
-                    pass  # graceful: activity feed shows "Someone" if lookup fails
+    # Stage 3: activity_log depends on the task ids we just fetched.
+    activity_rows: list[dict] = []
+    activity_task_map: dict[str, dict] = {t["id"]: t for t in recent_task_rows}
+    actor_email_map: dict[str, str] = {}
+    actor_display_name_map: dict[str, str] = {}
+    if activity_task_map:
+        activity_rows = (
+            await supabase.table("activity_log")
+            .select("id, task_id, actor_id, action, payload, created_at")
+            .in_("task_id", list(activity_task_map.keys()))
+            .order("created_at", desc=True)
+            .limit(15)
+            .execute()
+        ).data
+
+        actor_ids = list(
+            {r["actor_id"] for r in activity_rows if r.get("actor_id")}
+        )
+        if actor_ids:
+            # auth.admin API stays sync (gotrue-py is sync) — only the
+            # PostgREST path is async. One blocking call here is fine.
+            try:
+                users = supabase.auth.admin.list_users()
+                for u in users:
+                    if u.id in actor_ids:
+                        if u.email:
+                            actor_email_map[u.id] = u.email
+                        meta = u.user_metadata or {}
+                        dn = meta.get("display_name")
+                        if dn:
+                            actor_display_name_map[u.id] = dn
+            except Exception:
+                pass  # graceful: activity feed shows "Someone" if lookup fails
 
     def _enrich_task(row: dict) -> DashboardTask:
         pid = row["project_id"]

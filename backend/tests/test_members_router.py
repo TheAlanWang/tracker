@@ -12,7 +12,7 @@ def _m(**over):
     return MemberResponse(**base)
 
 
-def test_list_members_200(client, make_token):
+async def test_list_members_200(client, make_token):
     with patch("app.routers.members.list_members", return_value=[_m()]):
         token = make_token(sub="user-1")
         response = client.get(
@@ -23,7 +23,7 @@ def test_list_members_200(client, make_token):
         assert len(response.json()) == 1
 
 
-def test_list_members_403_when_not_member(client, make_token):
+async def test_list_members_403_when_not_member(client, make_token):
     from app.services.members import NotAMemberError
     with patch("app.routers.members.list_members", side_effect=NotAMemberError("ws-1")):
         token = make_token(sub="outsider")

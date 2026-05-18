@@ -1,7 +1,7 @@
 from app.core.config import Settings
 
 
-def test_settings_load_from_env(monkeypatch):
+async def test_settings_load_from_env(monkeypatch):
     monkeypatch.setenv("SUPABASE_URL", "http://test:54321")
     monkeypatch.setenv("SUPABASE_PUBLISHABLE_KEY", "anon123")
     monkeypatch.setenv("SUPABASE_SERVICE_KEY", "service123")

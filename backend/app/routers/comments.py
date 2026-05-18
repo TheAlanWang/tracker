@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from supabase import Client
+from supabase import AsyncClient
 
 from app.core.deps import get_current_user_id, get_supabase_admin
 from app.schemas.comment import CommentCreate, CommentResponse, CommentUpdate
@@ -17,13 +17,13 @@ router = APIRouter(tags=["comments"])
 
 
 @router.get("/tasks/{t_id}/comments", response_model=list[CommentResponse])
-def list_(
+async def list_(
     t_id: str,
     user_id: str = Depends(get_current_user_id),
-    supabase: Client = Depends(get_supabase_admin),
+    supabase: AsyncClient = Depends(get_supabase_admin),
 ):
     try:
-        return list_comments(supabase, user_id=user_id, task_id=t_id)
+        return await list_comments(supabase, user_id=user_id, task_id=t_id)
     except CommentPermissionError as exc:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN) from exc
     except TaskNotFoundError as exc:
@@ -35,14 +35,14 @@ def list_(
     response_model=CommentResponse,
     status_code=status.HTTP_201_CREATED,
 )
-def create(
+async def create(
     t_id: str,
     payload: CommentCreate,
     user_id: str = Depends(get_current_user_id),
-    supabase: Client = Depends(get_supabase_admin),
+    supabase: AsyncClient = Depends(get_supabase_admin),
 ):
     try:
-        return create_comment(supabase, user_id=user_id, task_id=t_id, payload=payload)
+        return await create_comment(supabase, user_id=user_id, task_id=t_id, payload=payload)
     except CommentPermissionError as exc:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN) from exc
     except TaskNotFoundError as exc:
@@ -50,14 +50,14 @@ def create(
 
 
 @router.patch("/comments/{c_id}", response_model=CommentResponse)
-def update(
+async def update(
     c_id: str,
     payload: CommentUpdate,
     user_id: str = Depends(get_current_user_id),
-    supabase: Client = Depends(get_supabase_admin),
+    supabase: AsyncClient = Depends(get_supabase_admin),
 ):
     try:
-        return update_comment(
+        return await update_comment(
             supabase, user_id=user_id, comment_id=c_id, payload=payload
         )
     except CommentPermissionError as exc:
@@ -67,13 +67,13 @@ def update(
 
 
 @router.delete("/comments/{c_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete(
+async def delete(
     c_id: str,
     user_id: str = Depends(get_current_user_id),
-    supabase: Client = Depends(get_supabase_admin),
+    supabase: AsyncClient = Depends(get_supabase_admin),
 ):
     try:
-        delete_comment(supabase, user_id=user_id, comment_id=c_id)
+        await delete_comment(supabase, user_id=user_id, comment_id=c_id)
     except CommentPermissionError as exc:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN) from exc
     except CommentNotFoundError as exc:

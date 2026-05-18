@@ -16,7 +16,7 @@ def _ws(**over):
     return WorkspaceResponse(**base)
 
 
-def test_list_workspaces_returns_empty_for_new_user(client, make_token):
+async def test_list_workspaces_returns_empty_for_new_user(client, make_token):
     with patch("app.routers.workspaces.list_workspaces_for_user", return_value=[]):
         token = make_token(sub="new-user")
         response = client.get("/workspaces", headers={"Authorization": f"Bearer {token}"})
@@ -24,7 +24,7 @@ def test_list_workspaces_returns_empty_for_new_user(client, make_token):
         assert response.json() == []
 
 
-def test_create_workspace_201(client, make_token):
+async def test_create_workspace_201(client, make_token):
     with patch("app.routers.workspaces.create_workspace", return_value=_ws(name="My WS", slug="mine")):
         token = make_token(sub="user-1")
         response = client.post(
@@ -38,7 +38,7 @@ def test_create_workspace_201(client, make_token):
         assert body["slug"] == "mine"
 
 
-def test_get_workspace_403_when_not_member(client, make_token):
+async def test_get_workspace_403_when_not_member(client, make_token):
     from app.services.workspaces import WorkspacePermissionError
     with patch("app.routers.workspaces.get_workspace", side_effect=WorkspacePermissionError("ws-1")):
         token = make_token(sub="outsider")

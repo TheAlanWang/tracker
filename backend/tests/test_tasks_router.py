@@ -26,7 +26,7 @@ def _r(**over):
     return TaskResponse(**base)
 
 
-def test_list_tasks_200(client, make_token):
+async def test_list_tasks_200(client, make_token):
     with patch("app.routers.tasks.list_tasks", return_value=[_r()]):
         token = make_token(sub="u-1")
         response = client.get(
@@ -37,7 +37,7 @@ def test_list_tasks_200(client, make_token):
         assert len(response.json()) == 1
 
 
-def test_create_task_201(client, make_token):
+async def test_create_task_201(client, make_token):
     with patch("app.routers.tasks.create_task", return_value=_r(title="New")):
         token = make_token(sub="u-1")
         response = client.post(
@@ -49,7 +49,7 @@ def test_create_task_201(client, make_token):
         assert response.json()["identifier"] == "BE-1"
 
 
-def test_create_task_403(client, make_token):
+async def test_create_task_403(client, make_token):
     from app.services.tasks import TaskPermissionError
     with patch(
         "app.routers.tasks.create_task",
@@ -64,7 +64,7 @@ def test_create_task_403(client, make_token):
         assert response.status_code == 403
 
 
-def test_get_task_200(client, make_token):
+async def test_get_task_200(client, make_token):
     with patch("app.routers.tasks.get_task", return_value=_r()):
         token = make_token(sub="u-1")
         response = client.get(
@@ -73,7 +73,7 @@ def test_get_task_200(client, make_token):
         assert response.status_code == 200
 
 
-def test_move_task_200(client, make_token):
+async def test_move_task_200(client, make_token):
     with patch(
         "app.routers.tasks.move_task",
         return_value=_r(status="in_progress", position=1500.0),

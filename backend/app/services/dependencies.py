@@ -16,7 +16,7 @@ workspace) and producing a friendly HTTP error reads better than a DB
 constraint violation.
 """
 
-from supabase import Client
+from supabase import AsyncClient
 
 from app.schemas.dependency import (
     DependencyLink,
@@ -54,55 +54,51 @@ class DuplicateError(DependencyError):
     """Caller tried to insert a (blocker, blocked) pair that already exists."""
 
 
-def _is_member(supabase: Client, *, user_id: str, workspace_id: str) -> bool:
+async def _is_member(supabase: AsyncClient, *, user_id: str, workspace_id: str) -> bool:
     rows = (
-        supabase.table("workspace_members")
+        await supabase.table("workspace_members")
         .select("role")
         .eq("workspace_id", workspace_id)
         .eq("user_id", user_id)
         .execute()
-        .data
-    )
+    ).data
     return bool(rows)
 
 
-def _fetch_task(supabase: Client, task_id: str) -> dict | None:
+async def _fetch_task(supabase: AsyncClient, task_id: str) -> dict | None:
     return (
-        supabase.table("tasks")
+        await supabase.table("tasks")
         .select("*")
         .eq("id", task_id)
         .single()
         .execute()
-        .data
-    )
+    ).data
 
 
-def list_dependencies(
-    supabase: Client, *, user_id: str, task_id: str
+async def list_dependencies(
+    supabase: AsyncClient, *, user_id: str, task_id: str
 ) -> TaskDependencies:
-    task = _fetch_task(supabase, task_id)
+    task = await _fetch_task(supabase, task_id)
     if not task:
         raise TaskNotFoundError(task_id)
-    if not _is_member(supabase, user_id=user_id, workspace_id=task["workspace_id"]):
+    if not await _is_member(supabase, user_id=user_id, workspace_id=task["workspace_id"]):
         raise DependencyPermissionError(task_id)
 
     # Each row gives us both the dependency_id (for DELETE) and the
     # task id on the other side. Two queries — one per direction —
     # because the "other side" is a different FK in each case.
     blocker_rows = (
-        supabase.table("task_dependencies")
+        await supabase.table("task_dependencies")
         .select("id, blocker_task_id")
         .eq("blocked_task_id", task_id)
         .execute()
-        .data
-    )
+    ).data
     blocking_rows = (
-        supabase.table("task_dependencies")
+        await supabase.table("task_dependencies")
         .select("id, blocked_task_id")
         .eq("blocker_task_id", task_id)
         .execute()
-        .data
-    )
+    ).data
 
     all_task_ids = [r["blocker_task_id"] for r in blocker_rows] + [
         r["blocked_task_id"] for r in blocking_rows
@@ -110,12 +106,11 @@ def list_dependencies(
     tasks_by_id: dict[str, TaskResponse] = {}
     if all_task_ids:
         rows = (
-            supabase.table("tasks")
+            await supabase.table("tasks")
             .select("*")
             .in_("id", all_task_ids)
             .execute()
-            .data
-        )
+        ).data
         for r in rows:
             tasks_by_id[r["id"]] = TaskResponse(**r)
 
@@ -138,24 +133,23 @@ def list_dependencies(
     return TaskDependencies(blockers=blockers, blocking=blocking)
 
 
-def list_blocked_task_ids(
-    supabase: Client, *, user_id: str, workspace_id: str
+async def list_blocked_task_ids(
+    supabase: AsyncClient, *, user_id: str, workspace_id: str
 ) -> list[str]:
     """Return task ids in the workspace that have at least one OPEN blocker
     (a blocker whose status is not done/cancelled). Used by the Board and
     list views to render a "🔒 Blocked" badge without per-task lookups."""
-    if not _is_member(supabase, user_id=user_id, workspace_id=workspace_id):
+    if not await _is_member(supabase, user_id=user_id, workspace_id=workspace_id):
         raise DependencyPermissionError(workspace_id)
 
     # Pull every dep in this workspace (filter via the blocker task's
     # workspace_id — both ends are in the same workspace by invariant).
     # Fetch blocker.status in the same query so we can filter client-side.
     rows = (
-        supabase.table("task_dependencies")
+        await supabase.table("task_dependencies")
         .select("blocked_task_id, blocker:tasks!blocker_task_id(workspace_id,status)")
         .execute()
-        .data
-    )
+    ).data
     blocked: set[str] = set()
     for r in rows:
         blocker = r.get("blocker") or {}
@@ -166,8 +160,8 @@ def list_blocked_task_ids(
     return sorted(blocked)
 
 
-def _would_create_cycle(
-    supabase: Client, *, blocker_id: str, blocked_id: str
+async def _would_create_cycle(
+    supabase: AsyncClient, *, blocker_id: str, blocked_id: str
 ) -> bool:
     """Check if adding (blocker → blocked) would create a cycle.
 
@@ -186,19 +180,18 @@ def _would_create_cycle(
         if cur == blocker_id:
             return True
         rows = (
-            supabase.table("task_dependencies")
+            await supabase.table("task_dependencies")
             .select("blocked_task_id")
             .eq("blocker_task_id", cur)
             .execute()
-            .data
-        )
+        ).data
         for r in rows:
             queue.append(r["blocked_task_id"])
     return False
 
 
-def create_dependency(
-    supabase: Client,
+async def create_dependency(
+    supabase: AsyncClient,
     *,
     user_id: str,
     blocker_task_id: str,
@@ -207,8 +200,8 @@ def create_dependency(
     if blocker_task_id == blocked_task_id:
         raise DependencyError("A task cannot block itself")
 
-    blocker = _fetch_task(supabase, blocker_task_id)
-    blocked = _fetch_task(supabase, blocked_task_id)
+    blocker = await _fetch_task(supabase, blocker_task_id)
+    blocked = await _fetch_task(supabase, blocked_task_id)
     if not blocker:
         raise TaskNotFoundError(blocker_task_id)
     if not blocked:
@@ -217,12 +210,12 @@ def create_dependency(
         raise CrossWorkspaceError(
             "Tasks must live in the same workspace to link them"
         )
-    if not _is_member(
+    if not await _is_member(
         supabase, user_id=user_id, workspace_id=blocker["workspace_id"]
     ):
         raise DependencyPermissionError(blocker_task_id)
 
-    if _would_create_cycle(
+    if await _would_create_cycle(
         supabase, blocker_id=blocker_task_id, blocked_id=blocked_task_id
     ):
         raise CycleError(
@@ -232,18 +225,17 @@ def create_dependency(
     # Check for duplicate before the DB unique constraint fires — gives a
     # cleaner error path than catching a postgres APIError.
     existing = (
-        supabase.table("task_dependencies")
+        await supabase.table("task_dependencies")
         .select("id")
         .eq("blocker_task_id", blocker_task_id)
         .eq("blocked_task_id", blocked_task_id)
         .execute()
-        .data
-    )
+    ).data
     if existing:
         raise DuplicateError("This dependency already exists")
 
     row = (
-        supabase.table("task_dependencies")
+        await supabase.table("task_dependencies")
         .insert(
             {
                 "blocker_task_id": blocker_task_id,
@@ -252,27 +244,25 @@ def create_dependency(
             }
         )
         .execute()
-        .data[0]
-    )
+    ).data[0]
     return DependencyResponse(**row)
 
 
-def delete_dependency(
-    supabase: Client, *, user_id: str, dependency_id: str
+async def delete_dependency(
+    supabase: AsyncClient, *, user_id: str, dependency_id: str
 ) -> None:
     row = (
-        supabase.table("task_dependencies")
+        await supabase.table("task_dependencies")
         .select("*, blocker:tasks!blocker_task_id(workspace_id)")
         .eq("id", dependency_id)
         .single()
         .execute()
-        .data
-    )
+    ).data
     if not row:
         raise DependencyNotFoundError(dependency_id)
     workspace_id = row["blocker"]["workspace_id"]
-    if not _is_member(supabase, user_id=user_id, workspace_id=workspace_id):
+    if not await _is_member(supabase, user_id=user_id, workspace_id=workspace_id):
         raise DependencyPermissionError(dependency_id)
-    supabase.table("task_dependencies").delete().eq(
+    await supabase.table("task_dependencies").delete().eq(
         "id", dependency_id
     ).execute()

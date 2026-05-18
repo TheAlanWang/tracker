@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from supabase import Client
+from supabase import AsyncClient
 
 from app.core.deps import get_current_user_id, get_supabase_admin
 from app.schemas.charts import BurndownResponse, VelocityResponse
@@ -18,13 +18,13 @@ router = APIRouter(tags=["charts"])
     "/sprints/{s_id}/burndown",
     response_model=BurndownResponse,
 )
-def burndown(
+async def burndown(
     s_id: str,
     user_id: str = Depends(get_current_user_id),
-    supabase: Client = Depends(get_supabase_admin),
+    supabase: AsyncClient = Depends(get_supabase_admin),
 ):
     try:
-        return compute_burndown(supabase, user_id=user_id, sprint_id=s_id)
+        return await compute_burndown(supabase, user_id=user_id, sprint_id=s_id)
     except ChartPermissionError as exc:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN) from exc
     except SprintNotFoundError as exc:
@@ -40,13 +40,13 @@ def burndown(
     "/projects/{p_id}/velocity",
     response_model=VelocityResponse,
 )
-def velocity(
+async def velocity(
     p_id: str,
     user_id: str = Depends(get_current_user_id),
-    supabase: Client = Depends(get_supabase_admin),
+    supabase: AsyncClient = Depends(get_supabase_admin),
 ):
     try:
-        return compute_velocity(supabase, user_id=user_id, project_id=p_id)
+        return await compute_velocity(supabase, user_id=user_id, project_id=p_id)
     except ChartPermissionError as exc:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN) from exc
     except SprintNotFoundError as exc:

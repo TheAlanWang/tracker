@@ -7,7 +7,7 @@ roll-up counts so the frontend can render the tree + progress bars in
 one shot without N+1 queries.
 """
 
-from supabase import Client
+from supabase import AsyncClient
 
 from app.schemas.goal import GoalCreate, GoalResponse, GoalUpdate
 
@@ -28,34 +28,32 @@ class WorkspaceNotFoundError(GoalError):
     pass
 
 
-def _is_member(supabase: Client, *, user_id: str, workspace_id: str) -> bool:
+async def _is_member(supabase: AsyncClient, *, user_id: str, workspace_id: str) -> bool:
     rows = (
-        supabase.table("workspace_members")
+        await supabase.table("workspace_members")
         .select("role")
         .eq("workspace_id", workspace_id)
         .eq("user_id", user_id)
         .execute()
-        .data
-    )
+    ).data
     return bool(rows)
 
 
-def _fetch_goal(supabase: Client, goal_id: str) -> dict | None:
+async def _fetch_goal(supabase: AsyncClient, goal_id: str) -> dict | None:
     return (
-        supabase.table("goals")
+        await supabase.table("goals")
         .select("*")
         .eq("id", goal_id)
         .single()
         .execute()
-        .data
-    )
+    ).data
 
 
-def _ensure_member_via_goal(supabase: Client, user_id: str, goal_id: str) -> dict:
-    goal = _fetch_goal(supabase, goal_id)
+async def _ensure_member_via_goal(supabase: AsyncClient, user_id: str, goal_id: str) -> dict:
+    goal = await _fetch_goal(supabase, goal_id)
     if not goal:
         raise GoalNotFoundError(goal_id)
-    if not _is_member(supabase, user_id=user_id, workspace_id=goal["workspace_id"]):
+    if not await _is_member(supabase, user_id=user_id, workspace_id=goal["workspace_id"]):
         raise GoalPermissionError(goal_id)
     return goal
 
@@ -109,30 +107,28 @@ def _compute_counts(
     }
 
 
-def list_goals(
-    supabase: Client, *, user_id: str, workspace_id: str
+async def list_goals(
+    supabase: AsyncClient, *, user_id: str, workspace_id: str
 ) -> list[GoalResponse]:
-    if not _is_member(supabase, user_id=user_id, workspace_id=workspace_id):
+    if not await _is_member(supabase, user_id=user_id, workspace_id=workspace_id):
         raise GoalPermissionError(workspace_id)
     goals = (
-        supabase.table("goals")
+        await supabase.table("goals")
         .select("*")
         .eq("workspace_id", workspace_id)
         .order("position")
         .execute()
-        .data
-    )
+    ).data
     if not goals:
         return []
     # Fetch all tasks in workspace that have a goal_id — used only for counts
     tasks = (
-        supabase.table("tasks")
+        await supabase.table("tasks")
         .select("id, goal_id, status")
         .eq("workspace_id", workspace_id)
         .not_.is_("goal_id", "null")
         .execute()
-        .data
-    )
+    ).data
     counts = _compute_counts(goals, tasks)
     result: list[GoalResponse] = []
     for g in goals:
@@ -148,44 +144,44 @@ def list_goals(
     return result
 
 
-def get_goal(
-    supabase: Client, *, user_id: str, goal_id: str
+async def get_goal(
+    supabase: AsyncClient, *, user_id: str, goal_id: str
 ) -> GoalResponse:
-    goal = _ensure_member_via_goal(supabase, user_id, goal_id)
+    goal = await _ensure_member_via_goal(supabase, user_id, goal_id)
     return GoalResponse(**goal)
 
 
-def create_goal(
-    supabase: Client,
+async def create_goal(
+    supabase: AsyncClient,
     *,
     user_id: str,
     workspace_id: str,
     payload: GoalCreate,
 ) -> GoalResponse:
-    if not _is_member(supabase, user_id=user_id, workspace_id=workspace_id):
+    if not await _is_member(supabase, user_id=user_id, workspace_id=workspace_id):
         raise GoalPermissionError(workspace_id)
     # If parent_goal_id provided, validate it lives in this workspace —
     # otherwise a caller could attach a goal under a parent in a different
     # workspace (data leak).
     if payload.parent_goal_id:
-        parent = _fetch_goal(supabase, payload.parent_goal_id)
+        parent = await _fetch_goal(supabase, payload.parent_goal_id)
         if not parent or parent["workspace_id"] != workspace_id:
             raise GoalNotFoundError(payload.parent_goal_id)
     data = payload.model_dump(exclude_none=True)
     data["workspace_id"] = workspace_id
     data["created_by"] = user_id
-    row = supabase.table("goals").insert(data).execute().data[0]
+    row = (await supabase.table("goals").insert(data).execute()).data[0]
     return GoalResponse(**row)
 
 
-def update_goal(
-    supabase: Client,
+async def update_goal(
+    supabase: AsyncClient,
     *,
     user_id: str,
     goal_id: str,
     payload: GoalUpdate,
 ) -> GoalResponse:
-    goal = _ensure_member_via_goal(supabase, user_id, goal_id)
+    goal = await _ensure_member_via_goal(supabase, user_id, goal_id)
     updates = payload.model_dump(exclude_unset=True)
     if "parent_goal_id" in updates and updates["parent_goal_id"]:
         # Same cross-workspace check as create, plus prevent making a goal
@@ -193,7 +189,7 @@ def update_goal(
         new_parent_id = updates["parent_goal_id"]
         if new_parent_id == goal_id:
             raise GoalError("a goal cannot be its own parent")
-        parent = _fetch_goal(supabase, new_parent_id)
+        parent = await _fetch_goal(supabase, new_parent_id)
         if not parent or parent["workspace_id"] != goal["workspace_id"]:
             raise GoalNotFoundError(new_parent_id)
         # Walk up new_parent's chain to confirm goal_id isn't in it.
@@ -201,55 +197,50 @@ def update_goal(
         while cursor and cursor.get("parent_goal_id"):
             if cursor["parent_goal_id"] == goal_id:
                 raise GoalError("cycle detected")
-            cursor = _fetch_goal(supabase, cursor["parent_goal_id"])
+            cursor = await _fetch_goal(supabase, cursor["parent_goal_id"])
     if not updates:
         return GoalResponse(**goal)
     updated = (
-        supabase.table("goals")
+        await supabase.table("goals")
         .update(updates)
         .eq("id", goal_id)
         .execute()
-        .data[0]
-    )
+    ).data[0]
     return GoalResponse(**updated)
 
 
-def delete_goal(
-    supabase: Client, *, user_id: str, goal_id: str
+async def delete_goal(
+    supabase: AsyncClient, *, user_id: str, goal_id: str
 ) -> None:
-    _ensure_member_via_goal(supabase, user_id, goal_id)
+    await _ensure_member_via_goal(supabase, user_id, goal_id)
     # FK cascade deletes the subtree; tasks.goal_id SET NULL via FK.
-    supabase.table("goals").delete().eq("id", goal_id).execute()
-
-
-def list_goal_tasks(
-    supabase: Client,
+    await supabase.table("goals").delete().eq("id", goal_id).execute()
+async def list_goal_tasks(
+    supabase: AsyncClient,
     *,
     user_id: str,
     goal_id: str,
     recursive: bool = False,
 ) -> list[dict]:
-    goal = _ensure_member_via_goal(supabase, user_id, goal_id)
+    goal = await _ensure_member_via_goal(supabase, user_id, goal_id)
     workspace_id = goal["workspace_id"]
     if not recursive:
         rows = (
-            supabase.table("tasks")
+            await supabase.table("tasks")
             .select("*")
             .eq("goal_id", goal_id)
             .order("created_at", desc=True)
             .execute()
-            .data
-        )
+        ).data
         return rows
     # Recursive: collect the goal_id + all descendants client-side, then
     # one IN query. Avoids needing a recursive CTE for small trees.
     all_goals = (
-        supabase.table("goals")
+        await supabase.table("goals")
         .select("id, parent_goal_id")
         .eq("workspace_id", workspace_id)
         .execute()
-        .data
-    )
+    ).data
     children_by_parent: dict[str | None, list[str]] = {}
     for g in all_goals:
         children_by_parent.setdefault(g["parent_goal_id"], []).append(g["id"])
@@ -261,11 +252,10 @@ def list_goal_tasks(
             subtree.append(child)
             queue.append(child)
     rows = (
-        supabase.table("tasks")
+        await supabase.table("tasks")
         .select("*")
         .in_("goal_id", subtree)
         .order("created_at", desc=True)
         .execute()
-        .data
-    )
+    ).data
     return rows

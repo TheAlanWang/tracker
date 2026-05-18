@@ -43,50 +43,50 @@ def _supabase_with_edges(edges: dict[str, list[str]]) -> MagicMock:
     return sb
 
 
-def test_two_node_cycle_detected():
+async def test_two_node_cycle_detected():
     """A → B exists, adding B → A would close the loop."""
     sb = _supabase_with_edges({"A": ["B"]})
-    assert _would_create_cycle(sb, blocker_id="B", blocked_id="A") is True
+    assert await _would_create_cycle(sb, blocker_id="B", blocked_id="A") is True
 
 
-def test_three_node_cycle_detected():
+async def test_three_node_cycle_detected():
     """A → B → C exists, adding C → A would close a 3-node ring."""
     sb = _supabase_with_edges({"A": ["B"], "B": ["C"]})
-    assert _would_create_cycle(sb, blocker_id="C", blocked_id="A") is True
+    assert await _would_create_cycle(sb, blocker_id="C", blocked_id="A") is True
 
 
-def test_longer_chain_cycle_detected():
+async def test_longer_chain_cycle_detected():
     """A → B → C → D exists, adding D → A would close a 4-node ring."""
     sb = _supabase_with_edges({"A": ["B"], "B": ["C"], "C": ["D"]})
-    assert _would_create_cycle(sb, blocker_id="D", blocked_id="A") is True
+    assert await _would_create_cycle(sb, blocker_id="D", blocked_id="A") is True
 
 
-def test_diamond_cycle_detected():
+async def test_diamond_cycle_detected():
     """A → B, A → C, B → D, C → D exist. D → A would close two cycles
     at once; the BFS terminates the moment it reaches A from any path."""
     sb = _supabase_with_edges(
         {"A": ["B", "C"], "B": ["D"], "C": ["D"]},
     )
-    assert _would_create_cycle(sb, blocker_id="D", blocked_id="A") is True
+    assert await _would_create_cycle(sb, blocker_id="D", blocked_id="A") is True
 
 
-def test_no_cycle_when_disjoint():
+async def test_no_cycle_when_disjoint():
     """A → B and C → D exist. Adding E → F (no overlap) is safe."""
     sb = _supabase_with_edges({"A": ["B"], "C": ["D"]})
-    assert _would_create_cycle(sb, blocker_id="E", blocked_id="F") is False
+    assert await _would_create_cycle(sb, blocker_id="E", blocked_id="F") is False
 
 
-def test_no_cycle_when_forward_only():
+async def test_no_cycle_when_forward_only():
     """A → B exists. Adding B → C extends the chain but doesn't loop."""
     sb = _supabase_with_edges({"A": ["B"]})
-    assert _would_create_cycle(sb, blocker_id="B", blocked_id="C") is False
+    assert await _would_create_cycle(sb, blocker_id="B", blocked_id="C") is False
 
 
-def test_existing_cycle_in_data_does_not_hang():
+async def test_existing_cycle_in_data_does_not_hang():
     """Defensive: if the table somehow already contains a cycle (e.g.
     A → B → A), the visited set should still terminate the BFS instead
     of looping forever."""
     sb = _supabase_with_edges({"A": ["B"], "B": ["A"]})
     # Adding C → A walks A → B → A; visited stops it. No path reaches C
     # so the result is False (no NEW cycle introduced by C → A).
-    assert _would_create_cycle(sb, blocker_id="C", blocked_id="A") is False
+    assert await _would_create_cycle(sb, blocker_id="C", blocked_id="A") is False

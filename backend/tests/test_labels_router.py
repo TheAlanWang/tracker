@@ -9,7 +9,7 @@ def _l(**over):
     return LabelResponse(**base)
 
 
-def test_list_labels_200(client, make_token):
+async def test_list_labels_200(client, make_token):
     with patch("app.routers.labels.list_labels", return_value=[_l()]):
         token = make_token(sub="u-1")
         r = client.get("/workspaces/ws-1/labels", headers={"Authorization": f"Bearer {token}"})
@@ -17,7 +17,7 @@ def test_list_labels_200(client, make_token):
         assert len(r.json()) == 1
 
 
-def test_create_label_201(client, make_token):
+async def test_create_label_201(client, make_token):
     with patch("app.routers.labels.create_label", return_value=_l(name="urgent")):
         token = make_token(sub="u-1")
         r = client.post(
@@ -28,7 +28,7 @@ def test_create_label_201(client, make_token):
         assert r.status_code == 201
 
 
-def test_attach_label_204(client, make_token):
+async def test_attach_label_204(client, make_token):
     with patch("app.routers.labels.attach_label", return_value=None):
         token = make_token(sub="u-1")
         r = client.post(

@@ -2,7 +2,7 @@ import logging
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from supabase import Client
+from supabase import AsyncClient
 
 from app.core.config import Settings, get_settings
 from app.core.deps import get_current_user_id, get_supabase_admin
@@ -23,11 +23,11 @@ bearer_scheme = HTTPBearer(auto_error=False)
 
 
 @router.get("/me", response_model=MeResponse)
-def get_me(
+async def get_me(
     creds: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
     user_id: str = Depends(get_current_user_id),
     settings: Settings = Depends(get_settings),
-    supabase: Client = Depends(get_supabase_admin),
+    supabase: AsyncClient = Depends(get_supabase_admin),
 ) -> MeResponse:
     email: str | None = None
     display_name: str | None = None
@@ -46,7 +46,7 @@ def get_me(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
-    workspaces = list_workspaces_for_user(supabase, user_id=user_id)
+    workspaces = await list_workspaces_for_user(supabase, user_id=user_id)
     workspace_summaries = [
         WorkspaceSummary(id=w.id, slug=w.slug, name=w.name) for w in workspaces
     ]
@@ -61,12 +61,12 @@ def get_me(
 
 
 @router.patch("/me/profile", response_model=MeResponse)
-def update_profile(
+async def update_profile(
     body: ProfileUpdate,
     creds: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
     user_id: str = Depends(get_current_user_id),
     settings: Settings = Depends(get_settings),
-    supabase: Client = Depends(get_supabase_admin),
+    supabase: AsyncClient = Depends(get_supabase_admin),
 ) -> MeResponse:
     updates: dict = {}
     if body.display_name is not None:
@@ -112,7 +112,7 @@ def update_profile(
     except Exception:
         pass
 
-    workspaces = list_workspaces_for_user(supabase, user_id=user_id)
+    workspaces = await list_workspaces_for_user(supabase, user_id=user_id)
     workspace_summaries = [
         WorkspaceSummary(id=w.id, slug=w.slug, name=w.name) for w in workspaces
     ]
@@ -127,9 +127,9 @@ def update_profile(
 
 
 @router.delete("/me", status_code=status.HTTP_204_NO_CONTENT)
-def delete_me(
+async def delete_me(
     user_id: str = Depends(get_current_user_id),
-    supabase: Client = Depends(get_supabase_admin),
+    supabase: AsyncClient = Depends(get_supabase_admin),
 ):
     """Permanently delete the caller's account.
 
@@ -157,9 +157,9 @@ def delete_me(
 
 
 @router.get("/me/dashboard", response_model=DashboardResponse)
-def get_dashboard_endpoint(
+async def get_dashboard_endpoint(
     workspace_id: str | None = None,
     user_id: str = Depends(get_current_user_id),
-    supabase: Client = Depends(get_supabase_admin),
+    supabase: AsyncClient = Depends(get_supabase_admin),
 ) -> DashboardResponse:
-    return get_dashboard(supabase, user_id=user_id, workspace_id=workspace_id)
+    return await get_dashboard(supabase, user_id=user_id, workspace_id=workspace_id)

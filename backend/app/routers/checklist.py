@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from supabase import Client
+from supabase import AsyncClient
 
 from app.core.deps import get_current_user_id, get_supabase_admin
 from app.schemas.checklist import (
@@ -24,13 +24,13 @@ router = APIRouter(tags=["checklist"])
     "/tasks/{t_id}/checklist",
     response_model=list[ChecklistItemResponse],
 )
-def list_(
+async def list_(
     t_id: str,
     user_id: str = Depends(get_current_user_id),
-    supabase: Client = Depends(get_supabase_admin),
+    supabase: AsyncClient = Depends(get_supabase_admin),
 ):
     try:
-        return list_items(supabase, user_id=user_id, task_id=t_id)
+        return await list_items(supabase, user_id=user_id, task_id=t_id)
     except ChecklistPermissionError as exc:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN) from exc
     except TaskNotFoundError as exc:
@@ -42,14 +42,14 @@ def list_(
     response_model=ChecklistItemResponse,
     status_code=status.HTTP_201_CREATED,
 )
-def create(
+async def create(
     t_id: str,
     payload: ChecklistItemCreate,
     user_id: str = Depends(get_current_user_id),
-    supabase: Client = Depends(get_supabase_admin),
+    supabase: AsyncClient = Depends(get_supabase_admin),
 ):
     try:
-        return create_item(
+        return await create_item(
             supabase, user_id=user_id, task_id=t_id, payload=payload
         )
     except ChecklistPermissionError as exc:
@@ -62,14 +62,14 @@ def create(
     "/checklist/{i_id}",
     response_model=ChecklistItemResponse,
 )
-def update(
+async def update(
     i_id: str,
     payload: ChecklistItemUpdate,
     user_id: str = Depends(get_current_user_id),
-    supabase: Client = Depends(get_supabase_admin),
+    supabase: AsyncClient = Depends(get_supabase_admin),
 ):
     try:
-        return update_item(
+        return await update_item(
             supabase, user_id=user_id, item_id=i_id, payload=payload
         )
     except ChecklistPermissionError as exc:
@@ -79,13 +79,13 @@ def update(
 
 
 @router.delete("/checklist/{i_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete(
+async def delete(
     i_id: str,
     user_id: str = Depends(get_current_user_id),
-    supabase: Client = Depends(get_supabase_admin),
+    supabase: AsyncClient = Depends(get_supabase_admin),
 ):
     try:
-        delete_item(supabase, user_id=user_id, item_id=i_id)
+        await delete_item(supabase, user_id=user_id, item_id=i_id)
     except ChecklistPermissionError as exc:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN) from exc
     except ChecklistNotFoundError as exc:

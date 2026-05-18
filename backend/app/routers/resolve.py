@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
-from supabase import Client
+from supabase import AsyncClient
 
 from app.core.deps import get_current_user_id, get_supabase_admin
 
@@ -17,19 +17,18 @@ class ResolveResponse(BaseModel):
 
 
 @router.get("/resolve/identifier/{identifier}", response_model=ResolveResponse)
-def resolve_identifier(
+async def resolve_identifier(
     identifier: str,
     user_id: str = Depends(get_current_user_id),
-    supabase: Client = Depends(get_supabase_admin),
+    supabase: AsyncClient = Depends(get_supabase_admin),
 ) -> ResolveResponse:
     # Find all workspaces the user is a member of
     member_rows = (
-        supabase.table("workspace_members")
+        await supabase.table("workspace_members")
         .select("workspace_id")
         .eq("user_id", user_id)
         .execute()
-        .data
-    )
+    ).data
     if not member_rows:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
 
@@ -37,14 +36,13 @@ def resolve_identifier(
 
     # Find the task by identifier within those workspaces
     task_row = (
-        supabase.table("tasks")
+        await supabase.table("tasks")
         .select("id, identifier, workspace_id, project_id")
         .eq("identifier", identifier)
         .in_("workspace_id", ws_ids)
         .limit(1)
         .execute()
-        .data
-    )
+    ).data
     if not task_row:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
 
@@ -52,25 +50,23 @@ def resolve_identifier(
 
     # Fetch workspace slug
     ws_row = (
-        supabase.table("workspaces")
+        await supabase.table("workspaces")
         .select("slug")
         .eq("id", task["workspace_id"])
         .single()
         .execute()
-        .data
-    )
+    ).data
     if not ws_row:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
 
     # Fetch project key
     proj_row = (
-        supabase.table("projects")
+        await supabase.table("projects")
         .select("key")
         .eq("id", task["project_id"])
         .single()
         .execute()
-        .data
-    )
+    ).data
     if not proj_row:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
 

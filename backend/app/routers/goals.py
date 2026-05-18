@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from supabase import Client
+from supabase import AsyncClient
 
 from app.core.deps import get_current_user_id, get_supabase_admin
 from app.schemas.goal import GoalCreate, GoalResponse, GoalUpdate
@@ -23,13 +23,13 @@ router = APIRouter(tags=["goals"])
     "/workspaces/{ws_id}/goals",
     response_model=list[GoalResponse],
 )
-def list_(
+async def list_(
     ws_id: str,
     user_id: str = Depends(get_current_user_id),
-    supabase: Client = Depends(get_supabase_admin),
+    supabase: AsyncClient = Depends(get_supabase_admin),
 ):
     try:
-        return list_goals(supabase, user_id=user_id, workspace_id=ws_id)
+        return await list_goals(supabase, user_id=user_id, workspace_id=ws_id)
     except GoalPermissionError as exc:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN) from exc
 
@@ -39,14 +39,14 @@ def list_(
     response_model=GoalResponse,
     status_code=status.HTTP_201_CREATED,
 )
-def create(
+async def create(
     ws_id: str,
     payload: GoalCreate,
     user_id: str = Depends(get_current_user_id),
-    supabase: Client = Depends(get_supabase_admin),
+    supabase: AsyncClient = Depends(get_supabase_admin),
 ):
     try:
-        return create_goal(
+        return await create_goal(
             supabase, user_id=user_id, workspace_id=ws_id, payload=payload
         )
     except GoalPermissionError as exc:
@@ -59,13 +59,13 @@ def create(
 
 
 @router.get("/goals/{g_id}", response_model=GoalResponse)
-def get(
+async def get(
     g_id: str,
     user_id: str = Depends(get_current_user_id),
-    supabase: Client = Depends(get_supabase_admin),
+    supabase: AsyncClient = Depends(get_supabase_admin),
 ):
     try:
-        return get_goal(supabase, user_id=user_id, goal_id=g_id)
+        return await get_goal(supabase, user_id=user_id, goal_id=g_id)
     except GoalPermissionError as exc:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN) from exc
     except GoalNotFoundError as exc:
@@ -73,14 +73,14 @@ def get(
 
 
 @router.patch("/goals/{g_id}", response_model=GoalResponse)
-def update(
+async def update(
     g_id: str,
     payload: GoalUpdate,
     user_id: str = Depends(get_current_user_id),
-    supabase: Client = Depends(get_supabase_admin),
+    supabase: AsyncClient = Depends(get_supabase_admin),
 ):
     try:
-        return update_goal(
+        return await update_goal(
             supabase, user_id=user_id, goal_id=g_id, payload=payload
         )
     except GoalPermissionError as exc:
@@ -94,13 +94,13 @@ def update(
 
 
 @router.delete("/goals/{g_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete(
+async def delete(
     g_id: str,
     user_id: str = Depends(get_current_user_id),
-    supabase: Client = Depends(get_supabase_admin),
+    supabase: AsyncClient = Depends(get_supabase_admin),
 ):
     try:
-        delete_goal(supabase, user_id=user_id, goal_id=g_id)
+        await delete_goal(supabase, user_id=user_id, goal_id=g_id)
     except GoalPermissionError as exc:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN) from exc
     except GoalNotFoundError as exc:
@@ -111,14 +111,14 @@ def delete(
     "/goals/{g_id}/tasks",
     response_model=list[TaskResponse],
 )
-def list_tasks(
+async def list_tasks(
     g_id: str,
     recursive: bool = Query(False),
     user_id: str = Depends(get_current_user_id),
-    supabase: Client = Depends(get_supabase_admin),
+    supabase: AsyncClient = Depends(get_supabase_admin),
 ):
     try:
-        rows = list_goal_tasks(
+        rows = await list_goal_tasks(
             supabase, user_id=user_id, goal_id=g_id, recursive=recursive
         )
         return [TaskResponse(**r) for r in rows]

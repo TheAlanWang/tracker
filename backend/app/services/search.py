@@ -1,8 +1,8 @@
 """Search service — cross-entity ilike search within a workspace."""
 
-from concurrent.futures import ThreadPoolExecutor, as_completed
+import asyncio
 
-from supabase import Client
+from supabase import AsyncClient
 
 from app.schemas.search import SearchResult
 
@@ -11,42 +11,40 @@ class SearchPermissionError(Exception):
     pass
 
 
-def _is_member(supabase: Client, *, user_id: str, workspace_id: str) -> bool:
+async def _is_member(supabase: AsyncClient, *, user_id: str, workspace_id: str) -> bool:
     rows = (
-        supabase.table("workspace_members")
+        await supabase.table("workspace_members")
         .select("role")
         .eq("workspace_id", workspace_id)
         .eq("user_id", user_id)
         .execute()
-        .data
-    )
+    ).data
     return bool(rows)
 
 
-def search(
-    supabase: Client,
+async def search(
+    supabase: AsyncClient,
     *,
     user_id: str,
     query: str,
     workspace_id: str,
     ws_slug: str = "",
 ) -> list[SearchResult]:
-    if not _is_member(supabase, user_id=user_id, workspace_id=workspace_id):
+    if not await _is_member(supabase, user_id=user_id, workspace_id=workspace_id):
         raise SearchPermissionError(workspace_id)
 
     q = query.strip()
     base = f"/w/{ws_slug}" if ws_slug else ""
 
-    def _search_projects() -> list[SearchResult]:
+    async def _search_projects() -> list[SearchResult]:
         rows = (
-            supabase.table("projects")
+            await supabase.table("projects")
             .select("id, name, key")
             .eq("workspace_id", workspace_id)
             .or_(f"name.ilike.%{q}%,key.ilike.%{q}%")
             .limit(5)
             .execute()
-            .data
-        )
+        ).data
         return [
             SearchResult(
                 type="project",
@@ -58,27 +56,25 @@ def search(
             for r in rows
         ]
 
-    def _search_tasks() -> list[SearchResult]:
+    async def _search_tasks() -> list[SearchResult]:
         rows = (
-            supabase.table("tasks")
+            await supabase.table("tasks")
             .select("id, identifier, title, project_id")
             .eq("workspace_id", workspace_id)
             .or_(f"identifier.ilike.%{q}%,title.ilike.%{q}%")
             .limit(10)
             .execute()
-            .data
-        )
+        ).data
         # Collect unique project IDs to look up project keys for hrefs
         project_ids = list({r["project_id"] for r in rows})
         project_key_map: dict[str, str] = {}
         if project_ids:
             proj_rows = (
-                supabase.table("projects")
+                await supabase.table("projects")
                 .select("id, key")
                 .in_("id", project_ids)
                 .execute()
-                .data
-            )
+            ).data
             project_key_map = {p["id"]: p["key"] for p in proj_rows}
 
         results = []
@@ -96,16 +92,15 @@ def search(
             )
         return results
 
-    def _search_labels() -> list[SearchResult]:
+    async def _search_labels() -> list[SearchResult]:
         rows = (
-            supabase.table("labels")
+            await supabase.table("labels")
             .select("id, name")
             .eq("workspace_id", workspace_id)
             .ilike("name", f"%{q}%")
             .limit(5)
             .execute()
-            .data
-        )
+        ).data
         return [
             SearchResult(
                 type="label",
@@ -117,19 +112,10 @@ def search(
             for r in rows
         ]
 
-    buckets: dict[str, list[SearchResult]] = {}
-    with ThreadPoolExecutor(max_workers=3) as pool:
-        futures = {
-            pool.submit(_search_projects): "projects",
-            pool.submit(_search_tasks): "tasks",
-            pool.submit(_search_labels): "labels",
-        }
-        for future in as_completed(futures):
-            key = futures[future]
-            buckets[key] = future.result()
-
-    results: list[SearchResult] = []
-    results += buckets.get("projects", [])
-    results += buckets.get("tasks", [])
-    results += buckets.get("labels", [])
-    return results
+    # Concurrent fan-out via asyncio.gather — replaces the previous
+    # ThreadPoolExecutor pattern. Event loop multiplexes the three HTTP
+    # requests on one thread, no GIL contention.
+    projects, tasks, labels = await asyncio.gather(
+        _search_projects(), _search_tasks(), _search_labels()
+    )
+    return [*projects, *tasks, *labels]

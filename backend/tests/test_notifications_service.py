@@ -31,7 +31,7 @@ def mock_supabase():
     return MagicMock()
 
 
-def test_list_notifications_returns_all(mock_supabase):
+async def test_list_notifications_returns_all(mock_supabase):
     chain = MagicMock()
     chain.select.return_value.eq.return_value.order.return_value.limit.return_value.execute.return_value.data = [
         _notif_row(),
@@ -45,12 +45,12 @@ def test_list_notifications_returns_all(mock_supabase):
 
     mock_supabase.table.side_effect = table_router
 
-    result = list_my_notifications(mock_supabase, user_id="u-1")
+    result = await list_my_notifications(mock_supabase, user_id="u-1")
     assert len(result) == 2
     assert result[0].id == "n-1"
 
 
-def test_list_notifications_unread_only_uses_is_filter(mock_supabase):
+async def test_list_notifications_unread_only_uses_is_filter(mock_supabase):
     chain = MagicMock()
     # unread_only=True: select→eq→order→is_→limit→execute
     chain.select.return_value.eq.return_value.order.return_value.is_.return_value.limit.return_value.execute.return_value.data = [
@@ -64,7 +64,7 @@ def test_list_notifications_unread_only_uses_is_filter(mock_supabase):
 
     mock_supabase.table.side_effect = table_router
 
-    result = list_my_notifications(mock_supabase, user_id="u-1", unread_only=True)
+    result = await list_my_notifications(mock_supabase, user_id="u-1", unread_only=True)
     assert len(result) == 1
     # Verify .is_ was called with read_at and "null"
     chain.select.return_value.eq.return_value.order.return_value.is_.assert_called_once_with(
@@ -72,17 +72,17 @@ def test_list_notifications_unread_only_uses_is_filter(mock_supabase):
     )
 
 
-def test_mark_read_wrong_user_raises(mock_supabase):
+async def test_mark_read_wrong_user_raises(mock_supabase):
     chain = MagicMock()
     chain.select.return_value.eq.return_value.single.return_value.execute.return_value.data = _notif_row(user_id="other")
 
     mock_supabase.table.side_effect = lambda name: chain
 
     with pytest.raises(NotificationPermissionError):
-        mark_read(mock_supabase, user_id="u-1", notification_id="n-1")
+        await mark_read(mock_supabase, user_id="u-1", notification_id="n-1")
 
 
-def test_mark_all_read_returns_count(mock_supabase):
+async def test_mark_all_read_returns_count(mock_supabase):
     chain = MagicMock()
     chain.update.return_value.eq.return_value.is_.return_value.execute.return_value.data = [
         _notif_row(read_at="2026-05-14T01:00:00Z"),
@@ -91,5 +91,5 @@ def test_mark_all_read_returns_count(mock_supabase):
 
     mock_supabase.table.side_effect = lambda name: chain
 
-    count = mark_all_read(mock_supabase, user_id="u-1")
+    count = await mark_all_read(mock_supabase, user_id="u-1")
     assert count == 2

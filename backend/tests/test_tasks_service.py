@@ -59,7 +59,7 @@ def mock_supabase():
     return MagicMock()
 
 
-def test_create_task_calls_rpc_with_membership_check(mock_supabase):
+async def test_create_task_calls_rpc_with_membership_check(mock_supabase):
     """Service: verify membership → fetch project → call RPC → return."""
     members_chain = MagicMock()
     members_chain.select.return_value.eq.return_value.eq.return_value.execute.return_value.data = [
@@ -80,7 +80,7 @@ def test_create_task_calls_rpc_with_membership_check(mock_supabase):
     mock_supabase.table.side_effect = table_router
     mock_supabase.rpc.return_value.execute.return_value.data = _task_row()
 
-    result = create_task(
+    result = await create_task(
         mock_supabase,
         user_id="u-1",
         project_id="p-1",
@@ -98,7 +98,7 @@ def test_create_task_calls_rpc_with_membership_check(mock_supabase):
     assert rpc_args["p_title"] == "Test task"
 
 
-def test_create_task_non_member_raises(mock_supabase):
+async def test_create_task_non_member_raises(mock_supabase):
     project_chain = MagicMock()
     project_chain.select.return_value.eq.return_value.single.return_value.execute.return_value.data = (
         _project_row()
@@ -116,7 +116,7 @@ def test_create_task_non_member_raises(mock_supabase):
     mock_supabase.table.side_effect = table_router
 
     with pytest.raises(TaskPermissionError):
-        create_task(
+        await create_task(
             mock_supabase,
             user_id="u-1",
             project_id="p-1",
@@ -125,7 +125,7 @@ def test_create_task_non_member_raises(mock_supabase):
     mock_supabase.rpc.assert_not_called()
 
 
-def test_list_tasks_no_filter(mock_supabase):
+async def test_list_tasks_no_filter(mock_supabase):
     project_chain = MagicMock()
     project_chain.select.return_value.eq.return_value.single.return_value.execute.return_value.data = (
         _project_row()
@@ -150,11 +150,11 @@ def test_list_tasks_no_filter(mock_supabase):
 
     mock_supabase.table.side_effect = table_router
 
-    result = list_tasks(mock_supabase, user_id="u-1", project_id="p-1")
+    result = await list_tasks(mock_supabase, user_id="u-1", project_id="p-1")
     assert len(result) == 1
 
 
-def test_list_tasks_filters_by_sprint_null(mock_supabase):
+async def test_list_tasks_filters_by_sprint_null(mock_supabase):
     """sprint='null' filters tasks with sprint_id IS NULL (backlog)."""
     project_chain = MagicMock()
     project_chain.select.return_value.eq.return_value.single.return_value.execute.return_value.data = _project_row()
@@ -172,13 +172,13 @@ def test_list_tasks_filters_by_sprint_null(mock_supabase):
         raise AssertionError(f"unexpected: {name}")
     mock_supabase.table.side_effect = table_router
 
-    result = list_tasks(mock_supabase, user_id="u-1", project_id="p-1", sprint="null")
+    result = await list_tasks(mock_supabase, user_id="u-1", project_id="p-1", sprint="null")
     assert len(result) == 1
     # Verify .is_("sprint_id", None) was called
     tasks_chain.select.return_value.eq.return_value.is_.assert_called_with("sprint_id", "null")
 
 
-def test_get_task_member_ok(mock_supabase):
+async def test_get_task_member_ok(mock_supabase):
     tasks_chain = MagicMock()
     tasks_chain.select.return_value.eq.return_value.single.return_value.execute.return_value.data = (
         _task_row()
@@ -197,11 +197,11 @@ def test_get_task_member_ok(mock_supabase):
 
     mock_supabase.table.side_effect = table_router
 
-    result = get_task(mock_supabase, user_id="u-1", task_id="i-1")
+    result = await get_task(mock_supabase, user_id="u-1", task_id="i-1")
     assert result.id == "i-1"
 
 
-def test_update_task_partial_only(mock_supabase):
+async def test_update_task_partial_only(mock_supabase):
     """PATCH with only title set should only update title."""
     tasks_chain_fetch = MagicMock()
     tasks_chain_fetch.select.return_value.eq.return_value.single.return_value.execute.return_value.data = (
@@ -228,7 +228,7 @@ def test_update_task_partial_only(mock_supabase):
 
     mock_supabase.table.side_effect = table_router
 
-    result = update_task(
+    result = await update_task(
         mock_supabase,
         user_id="u-1",
         task_id="i-1",
@@ -240,7 +240,7 @@ def test_update_task_partial_only(mock_supabase):
     assert update_args == {"title": "Updated"}
 
 
-def test_update_task_empty_payload_returns_unchanged(mock_supabase):
+async def test_update_task_empty_payload_returns_unchanged(mock_supabase):
     tasks_chain = MagicMock()
     tasks_chain.select.return_value.eq.return_value.single.return_value.execute.return_value.data = (
         _task_row()
@@ -259,7 +259,7 @@ def test_update_task_empty_payload_returns_unchanged(mock_supabase):
 
     mock_supabase.table.side_effect = table_router
 
-    result = update_task(
+    result = await update_task(
         mock_supabase,
         user_id="u-1",
         task_id="i-1",
@@ -273,7 +273,7 @@ def test_update_task_empty_payload_returns_unchanged(mock_supabase):
     assert update_calls == []
 
 
-def test_delete_task_happy_path(mock_supabase):
+async def test_delete_task_happy_path(mock_supabase):
     tasks_chain_fetch = MagicMock()
     tasks_chain_fetch.select.return_value.eq.return_value.single.return_value.execute.return_value.data = (
         _task_row()
@@ -297,5 +297,5 @@ def test_delete_task_happy_path(mock_supabase):
 
     mock_supabase.table.side_effect = table_router
 
-    result = delete_task(mock_supabase, user_id="u-1", task_id="i-1")
+    result = await delete_task(mock_supabase, user_id="u-1", task_id="i-1")
     assert result is None

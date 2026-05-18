@@ -2,7 +2,7 @@
 
 from datetime import datetime, timezone
 
-from supabase import Client
+from supabase import AsyncClient
 
 from app.schemas.notification import NotificationResponse
 
@@ -19,8 +19,8 @@ class NotificationPermissionError(NotificationError):
     pass
 
 
-def list_my_notifications(
-    supabase: Client,
+async def list_my_notifications(
+    supabase: AsyncClient,
     *,
     user_id: str,
     unread_only: bool = False,
@@ -33,7 +33,7 @@ def list_my_notifications(
     )
     if unread_only:
         query = query.is_("read_at", "null")
-    rows = query.limit(50).execute().data
+    rows = (await query.limit(50).execute()).data
 
     # Enrich with actor email + display_name from auth.users (so the UI can
     # show "Assigned by Alan" / "by alan@gmail.com" instead of a UUID).
@@ -65,25 +65,24 @@ def list_my_notifications(
     return enriched
 
 
-def mark_read(
-    supabase: Client,
+async def mark_read(
+    supabase: AsyncClient,
     *,
     user_id: str,
     notification_id: str,
 ) -> None:
     row = (
-        supabase.table("notifications")
+        await supabase.table("notifications")
         .select("id, user_id")
         .eq("id", notification_id)
         .single()
         .execute()
-        .data
-    )
+    ).data
     if not row:
         raise NotificationNotFoundError(notification_id)
     if row["user_id"] != user_id:
         raise NotificationPermissionError(notification_id)
-    (
+    await (
         supabase.table("notifications")
         .update({"read_at": datetime.now(timezone.utc).isoformat()})
         .eq("id", notification_id)
@@ -91,17 +90,16 @@ def mark_read(
     )
 
 
-def mark_all_read(
-    supabase: Client,
+async def mark_all_read(
+    supabase: AsyncClient,
     *,
     user_id: str,
 ) -> int:
     rows = (
-        supabase.table("notifications")
+        await supabase.table("notifications")
         .update({"read_at": datetime.now(timezone.utc).isoformat()})
         .eq("user_id", user_id)
         .is_("read_at", "null")
         .execute()
-        .data
-    )
+    ).data
     return len(rows)

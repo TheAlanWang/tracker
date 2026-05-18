@@ -14,7 +14,7 @@ def _make_app() -> FastAPI:
     return app
 
 
-def test_deps_returns_user_id_for_valid_token(make_token):
+async def test_deps_returns_user_id_for_valid_token(make_token):
     app = _make_app()
     client = TestClient(app)
     token = make_token(sub="alice")
@@ -25,7 +25,7 @@ def test_deps_returns_user_id_for_valid_token(make_token):
     assert response.json() == {"user_id": "alice"}
 
 
-def test_deps_returns_401_when_no_header():
+async def test_deps_returns_401_when_no_header():
     app = _make_app()
     client = TestClient(app)
 
@@ -34,7 +34,7 @@ def test_deps_returns_401_when_no_header():
     assert response.status_code == 401
 
 
-def test_deps_returns_401_when_bad_token():
+async def test_deps_returns_401_when_bad_token():
     app = _make_app()
     client = TestClient(app)
 

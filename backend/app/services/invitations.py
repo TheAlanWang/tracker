@@ -20,7 +20,7 @@ import logging
 import os
 from datetime import datetime, timezone
 
-from supabase import Client
+from supabase import AsyncClient
 
 from app.schemas.invitation import InvitationResponse
 
@@ -59,22 +59,21 @@ class UserEmailMismatchError(InvitationError):
     pass
 
 
-def _get_caller_role(
-    supabase: Client, *, user_id: str, workspace_id: str
+async def _get_caller_role(
+    supabase: AsyncClient, *, user_id: str, workspace_id: str
 ) -> str | None:
     rows = (
-        supabase.table("workspace_members")
+        await supabase.table("workspace_members")
         .select("role")
         .eq("workspace_id", workspace_id)
         .eq("user_id", user_id)
         .execute()
-        .data
-    )
+    ).data
     return rows[0]["role"] if rows else None
 
 
-def _lookup_users(
-    supabase: Client, *, user_ids: list[str]
+async def _lookup_users(
+    supabase: AsyncClient, *, user_ids: list[str]
 ) -> dict[str, dict[str, str | None]]:
     if not user_ids:
         return {}
@@ -93,18 +92,17 @@ def _lookup_users(
     return result
 
 
-def _lookup_workspaces(
-    supabase: Client, *, ids: list[str]
+async def _lookup_workspaces(
+    supabase: AsyncClient, *, ids: list[str]
 ) -> dict[str, dict[str, str]]:
     if not ids:
         return {}
     rows = (
-        supabase.table("workspaces")
+        await supabase.table("workspaces")
         .select("id, name, slug")
         .in_("id", ids)
         .execute()
-        .data
-    )
+    ).data
     return {r["id"]: r for r in rows}
 
 
@@ -136,8 +134,8 @@ def _enrich(
 # ─── Admin operations ───
 
 
-def create_invitation(
-    supabase: Client,
+async def create_invitation(
+    supabase: AsyncClient,
     *,
     user_id: str,
     workspace_id: str,
@@ -145,7 +143,7 @@ def create_invitation(
     role: str = "member",
 ) -> InvitationResponse:
     """Create a pending invitation. Caller must be owner or admin."""
-    caller_role = _get_caller_role(
+    caller_role = await _get_caller_role(
         supabase, user_id=user_id, workspace_id=workspace_id
     )
     if caller_role not in ("owner", "admin"):
@@ -165,31 +163,29 @@ def create_invitation(
     )
     if target is not None:
         existing_member = (
-            supabase.table("workspace_members")
+            await supabase.table("workspace_members")
             .select("user_id")
             .eq("workspace_id", workspace_id)
             .eq("user_id", target.id)
             .execute()
-            .data
-        )
+        ).data
         if existing_member:
             raise AlreadyMemberError(target.id)
 
     # Pending invitation already exists?
     existing_pending = (
-        supabase.table("workspace_invitations")
+        await supabase.table("workspace_invitations")
         .select("id")
         .eq("workspace_id", workspace_id)
         .eq("status", "pending")
         .ilike("invited_email", normalized)
         .execute()
-        .data
-    )
+    ).data
     if existing_pending:
         raise InvitationAlreadyExistsError(normalized)
 
     row = (
-        supabase.table("workspace_invitations")
+        await supabase.table("workspace_invitations")
         .insert(
             {
                 "workspace_id": workspace_id,
@@ -199,8 +195,7 @@ def create_invitation(
             }
         )
         .execute()
-        .data[0]
-    )
+    ).data[0]
 
     # New user → send Supabase's invite email so they sign up and land in
     # the in-app accept flow. Existing users skip this (the API doesn't have a
@@ -222,19 +217,19 @@ def create_invitation(
                 normalized,
             )
 
-    inviter_map = _lookup_users(supabase, user_ids=[user_id])
-    workspace_map = _lookup_workspaces(supabase, ids=[workspace_id])
+    inviter_map = await _lookup_users(supabase, user_ids=[user_id])
+    workspace_map = await _lookup_workspaces(supabase, ids=[workspace_id])
     return _enrich(row, inviter_map=inviter_map, workspace_map=workspace_map)
 
 
-def list_workspace_invitations(
-    supabase: Client,
+async def list_workspace_invitations(
+    supabase: AsyncClient,
     *,
     user_id: str,
     workspace_id: str,
 ) -> list[InvitationResponse]:
     """List pending invitations for a workspace. Caller must be owner or admin."""
-    caller_role = _get_caller_role(
+    caller_role = await _get_caller_role(
         supabase, user_id=user_id, workspace_id=workspace_id
     )
     if caller_role not in ("owner", "admin"):
@@ -243,31 +238,30 @@ def list_workspace_invitations(
         )
 
     rows = (
-        supabase.table("workspace_invitations")
+        await supabase.table("workspace_invitations")
         .select("*")
         .eq("workspace_id", workspace_id)
         .eq("status", "pending")
         .order("created_at", desc=True)
         .execute()
-        .data
-    )
+    ).data
     if not rows:
         return []
 
     inviter_ids = list({r["invited_by"] for r in rows})
-    inviter_map = _lookup_users(supabase, user_ids=inviter_ids)
+    inviter_map = await _lookup_users(supabase, user_ids=inviter_ids)
     return [_enrich(r, inviter_map=inviter_map) for r in rows]
 
 
-def revoke_invitation(
-    supabase: Client,
+async def revoke_invitation(
+    supabase: AsyncClient,
     *,
     user_id: str,
     workspace_id: str,
     invitation_id: str,
 ) -> None:
     """Mark a pending invitation as revoked. Caller must be owner or admin."""
-    caller_role = _get_caller_role(
+    caller_role = await _get_caller_role(
         supabase, user_id=user_id, workspace_id=workspace_id
     )
     if caller_role not in ("owner", "admin"):
@@ -276,18 +270,17 @@ def revoke_invitation(
         )
 
     rows = (
-        supabase.table("workspace_invitations")
+        await supabase.table("workspace_invitations")
         .select("status, workspace_id")
         .eq("id", invitation_id)
         .execute()
-        .data
-    )
+    ).data
     if not rows or rows[0]["workspace_id"] != workspace_id:
         raise InvitationNotFoundError(invitation_id)
     if rows[0]["status"] != "pending":
         raise InvitationNotPendingError(rows[0]["status"])
 
-    supabase.table("workspace_invitations").update(
+    await supabase.table("workspace_invitations").update(
         {
             "status": "revoked",
             "responded_at": datetime.now(timezone.utc).isoformat(),
@@ -298,7 +291,7 @@ def revoke_invitation(
 # ─── Invitee operations ───
 
 
-def _resolve_user_email(supabase: Client, *, user_id: str) -> str | None:
+async def _resolve_user_email(supabase: AsyncClient, *, user_id: str) -> str | None:
     try:
         users = supabase.auth.admin.list_users()
         for u in users:
@@ -309,52 +302,50 @@ def _resolve_user_email(supabase: Client, *, user_id: str) -> str | None:
     return None
 
 
-def list_my_invitations(
-    supabase: Client, *, user_id: str
+async def list_my_invitations(
+    supabase: AsyncClient, *, user_id: str
 ) -> list[InvitationResponse]:
     """Pending invitations targeting the caller's email."""
-    my_email = _resolve_user_email(supabase, user_id=user_id)
+    my_email = await _resolve_user_email(supabase, user_id=user_id)
     if not my_email:
         return []
 
     rows = (
-        supabase.table("workspace_invitations")
+        await supabase.table("workspace_invitations")
         .select("*")
         .ilike("invited_email", my_email)
         .eq("status", "pending")
         .order("created_at", desc=True)
         .execute()
-        .data
-    )
+    ).data
     if not rows:
         return []
 
     ws_ids = list({r["workspace_id"] for r in rows})
     inviter_ids = list({r["invited_by"] for r in rows})
-    workspace_map = _lookup_workspaces(supabase, ids=ws_ids)
-    inviter_map = _lookup_users(supabase, user_ids=inviter_ids)
+    workspace_map = await _lookup_workspaces(supabase, ids=ws_ids)
+    inviter_map = await _lookup_users(supabase, user_ids=inviter_ids)
     return [
         _enrich(r, inviter_map=inviter_map, workspace_map=workspace_map)
         for r in rows
     ]
 
 
-def _claim_invitation_or_raise(
-    supabase: Client, *, user_id: str, invitation_id: str
+async def _claim_invitation_or_raise(
+    supabase: AsyncClient, *, user_id: str, invitation_id: str
 ) -> tuple[dict, str]:
     """Fetch invitation, verify it targets the caller, return (row, my_email)."""
     rows = (
-        supabase.table("workspace_invitations")
+        await supabase.table("workspace_invitations")
         .select("*")
         .eq("id", invitation_id)
         .execute()
-        .data
-    )
+    ).data
     if not rows:
         raise InvitationNotFoundError(invitation_id)
     row = rows[0]
 
-    my_email = _resolve_user_email(supabase, user_id=user_id)
+    my_email = await _resolve_user_email(supabase, user_id=user_id)
     if not my_email or my_email != row["invited_email"].lower():
         raise UserEmailMismatchError("Invitation belongs to a different email")
 
@@ -364,8 +355,8 @@ def _claim_invitation_or_raise(
     return row, my_email
 
 
-def _notify_inviter(
-    supabase: Client,
+async def _notify_inviter(
+    supabase: AsyncClient,
     *,
     inviter_id: str,
     invitee_id: str,
@@ -379,20 +370,19 @@ def _notify_inviter(
     if inviter_id == invitee_id:
         return  # don't notify yourself
     ws_rows = (
-        supabase.table("workspaces")
+        await supabase.table("workspaces")
         .select("name")
         .eq("id", workspace_id)
         .execute()
-        .data
-    )
+    ).data
     ws_name = ws_rows[0]["name"] if ws_rows else None
 
-    invitee_profiles = _lookup_users(supabase, user_ids=[invitee_id])
+    invitee_profiles = await _lookup_users(supabase, user_ids=[invitee_id])
     invitee = invitee_profiles.get(invitee_id, {})
     invitee_label = invitee.get("display_name") or invitee.get("email") or invited_email
 
     try:
-        supabase.table("notifications").insert(
+        await supabase.table("notifications").insert(
             {
                 "user_id": inviter_id,
                 "type": notif_type,
@@ -414,10 +404,10 @@ def _notify_inviter(
         )
 
 
-def accept_invitation(
-    supabase: Client, *, user_id: str, invitation_id: str
+async def accept_invitation(
+    supabase: AsyncClient, *, user_id: str, invitation_id: str
 ) -> InvitationResponse:
-    row, _ = _claim_invitation_or_raise(
+    row, _ = await _claim_invitation_or_raise(
         supabase, user_id=user_id, invitation_id=invitation_id
     )
 
@@ -426,15 +416,14 @@ def accept_invitation(
     # Add to workspace_members. Use upsert-style: if already a member (race or
     # duplicate manual add), treat as success and mark the invitation accepted.
     existing_member = (
-        supabase.table("workspace_members")
+        await supabase.table("workspace_members")
         .select("user_id")
         .eq("workspace_id", workspace_id)
         .eq("user_id", user_id)
         .execute()
-        .data
-    )
+    ).data
     if not existing_member:
-        supabase.table("workspace_members").insert(
+        await supabase.table("workspace_members").insert(
             {
                 "workspace_id": workspace_id,
                 "user_id": user_id,
@@ -443,7 +432,7 @@ def accept_invitation(
         ).execute()
 
     updated = (
-        supabase.table("workspace_invitations")
+        await supabase.table("workspace_invitations")
         .update(
             {
                 "status": "accepted",
@@ -452,10 +441,9 @@ def accept_invitation(
         )
         .eq("id", invitation_id)
         .execute()
-        .data[0]
-    )
+    ).data[0]
 
-    _notify_inviter(
+    await _notify_inviter(
         supabase,
         inviter_id=row["invited_by"],
         invitee_id=user_id,
@@ -464,20 +452,20 @@ def accept_invitation(
         notif_type="invitation_accepted",
     )
 
-    workspace_map = _lookup_workspaces(supabase, ids=[workspace_id])
-    inviter_map = _lookup_users(supabase, user_ids=[row["invited_by"]])
+    workspace_map = await _lookup_workspaces(supabase, ids=[workspace_id])
+    inviter_map = await _lookup_users(supabase, user_ids=[row["invited_by"]])
     return _enrich(updated, inviter_map=inviter_map, workspace_map=workspace_map)
 
 
-def decline_invitation(
-    supabase: Client, *, user_id: str, invitation_id: str
+async def decline_invitation(
+    supabase: AsyncClient, *, user_id: str, invitation_id: str
 ) -> InvitationResponse:
-    row, _ = _claim_invitation_or_raise(
+    row, _ = await _claim_invitation_or_raise(
         supabase, user_id=user_id, invitation_id=invitation_id
     )
 
     updated = (
-        supabase.table("workspace_invitations")
+        await supabase.table("workspace_invitations")
         .update(
             {
                 "status": "declined",
@@ -486,10 +474,9 @@ def decline_invitation(
         )
         .eq("id", invitation_id)
         .execute()
-        .data[0]
-    )
+    ).data[0]
 
-    _notify_inviter(
+    await _notify_inviter(
         supabase,
         inviter_id=row["invited_by"],
         invitee_id=user_id,
@@ -498,6 +485,6 @@ def decline_invitation(
         notif_type="invitation_declined",
     )
 
-    workspace_map = _lookup_workspaces(supabase, ids=[row["workspace_id"]])
-    inviter_map = _lookup_users(supabase, user_ids=[row["invited_by"]])
+    workspace_map = await _lookup_workspaces(supabase, ids=[row["workspace_id"]])
+    inviter_map = await _lookup_users(supabase, user_ids=[row["invited_by"]])
     return _enrich(updated, inviter_map=inviter_map, workspace_map=workspace_map)

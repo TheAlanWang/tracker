@@ -10,7 +10,7 @@ Permissions enforced at the service layer (workspace_members.role check):
 - remove_member: owner only (intentionally tighter than role updates).
 """
 
-from supabase import Client
+from supabase import AsyncClient
 
 from app.schemas.member import MemberResponse
 
@@ -39,20 +39,19 @@ class CannotModifyOwnerError(MemberError):
     pass
 
 
-def _get_caller_role(supabase: Client, *, user_id: str, workspace_id: str) -> str | None:
+async def _get_caller_role(supabase: AsyncClient, *, user_id: str, workspace_id: str) -> str | None:
     """Return the caller's role in the workspace, or None if not a member."""
     rows = (
-        supabase.table("workspace_members")
+        await supabase.table("workspace_members")
         .select("role")
         .eq("workspace_id", workspace_id)
         .eq("user_id", user_id)
         .execute()
-        .data
-    )
+    ).data
     return rows[0]["role"] if rows else None
 
 
-def _lookup_user_emails(supabase: Client, user_ids: list[str]) -> dict[str, str]:
+async def _lookup_user_emails(supabase: AsyncClient, user_ids: list[str]) -> dict[str, str]:
     """Return user_id -> email (legacy helper kept for invite flow)."""
     if not user_ids:
         return {}
@@ -63,8 +62,8 @@ def _lookup_user_emails(supabase: Client, user_ids: list[str]) -> dict[str, str]
         return {}
 
 
-def _lookup_user_profiles(
-    supabase: Client, user_ids: list[str]
+async def _lookup_user_profiles(
+    supabase: AsyncClient, user_ids: list[str]
 ) -> dict[str, dict[str, str | None]]:
     """Return user_id -> {email, display_name} for the given ids."""
     if not user_ids:
@@ -84,32 +83,30 @@ def _lookup_user_profiles(
     return result
 
 
-def list_members(
-    supabase: Client, *, user_id: str, workspace_id: str
+async def list_members(
+    supabase: AsyncClient, *, user_id: str, workspace_id: str
 ) -> list[MemberResponse]:
     # Caller must be a member to list
     own_rows = (
-        supabase.table("workspace_members")
+        await supabase.table("workspace_members")
         .select("role")
         .eq("workspace_id", workspace_id)
         .eq("user_id", user_id)
         .execute()
-        .data
-    )
+    ).data
     if not own_rows:
         raise NotAMemberError(workspace_id)
 
     rows = (
-        supabase.table("workspace_members")
+        await supabase.table("workspace_members")
         .select("*")
         .eq("workspace_id", workspace_id)
         .execute()
-        .data
-    )
+    ).data
 
     # Look up email + display_name for all members
     all_user_ids = [r["user_id"] for r in rows]
-    profile_map = _lookup_user_profiles(supabase, all_user_ids)
+    profile_map = await _lookup_user_profiles(supabase, all_user_ids)
 
     return [
         MemberResponse(
@@ -121,8 +118,8 @@ def list_members(
     ]
 
 
-def update_member_role(
-    supabase: Client,
+async def update_member_role(
+    supabase: AsyncClient,
     *,
     user_id: str,
     workspace_id: str,
@@ -130,19 +127,18 @@ def update_member_role(
     role: str,
 ) -> MemberResponse:
     """Update the role of a workspace member. Caller must be owner or admin."""
-    caller_role = _get_caller_role(supabase, user_id=user_id, workspace_id=workspace_id)
+    caller_role = await _get_caller_role(supabase, user_id=user_id, workspace_id=workspace_id)
     if caller_role not in ("owner", "admin"):
         raise MemberPermissionError("Only owner or admin can update roles")
 
     # Get the target member's current role
     target_rows = (
-        supabase.table("workspace_members")
+        await supabase.table("workspace_members")
         .select("role")
         .eq("workspace_id", workspace_id)
         .eq("user_id", target_user_id)
         .execute()
-        .data
-    )
+    ).data
     if not target_rows:
         raise NotAMemberError(target_user_id)
 
@@ -150,40 +146,38 @@ def update_member_role(
         raise CannotModifyOwnerError("Cannot change the role of the workspace owner")
 
     row = (
-        supabase.table("workspace_members")
+        await supabase.table("workspace_members")
         .update({"role": role})
         .eq("workspace_id", workspace_id)
         .eq("user_id", target_user_id)
         .execute()
-        .data[0]
-    )
-    email_map = _lookup_user_emails(supabase, [target_user_id])
+    ).data[0]
+    email_map = await _lookup_user_emails(supabase, [target_user_id])
     return MemberResponse(**row, email=email_map.get(target_user_id))
 
 
-def remove_member(
-    supabase: Client, *, user_id: str, workspace_id: str, target_user_id: str
+async def remove_member(
+    supabase: AsyncClient, *, user_id: str, workspace_id: str, target_user_id: str
 ) -> None:
     """Remove a member from the workspace. Only the workspace owner can do this."""
-    caller_role = _get_caller_role(supabase, user_id=user_id, workspace_id=workspace_id)
+    caller_role = await _get_caller_role(supabase, user_id=user_id, workspace_id=workspace_id)
     if caller_role != "owner":
         raise MemberPermissionError("Only the workspace owner can remove members")
 
     # Get target's current role
     target_rows = (
-        supabase.table("workspace_members")
+        await supabase.table("workspace_members")
         .select("role")
         .eq("workspace_id", workspace_id)
         .eq("user_id", target_user_id)
         .execute()
-        .data
-    )
+    ).data
     if not target_rows:
         raise NotAMemberError(target_user_id)
 
     if target_rows[0]["role"] == "owner":
         raise CannotModifyOwnerError("Cannot remove the workspace owner")
 
-    supabase.table("workspace_members").delete().eq(
+    await supabase.table("workspace_members").delete().eq(
         "workspace_id", workspace_id
     ).eq("user_id", target_user_id).execute()

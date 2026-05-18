@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from supabase import Client
+from supabase import AsyncClient
 
 from app.core.deps import get_current_user_id, get_supabase_admin
 from app.schemas.invitation import InvitationCreate, InvitationResponse
@@ -29,14 +29,14 @@ router = APIRouter(tags=["invitations"])
     response_model=InvitationResponse,
     status_code=status.HTTP_201_CREATED,
 )
-def create_(
+async def create_(
     ws_id: str,
     body: InvitationCreate,
     user_id: str = Depends(get_current_user_id),
-    supabase: Client = Depends(get_supabase_admin),
+    supabase: AsyncClient = Depends(get_supabase_admin),
 ):
     try:
-        return create_invitation(
+        return await create_invitation(
             supabase,
             user_id=user_id,
             workspace_id=ws_id,
@@ -63,13 +63,13 @@ def create_(
     "/workspaces/{ws_id}/invitations",
     response_model=list[InvitationResponse],
 )
-def list_(
+async def list_(
     ws_id: str,
     user_id: str = Depends(get_current_user_id),
-    supabase: Client = Depends(get_supabase_admin),
+    supabase: AsyncClient = Depends(get_supabase_admin),
 ):
     try:
-        return list_workspace_invitations(
+        return await list_workspace_invitations(
             supabase, user_id=user_id, workspace_id=ws_id
         )
     except InvitationPermissionError as exc:
@@ -82,14 +82,14 @@ def list_(
     "/workspaces/{ws_id}/invitations/{invitation_id}",
     status_code=status.HTTP_204_NO_CONTENT,
 )
-def revoke_(
+async def revoke_(
     ws_id: str,
     invitation_id: str,
     user_id: str = Depends(get_current_user_id),
-    supabase: Client = Depends(get_supabase_admin),
+    supabase: AsyncClient = Depends(get_supabase_admin),
 ):
     try:
-        revoke_invitation(
+        await revoke_invitation(
             supabase,
             user_id=user_id,
             workspace_id=ws_id,
@@ -114,24 +114,24 @@ def revoke_(
 
 
 @router.get("/me/invitations", response_model=list[InvitationResponse])
-def list_mine_(
+async def list_mine_(
     user_id: str = Depends(get_current_user_id),
-    supabase: Client = Depends(get_supabase_admin),
+    supabase: AsyncClient = Depends(get_supabase_admin),
 ):
-    return list_my_invitations(supabase, user_id=user_id)
+    return await list_my_invitations(supabase, user_id=user_id)
 
 
 @router.post(
     "/invitations/{invitation_id}/accept",
     response_model=InvitationResponse,
 )
-def accept_(
+async def accept_(
     invitation_id: str,
     user_id: str = Depends(get_current_user_id),
-    supabase: Client = Depends(get_supabase_admin),
+    supabase: AsyncClient = Depends(get_supabase_admin),
 ):
     try:
-        return accept_invitation(
+        return await accept_invitation(
             supabase, user_id=user_id, invitation_id=invitation_id
         )
     except InvitationNotFoundError as exc:
@@ -153,13 +153,13 @@ def accept_(
     "/invitations/{invitation_id}/decline",
     response_model=InvitationResponse,
 )
-def decline_(
+async def decline_(
     invitation_id: str,
     user_id: str = Depends(get_current_user_id),
-    supabase: Client = Depends(get_supabase_admin),
+    supabase: AsyncClient = Depends(get_supabase_admin),
 ):
     try:
-        return decline_invitation(
+        return await decline_invitation(
             supabase, user_id=user_id, invitation_id=invitation_id
         )
     except InvitationNotFoundError as exc:

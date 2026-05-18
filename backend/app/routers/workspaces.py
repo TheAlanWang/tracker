@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from supabase import Client
+from supabase import AsyncClient
 
 from app.core.deps import get_current_user_id, get_supabase_admin
 from app.schemas.workspace import (
@@ -22,21 +22,21 @@ router = APIRouter(prefix="/workspaces", tags=["workspaces"])
 
 
 @router.get("", response_model=list[WorkspaceResponse])
-def list_(
+async def list_(
     user_id: str = Depends(get_current_user_id),
-    supabase: Client = Depends(get_supabase_admin),
+    supabase: AsyncClient = Depends(get_supabase_admin),
 ):
-    return list_workspaces_for_user(supabase, user_id=user_id)
+    return await list_workspaces_for_user(supabase, user_id=user_id)
 
 
 @router.post("", response_model=WorkspaceResponse, status_code=status.HTTP_201_CREATED)
-def create(
+async def create(
     payload: WorkspaceCreate,
     user_id: str = Depends(get_current_user_id),
-    supabase: Client = Depends(get_supabase_admin),
+    supabase: AsyncClient = Depends(get_supabase_admin),
 ):
     try:
-        return create_workspace(supabase, user_id=user_id, payload=payload)
+        return await create_workspace(supabase, user_id=user_id, payload=payload)
     except WorkspaceSlugExistsError as exc:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
@@ -45,13 +45,13 @@ def create(
 
 
 @router.get("/{ws_id}", response_model=WorkspaceResponse)
-def get(
+async def get(
     ws_id: str,
     user_id: str = Depends(get_current_user_id),
-    supabase: Client = Depends(get_supabase_admin),
+    supabase: AsyncClient = Depends(get_supabase_admin),
 ):
     try:
-        return get_workspace(supabase, user_id=user_id, workspace_id=ws_id)
+        return await get_workspace(supabase, user_id=user_id, workspace_id=ws_id)
     except WorkspacePermissionError as exc:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN) from exc
     except WorkspaceNotFoundError as exc:
@@ -59,14 +59,14 @@ def get(
 
 
 @router.patch("/{ws_id}", response_model=WorkspaceResponse)
-def update(
+async def update(
     ws_id: str,
     payload: WorkspaceUpdate,
     user_id: str = Depends(get_current_user_id),
-    supabase: Client = Depends(get_supabase_admin),
+    supabase: AsyncClient = Depends(get_supabase_admin),
 ):
     try:
-        return update_workspace(
+        return await update_workspace(
             supabase, user_id=user_id, workspace_id=ws_id, payload=payload
         )
     except WorkspacePermissionError as exc:
@@ -76,13 +76,13 @@ def update(
 
 
 @router.delete("/{ws_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete(
+async def delete(
     ws_id: str,
     user_id: str = Depends(get_current_user_id),
-    supabase: Client = Depends(get_supabase_admin),
+    supabase: AsyncClient = Depends(get_supabase_admin),
 ):
     try:
-        delete_workspace(supabase, user_id=user_id, workspace_id=ws_id)
+        await delete_workspace(supabase, user_id=user_id, workspace_id=ws_id)
     except WorkspacePermissionError as exc:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN) from exc
     except WorkspaceNotFoundError as exc:

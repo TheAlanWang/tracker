@@ -12,7 +12,7 @@ def _c(**over):
     return CommentResponse(**base)
 
 
-def test_list_comments_200(client, make_token):
+async def test_list_comments_200(client, make_token):
     with patch("app.routers.comments.list_comments", return_value=[_c()]):
         token = make_token(sub="u-1")
         r = client.get("/tasks/i-1/comments", headers={"Authorization": f"Bearer {token}"})
@@ -20,7 +20,7 @@ def test_list_comments_200(client, make_token):
         assert len(r.json()) == 1
 
 
-def test_create_comment_201(client, make_token):
+async def test_create_comment_201(client, make_token):
     with patch("app.routers.comments.create_comment", return_value=_c(body="new")):
         token = make_token(sub="u-1")
         r = client.post(
@@ -31,7 +31,7 @@ def test_create_comment_201(client, make_token):
         assert r.status_code == 201
 
 
-def test_patch_comment_403_non_author(client, make_token):
+async def test_patch_comment_403_non_author(client, make_token):
     from app.services.comments import CommentPermissionError
     with patch("app.routers.comments.update_comment", side_effect=CommentPermissionError("c-1")):
         token = make_token(sub="other")

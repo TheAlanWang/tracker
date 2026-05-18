@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from supabase import Client
+from supabase import AsyncClient
 
 from app.core.deps import get_current_user_id, get_supabase_admin
 from app.schemas.task import (
@@ -28,14 +28,14 @@ router = APIRouter(tags=["tasks"])
 @router.get(
     "/workspaces/{ws_id}/tasks", response_model=list[TaskResponse]
 )
-def list_workspace(
+async def list_workspace(
     ws_id: str,
     assignee_id: str | None = Query(None),
     user_id: str = Depends(get_current_user_id),
-    supabase: Client = Depends(get_supabase_admin),
+    supabase: AsyncClient = Depends(get_supabase_admin),
 ):
     try:
-        return list_workspace_tasks(
+        return await list_workspace_tasks(
             supabase,
             user_id=user_id,
             workspace_id=ws_id,
@@ -48,17 +48,17 @@ def list_workspace(
 @router.get(
     "/projects/{p_id}/tasks", response_model=list[TaskResponse]
 )
-def list_(
+async def list_(
     p_id: str,
     # Aliased so the URL param is `?status=` but the local name is `status_filter`,
     # avoiding the shadow with the FastAPI `status` module.
     status_filter: TaskStatus | None = Query(None, alias="status"),
     sprint: str | None = Query(None),
     user_id: str = Depends(get_current_user_id),
-    supabase: Client = Depends(get_supabase_admin),
+    supabase: AsyncClient = Depends(get_supabase_admin),
 ):
     try:
-        return list_tasks(
+        return await list_tasks(
             supabase, user_id=user_id, project_id=p_id,
             status=status_filter, sprint=sprint,
         )
@@ -73,14 +73,14 @@ def list_(
     response_model=TaskResponse,
     status_code=status.HTTP_201_CREATED,
 )
-def create(
+async def create(
     p_id: str,
     payload: TaskCreate,
     user_id: str = Depends(get_current_user_id),
-    supabase: Client = Depends(get_supabase_admin),
+    supabase: AsyncClient = Depends(get_supabase_admin),
 ):
     try:
-        return create_task(
+        return await create_task(
             supabase, user_id=user_id, project_id=p_id, payload=payload
         )
     except TaskPermissionError as exc:
@@ -90,13 +90,13 @@ def create(
 
 
 @router.get("/tasks/{t_id}", response_model=TaskResponse)
-def get(
+async def get(
     t_id: str,
     user_id: str = Depends(get_current_user_id),
-    supabase: Client = Depends(get_supabase_admin),
+    supabase: AsyncClient = Depends(get_supabase_admin),
 ):
     try:
-        return get_task(supabase, user_id=user_id, task_id=t_id)
+        return await get_task(supabase, user_id=user_id, task_id=t_id)
     except TaskPermissionError as exc:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN) from exc
     except TaskNotFoundError as exc:
@@ -104,14 +104,14 @@ def get(
 
 
 @router.patch("/tasks/{t_id}", response_model=TaskResponse)
-def update(
+async def update(
     t_id: str,
     payload: TaskUpdate,
     user_id: str = Depends(get_current_user_id),
-    supabase: Client = Depends(get_supabase_admin),
+    supabase: AsyncClient = Depends(get_supabase_admin),
 ):
     try:
-        return update_task(
+        return await update_task(
             supabase, user_id=user_id, task_id=t_id, payload=payload
         )
     except TaskPermissionError as exc:
@@ -121,13 +121,13 @@ def update(
 
 
 @router.delete("/tasks/{t_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete(
+async def delete(
     t_id: str,
     user_id: str = Depends(get_current_user_id),
-    supabase: Client = Depends(get_supabase_admin),
+    supabase: AsyncClient = Depends(get_supabase_admin),
 ):
     try:
-        delete_task(supabase, user_id=user_id, task_id=t_id)
+        await delete_task(supabase, user_id=user_id, task_id=t_id)
     except TaskPermissionError as exc:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN) from exc
     except TaskNotFoundError as exc:
@@ -135,14 +135,14 @@ def delete(
 
 
 @router.post("/tasks/{t_id}/move", response_model=TaskResponse)
-def move(
+async def move(
     t_id: str,
     payload: TaskMove,
     user_id: str = Depends(get_current_user_id),
-    supabase: Client = Depends(get_supabase_admin),
+    supabase: AsyncClient = Depends(get_supabase_admin),
 ):
     try:
-        return move_task(
+        return await move_task(
             supabase,
             user_id=user_id,
             task_id=t_id,

@@ -1,5 +1,5 @@
 from postgrest.exceptions import APIError
-from supabase import Client
+from supabase import AsyncClient
 
 from app.schemas.project import ProjectCreate, ProjectResponse, ProjectUpdate
 
@@ -20,15 +20,14 @@ class ProjectKeyExistsError(ProjectError):
     pass
 
 
-def _is_member(supabase: Client, *, user_id: str, workspace_id: str) -> bool:
+async def _is_member(supabase: AsyncClient, *, user_id: str, workspace_id: str) -> bool:
     rows = (
-        supabase.table("workspace_members")
+        await supabase.table("workspace_members")
         .select("role")
         .eq("workspace_id", workspace_id)
         .eq("user_id", user_id)
         .execute()
-        .data
-    )
+    ).data
     return bool(rows)
 
 
@@ -41,16 +40,15 @@ def _derive_base_key(name: str) -> str:
     return single[:3]
 
 
-def _resolve_unique_key(
-    supabase: Client, *, workspace_id: str, base: str
+async def _resolve_unique_key(
+    supabase: AsyncClient, *, workspace_id: str, base: str
 ) -> str:
     rows = (
-        supabase.table("projects")
+        await supabase.table("projects")
         .select("key")
         .eq("workspace_id", workspace_id)
         .execute()
-        .data
-    )
+    ).data
     existing = {r["key"] for r in rows}
     if base not in existing:
         return base
@@ -60,10 +58,10 @@ def _resolve_unique_key(
     return f"{base}{n}"
 
 
-def create_project(
-    supabase: Client, *, user_id: str, workspace_id: str, payload: ProjectCreate
+async def create_project(
+    supabase: AsyncClient, *, user_id: str, workspace_id: str, payload: ProjectCreate
 ) -> ProjectResponse:
-    if not _is_member(supabase, user_id=user_id, workspace_id=workspace_id):
+    if not await _is_member(supabase, user_id=user_id, workspace_id=workspace_id):
         raise ProjectPermissionError(workspace_id)
 
     # If no key supplied, derive from name and auto-bump suffix on collision
@@ -74,10 +72,10 @@ def create_project(
         base = _derive_base_key(payload.name)
         if len(base) < 2:
             raise ProjectKeyExistsError("__derive_failed__")
-        key = _resolve_unique_key(supabase, workspace_id=workspace_id, base=base)
+        key = await _resolve_unique_key(supabase, workspace_id=workspace_id, base=base)
 
     try:
-        result = (
+        result = await (
             supabase.table("projects")
             .insert(
                 {
@@ -95,10 +93,10 @@ def create_project(
             # If we derived it, retry once with a fresh resolve. Otherwise surface.
             if not payload.key:
                 base = _derive_base_key(payload.name)
-                key = _resolve_unique_key(
+                key = await _resolve_unique_key(
                     supabase, workspace_id=workspace_id, base=base
                 )
-                result = (
+                result = await (
                     supabase.table("projects")
                     .insert(
                         {
@@ -118,46 +116,44 @@ def create_project(
     return ProjectResponse(**result.data[0])
 
 
-def list_projects(
-    supabase: Client, *, user_id: str, workspace_id: str
+async def list_projects(
+    supabase: AsyncClient, *, user_id: str, workspace_id: str
 ) -> list[ProjectResponse]:
-    if not _is_member(supabase, user_id=user_id, workspace_id=workspace_id):
+    if not await _is_member(supabase, user_id=user_id, workspace_id=workspace_id):
         raise ProjectPermissionError(workspace_id)
 
     rows = (
-        supabase.table("projects")
+        await supabase.table("projects")
         .select("*")
         .eq("workspace_id", workspace_id)
         .order("created_at")
         .execute()
-        .data
-    )
+    ).data
     return [ProjectResponse(**r) for r in rows]
 
 
-def get_project(
-    supabase: Client, *, user_id: str, project_id: str
+async def get_project(
+    supabase: AsyncClient, *, user_id: str, project_id: str
 ) -> ProjectResponse:
     row = (
-        supabase.table("projects")
+        await supabase.table("projects")
         .select("*")
         .eq("id", project_id)
         .single()
         .execute()
-        .data
-    )
+    ).data
     if not row:
         raise ProjectNotFoundError(project_id)
-    if not _is_member(supabase, user_id=user_id, workspace_id=row["workspace_id"]):
+    if not await _is_member(supabase, user_id=user_id, workspace_id=row["workspace_id"]):
         raise ProjectPermissionError(project_id)
     return ProjectResponse(**row)
 
 
-def update_project(
-    supabase: Client, *, user_id: str, project_id: str, payload: ProjectUpdate
+async def update_project(
+    supabase: AsyncClient, *, user_id: str, project_id: str, payload: ProjectUpdate
 ) -> ProjectResponse:
     # Fetch first to discover workspace_id and check membership
-    current = get_project(supabase, user_id=user_id, project_id=project_id)
+    current = await get_project(supabase, user_id=user_id, project_id=project_id)
 
     updates = payload.model_dump(exclude_unset=True)
     if not updates:
@@ -177,18 +173,17 @@ def update_project(
         # that protects creates. We surface as ProjectKeyExistsError so the
         # router can return 409 with a helpful message.
         existing = (
-            supabase.table("projects")
+            await supabase.table("projects")
             .select("id")
             .eq("workspace_id", current.workspace_id)
             .eq("key", new_key)
             .neq("id", project_id)
             .execute()
-            .data
-        )
+        ).data
         if existing:
             raise ProjectKeyExistsError(new_key)
         try:
-            supabase.rpc(
+            await supabase.rpc(
                 "rename_project_key",
                 {"p_project_id": project_id, "p_new_key": new_key},
             ).execute()
@@ -200,24 +195,22 @@ def update_project(
             raise
 
     if updates:
-        supabase.table("projects").update(updates).eq("id", project_id).execute()
-
+        await supabase.table("projects").update(updates).eq("id", project_id).execute()
     # Always re-fetch — the RPC bypassed PostgREST so we don't have its
     # post-update row, and the partial update only returned its own row.
     refreshed = (
-        supabase.table("projects")
+        await supabase.table("projects")
         .select("*")
         .eq("id", project_id)
         .single()
         .execute()
-        .data
-    )
+    ).data
     return ProjectResponse(**refreshed)
 
 
-def delete_project(
-    supabase: Client, *, user_id: str, project_id: str
+async def delete_project(
+    supabase: AsyncClient, *, user_id: str, project_id: str
 ) -> None:
     # Verify membership via get_project's checks
-    get_project(supabase, user_id=user_id, project_id=project_id)
-    supabase.table("projects").delete().eq("id", project_id).execute()
+    await get_project(supabase, user_id=user_id, project_id=project_id)
+    await supabase.table("projects").delete().eq("id", project_id).execute()

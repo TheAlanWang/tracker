@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from supabase import Client
+from supabase import AsyncClient
 
 from app.core.deps import get_current_user_id, get_supabase_admin
 from app.schemas.watcher import WatcherResponse, WatchedTaskResponse
@@ -20,13 +20,13 @@ router = APIRouter(tags=["watchers"])
     response_model=WatcherResponse,
     status_code=status.HTTP_201_CREATED,
 )
-def watch_(
+async def watch_(
     task_id: str,
     user_id: str = Depends(get_current_user_id),
-    supabase: Client = Depends(get_supabase_admin),
+    supabase: AsyncClient = Depends(get_supabase_admin),
 ):
     try:
-        return watch_task(supabase, user_id=user_id, task_id=task_id)
+        return await watch_task(supabase, user_id=user_id, task_id=task_id)
     except TaskNotFoundError as exc:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Task not found"
@@ -42,13 +42,13 @@ def watch_(
     "/tasks/{task_id}/watchers/me",
     status_code=status.HTTP_204_NO_CONTENT,
 )
-def unwatch_(
+async def unwatch_(
     task_id: str,
     user_id: str = Depends(get_current_user_id),
-    supabase: Client = Depends(get_supabase_admin),
+    supabase: AsyncClient = Depends(get_supabase_admin),
 ):
     try:
-        unwatch_task(supabase, user_id=user_id, task_id=task_id)
+        await unwatch_task(supabase, user_id=user_id, task_id=task_id)
     except TaskNotFoundError as exc:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Task not found"
@@ -64,13 +64,13 @@ def unwatch_(
     "/tasks/{task_id}/watchers",
     response_model=list[WatcherResponse],
 )
-def list_(
+async def list_(
     task_id: str,
     user_id: str = Depends(get_current_user_id),
-    supabase: Client = Depends(get_supabase_admin),
+    supabase: AsyncClient = Depends(get_supabase_admin),
 ):
     try:
-        return list_task_watchers(supabase, user_id=user_id, task_id=task_id)
+        return await list_task_watchers(supabase, user_id=user_id, task_id=task_id)
     except TaskNotFoundError as exc:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Task not found"
@@ -86,8 +86,8 @@ def list_(
     "/me/watched-tasks",
     response_model=list[WatchedTaskResponse],
 )
-def list_mine_(
+async def list_mine_(
     user_id: str = Depends(get_current_user_id),
-    supabase: Client = Depends(get_supabase_admin),
+    supabase: AsyncClient = Depends(get_supabase_admin),
 ):
-    return list_my_watched_tasks(supabase, user_id=user_id)
+    return await list_my_watched_tasks(supabase, user_id=user_id)

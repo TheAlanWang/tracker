@@ -6,7 +6,7 @@ authoritative gate; RLS policies are defense-in-depth.
 """
 
 from postgrest.exceptions import APIError
-from supabase import Client
+from supabase import AsyncClient
 
 from app.schemas.workspace import (
     WorkspaceCreate,
@@ -31,23 +31,22 @@ class WorkspaceSlugExistsError(WorkspaceError):
     pass
 
 
-def _is_member(supabase: Client, *, user_id: str, workspace_id: str) -> bool:
+async def _is_member(supabase: AsyncClient, *, user_id: str, workspace_id: str) -> bool:
     rows = (
-        supabase.table("workspace_members")
+        await supabase.table("workspace_members")
         .select("role")
         .eq("workspace_id", workspace_id)
         .eq("user_id", user_id)
         .execute()
-        .data
-    )
+    ).data
     return bool(rows)
 
 
-def create_workspace(
-    supabase: Client, *, user_id: str, payload: WorkspaceCreate
+async def create_workspace(
+    supabase: AsyncClient, *, user_id: str, payload: WorkspaceCreate
 ) -> WorkspaceResponse:
     try:
-        result = (
+        result = await (
             supabase.table("workspaces")
             .insert(
                 {"name": payload.name, "slug": payload.slug, "owner_id": user_id}
@@ -62,72 +61,68 @@ def create_workspace(
     workspace = result.data[0]
 
     # Auto-insert the owner as a member with role=owner
-    supabase.table("workspace_members").insert(
+    await supabase.table("workspace_members").insert(
         {"workspace_id": workspace["id"], "user_id": user_id, "role": "owner"}
     ).execute()
 
     return WorkspaceResponse(**workspace)
 
 
-def get_workspace(
-    supabase: Client, *, user_id: str, workspace_id: str
+async def get_workspace(
+    supabase: AsyncClient, *, user_id: str, workspace_id: str
 ) -> WorkspaceResponse:
-    if not _is_member(supabase, user_id=user_id, workspace_id=workspace_id):
+    if not await _is_member(supabase, user_id=user_id, workspace_id=workspace_id):
         raise WorkspacePermissionError(workspace_id)
 
     row = (
-        supabase.table("workspaces")
+        await supabase.table("workspaces")
         .select("*")
         .eq("id", workspace_id)
         .single()
         .execute()
-        .data
-    )
+    ).data
     if not row:
         raise WorkspaceNotFoundError(workspace_id)
 
     return WorkspaceResponse(**row)
 
 
-def list_workspaces_for_user(
-    supabase: Client, *, user_id: str
+async def list_workspaces_for_user(
+    supabase: AsyncClient, *, user_id: str
 ) -> list[WorkspaceResponse]:
     member_rows = (
-        supabase.table("workspace_members")
+        await supabase.table("workspace_members")
         .select("workspace_id")
         .eq("user_id", user_id)
         .execute()
-        .data
-    )
+    ).data
     if not member_rows:
         return []
 
     ws_ids = [r["workspace_id"] for r in member_rows]
     rows = (
-        supabase.table("workspaces")
+        await supabase.table("workspaces")
         .select("*")
         .in_("id", ws_ids)
         .execute()
-        .data
-    )
+    ).data
     return [WorkspaceResponse(**r) for r in rows]
 
 
-def update_workspace(
-    supabase: Client,
+async def update_workspace(
+    supabase: AsyncClient,
     *,
     user_id: str,
     workspace_id: str,
     payload: WorkspaceUpdate,
 ) -> WorkspaceResponse:
     row = (
-        supabase.table("workspaces")
+        await supabase.table("workspaces")
         .select("*")
         .eq("id", workspace_id)
         .single()
         .execute()
-        .data
-    )
+    ).data
     if not row:
         raise WorkspaceNotFoundError(workspace_id)
     if row["owner_id"] != user_id:
@@ -144,29 +139,27 @@ def update_workspace(
         updates["features"] = {**existing, **updates["features"]}
 
     updated = (
-        supabase.table("workspaces")
+        await supabase.table("workspaces")
         .update(updates)
         .eq("id", workspace_id)
         .execute()
-        .data[0]
-    )
+    ).data[0]
     return WorkspaceResponse(**updated)
 
 
-def delete_workspace(
-    supabase: Client, *, user_id: str, workspace_id: str
+async def delete_workspace(
+    supabase: AsyncClient, *, user_id: str, workspace_id: str
 ) -> None:
     row = (
-        supabase.table("workspaces")
+        await supabase.table("workspaces")
         .select("owner_id")
         .eq("id", workspace_id)
         .single()
         .execute()
-        .data
-    )
+    ).data
     if not row:
         raise WorkspaceNotFoundError(workspace_id)
     if row["owner_id"] != user_id:
         raise WorkspacePermissionError(workspace_id)
 
-    supabase.table("workspaces").delete().eq("id", workspace_id).execute()
+    await supabase.table("workspaces").delete().eq("id", workspace_id).execute()

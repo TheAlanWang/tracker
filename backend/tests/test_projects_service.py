@@ -29,38 +29,38 @@ def mock_supabase():
     return MagicMock()
 
 
-def test_create_project_returns_response(mock_supabase):
+async def test_create_project_returns_response(mock_supabase):
     mock_supabase.table.return_value.select.return_value.eq.return_value.eq.return_value.execute.return_value.data = [{"role": "member"}]
     mock_supabase.table.return_value.insert.return_value.execute.return_value.data = [_proj_row()]
-    result = create_project(
+    result = await create_project(
         mock_supabase, user_id="u1", workspace_id="ws-1",
         payload=ProjectCreate(name="Backend", key="BE"),
     )
     assert result.key == "BE"
 
 
-def test_create_project_non_member_raises(mock_supabase):
+async def test_create_project_non_member_raises(mock_supabase):
     mock_supabase.table.return_value.select.return_value.eq.return_value.eq.return_value.execute.return_value.data = []
     with pytest.raises(ProjectPermissionError):
-        create_project(
+        await create_project(
             mock_supabase, user_id="u1", workspace_id="ws-1",
             payload=ProjectCreate(name="X", key="XX"),
         )
 
 
-def test_create_project_duplicate_key_raises(mock_supabase):
+async def test_create_project_duplicate_key_raises(mock_supabase):
     mock_supabase.table.return_value.select.return_value.eq.return_value.eq.return_value.execute.return_value.data = [{"role": "member"}]
     mock_supabase.table.return_value.insert.return_value.execute.side_effect = APIError(
         {"code": "23505", "message": "duplicate", "details": "(workspace_id, key) already exists"}
     )
     with pytest.raises(ProjectKeyExistsError):
-        create_project(
+        await create_project(
             mock_supabase, user_id="u1", workspace_id="ws-1",
             payload=ProjectCreate(name="X", key="BE"),
         )
 
 
-def test_get_project_not_found_raises(mock_supabase):
+async def test_get_project_not_found_raises(mock_supabase):
     proj_chain = MagicMock()
     proj_chain.select.return_value.eq.return_value.single.return_value.execute.return_value.data = None
 
@@ -72,4 +72,4 @@ def test_get_project_not_found_raises(mock_supabase):
     mock_supabase.table.side_effect = table_router
 
     with pytest.raises(ProjectNotFoundError):
-        get_project(mock_supabase, user_id="u1", project_id="missing")
+        await get_project(mock_supabase, user_id="u1", project_id="missing")

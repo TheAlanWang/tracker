@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from supabase import Client
+from supabase import AsyncClient
 
 from app.core.deps import get_current_user_id, get_supabase_admin
 from app.schemas.dependency import (
@@ -28,13 +28,13 @@ router = APIRouter(tags=["dependencies"])
     "/tasks/{t_id}/dependencies",
     response_model=TaskDependencies,
 )
-def list_(
+async def list_(
     t_id: str,
     user_id: str = Depends(get_current_user_id),
-    supabase: Client = Depends(get_supabase_admin),
+    supabase: AsyncClient = Depends(get_supabase_admin),
 ):
     try:
-        return list_dependencies(supabase, user_id=user_id, task_id=t_id)
+        return await list_dependencies(supabase, user_id=user_id, task_id=t_id)
     except DependencyPermissionError as exc:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN) from exc
     except TaskNotFoundError as exc:
@@ -46,13 +46,13 @@ def list_(
     response_model=DependencyResponse,
     status_code=status.HTTP_201_CREATED,
 )
-def create(
+async def create(
     payload: DependencyCreate,
     user_id: str = Depends(get_current_user_id),
-    supabase: Client = Depends(get_supabase_admin),
+    supabase: AsyncClient = Depends(get_supabase_admin),
 ):
     try:
-        return create_dependency(
+        return await create_dependency(
             supabase,
             user_id=user_id,
             blocker_task_id=payload.blocker_task_id,
@@ -81,13 +81,13 @@ def create(
 
 
 @router.get("/workspaces/{ws_id}/blocked-tasks", response_model=list[str])
-def list_blocked(
+async def list_blocked(
     ws_id: str,
     user_id: str = Depends(get_current_user_id),
-    supabase: Client = Depends(get_supabase_admin),
+    supabase: AsyncClient = Depends(get_supabase_admin),
 ):
     try:
-        return list_blocked_task_ids(
+        return await list_blocked_task_ids(
             supabase, user_id=user_id, workspace_id=ws_id
         )
     except DependencyPermissionError as exc:
@@ -97,13 +97,13 @@ def list_blocked(
 @router.delete(
     "/dependencies/{d_id}", status_code=status.HTTP_204_NO_CONTENT
 )
-def delete(
+async def delete(
     d_id: str,
     user_id: str = Depends(get_current_user_id),
-    supabase: Client = Depends(get_supabase_admin),
+    supabase: AsyncClient = Depends(get_supabase_admin),
 ):
     try:
-        delete_dependency(supabase, user_id=user_id, dependency_id=d_id)
+        await delete_dependency(supabase, user_id=user_id, dependency_id=d_id)
     except DependencyPermissionError as exc:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN) from exc
     except DependencyNotFoundError as exc:

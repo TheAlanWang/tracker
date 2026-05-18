@@ -1,12 +1,12 @@
 from unittest.mock import patch
 
 
-def test_me_requires_auth(client):
+async def test_me_requires_auth(client):
     response = client.get("/me")
     assert response.status_code == 401
 
 
-def test_me_returns_user_info_with_empty_workspaces(client, make_token):
+async def test_me_returns_user_info_with_empty_workspaces(client, make_token):
     with patch("app.routers.me.list_workspaces_for_user", return_value=[]):
         token = make_token(sub="user-xyz", email="user@example.com")
         response = client.get("/me", headers={"Authorization": f"Bearer {token}"})
@@ -17,7 +17,7 @@ def test_me_returns_user_info_with_empty_workspaces(client, make_token):
         assert body["workspaces"] == []
 
 
-def test_me_returns_workspaces_when_user_has_some(client, make_token):
+async def test_me_returns_workspaces_when_user_has_some(client, make_token):
     from app.schemas.workspace import WorkspaceResponse
 
     fake_ws = WorkspaceResponse(

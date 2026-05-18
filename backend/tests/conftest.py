@@ -1,4 +1,5 @@
 import time
+from unittest.mock import MagicMock
 
 import jwt
 import pytest
@@ -7,6 +8,24 @@ from fastapi.testclient import TestClient
 from app.main import app
 
 TEST_JWT_SECRET = "test-secret-key-padded-for-tests"
+
+
+# Async-aware MagicMock: services do `await supabase...execute()` now,
+# so `.execute()` calls on mocks must return a coroutine. Patch once at
+# import time so existing `.execute.return_value.data = X` keeps working.
+_orig_magicmock_call = MagicMock.__call__
+
+
+def _async_aware_magicmock_call(self, *args, **kwargs):
+    result = _orig_magicmock_call(self, *args, **kwargs)
+    if (getattr(self, "_mock_name", "") or "") == "execute":
+        async def _coro():
+            return result
+        return _coro()
+    return result
+
+
+MagicMock.__call__ = _async_aware_magicmock_call
 
 
 @pytest.fixture(autouse=True)

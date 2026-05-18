@@ -18,7 +18,7 @@ def _n(**over):
     return NotificationResponse(**base)
 
 
-def test_list_notifications_200(client, make_token):
+async def test_list_notifications_200(client, make_token):
     with patch(
         "app.routers.notifications.list_my_notifications",
         return_value=[_n(), _n(id="n-2", type="commented")],
@@ -31,7 +31,7 @@ def test_list_notifications_200(client, make_token):
         assert len(r.json()) == 2
 
 
-def test_mark_all_read_returns_count(client, make_token):
+async def test_mark_all_read_returns_count(client, make_token):
     with patch("app.routers.notifications.mark_all_read", return_value=3):
         token = make_token(sub="u-1")
         r = client.post(

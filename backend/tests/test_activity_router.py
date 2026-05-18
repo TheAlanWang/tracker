@@ -16,7 +16,7 @@ def _a(**over):
     return ActivityResponse(**base)
 
 
-def test_list_activity_200(client, make_token):
+async def test_list_activity_200(client, make_token):
     with patch(
         "app.routers.activity.list_task_activity",
         return_value=[_a(), _a(id="a-2", action="commented")],

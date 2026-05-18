@@ -1,7 +1,7 @@
 """Label business logic. Workspace-scoped + per-task attach/detach."""
 
 from postgrest.exceptions import APIError
-from supabase import Client
+from supabase import AsyncClient
 
 from app.schemas.label import LabelCreate, LabelResponse
 
@@ -26,50 +26,47 @@ class TaskNotFoundError(LabelError):
     pass
 
 
-def _is_member(supabase: Client, *, user_id: str, workspace_id: str) -> bool:
+async def _is_member(supabase: AsyncClient, *, user_id: str, workspace_id: str) -> bool:
     rows = (
-        supabase.table("workspace_members")
+        await supabase.table("workspace_members")
         .select("role")
         .eq("workspace_id", workspace_id)
         .eq("user_id", user_id)
         .execute()
-        .data
-    )
+    ).data
     return bool(rows)
 
 
-def list_labels(
-    supabase: Client, *, user_id: str, workspace_id: str
+async def list_labels(
+    supabase: AsyncClient, *, user_id: str, workspace_id: str
 ) -> list[LabelResponse]:
-    if not _is_member(supabase, user_id=user_id, workspace_id=workspace_id):
+    if not await _is_member(supabase, user_id=user_id, workspace_id=workspace_id):
         raise LabelPermissionError(workspace_id)
     rows = (
-        supabase.table("labels")
+        await supabase.table("labels")
         .select("*")
         .eq("workspace_id", workspace_id)
         .order("name")
         .execute()
-        .data
-    )
+    ).data
     return [LabelResponse(**r) for r in rows]
 
 
-def create_label(
-    supabase: Client, *, user_id: str, workspace_id: str, payload: LabelCreate
+async def create_label(
+    supabase: AsyncClient, *, user_id: str, workspace_id: str, payload: LabelCreate
 ) -> LabelResponse:
-    if not _is_member(supabase, user_id=user_id, workspace_id=workspace_id):
+    if not await _is_member(supabase, user_id=user_id, workspace_id=workspace_id):
         raise LabelPermissionError(workspace_id)
     try:
         row = (
-            supabase.table("labels")
+            await supabase.table("labels")
             .insert({
                 "workspace_id": workspace_id,
                 "name": payload.name,
                 "color": payload.color,
             })
             .execute()
-            .data[0]
-        )
+        ).data[0]
     except APIError as exc:
         if exc.code == "23505":
             raise LabelNameExistsError(payload.name) from exc
@@ -77,87 +74,79 @@ def create_label(
     return LabelResponse(**row)
 
 
-def delete_label(supabase: Client, *, user_id: str, label_id: str) -> None:
+async def delete_label(supabase: AsyncClient, *, user_id: str, label_id: str) -> None:
     row = (
-        supabase.table("labels")
+        await supabase.table("labels")
         .select("workspace_id")
         .eq("id", label_id)
         .single()
         .execute()
-        .data
-    )
+    ).data
     if not row:
         raise LabelNotFoundError(label_id)
-    if not _is_member(supabase, user_id=user_id, workspace_id=row["workspace_id"]):
+    if not await _is_member(supabase, user_id=user_id, workspace_id=row["workspace_id"]):
         raise LabelPermissionError(label_id)
-    supabase.table("labels").delete().eq("id", label_id).execute()
-
-
-def list_task_labels(
-    supabase: Client, *, user_id: str, task_id: str
+    await supabase.table("labels").delete().eq("id", label_id).execute()
+async def list_task_labels(
+    supabase: AsyncClient, *, user_id: str, task_id: str
 ) -> list[LabelResponse]:
     task = (
-        supabase.table("tasks")
+        await supabase.table("tasks")
         .select("workspace_id")
         .eq("id", task_id)
         .single()
         .execute()
-        .data
-    )
+    ).data
     if not task:
         raise TaskNotFoundError(task_id)
-    if not _is_member(supabase, user_id=user_id, workspace_id=task["workspace_id"]):
+    if not await _is_member(supabase, user_id=user_id, workspace_id=task["workspace_id"]):
         raise LabelPermissionError(task_id)
     # Two-query approach: get label_ids via join table, then fetch labels
     rels = (
-        supabase.table("task_labels")
+        await supabase.table("task_labels")
         .select("label_id")
         .eq("task_id", task_id)
         .execute()
-        .data
-    )
+    ).data
     if not rels:
         return []
     label_ids = [r["label_id"] for r in rels]
     rows = (
-        supabase.table("labels")
+        await supabase.table("labels")
         .select("*")
         .in_("id", label_ids)
         .order("name")
         .execute()
-        .data
-    )
+    ).data
     return [LabelResponse(**r) for r in rows]
 
 
-def attach_label(
-    supabase: Client, *, user_id: str, task_id: str, label_id: str
+async def attach_label(
+    supabase: AsyncClient, *, user_id: str, task_id: str, label_id: str
 ) -> None:
     task = (
-        supabase.table("tasks")
+        await supabase.table("tasks")
         .select("workspace_id")
         .eq("id", task_id)
         .single()
         .execute()
-        .data
-    )
+    ).data
     if not task:
         raise TaskNotFoundError(task_id)
-    if not _is_member(supabase, user_id=user_id, workspace_id=task["workspace_id"]):
+    if not await _is_member(supabase, user_id=user_id, workspace_id=task["workspace_id"]):
         raise LabelPermissionError(task_id)
     # Verify label belongs to same workspace
     label = (
-        supabase.table("labels")
+        await supabase.table("labels")
         .select("workspace_id")
         .eq("id", label_id)
         .single()
         .execute()
-        .data
-    )
+    ).data
     if not label or label["workspace_id"] != task["workspace_id"]:
         raise LabelNotFoundError(label_id)
     try:
-        supabase.table("task_labels").insert({
+        await supabase.table("task_labels").insert({
             "task_id": task_id,
             "label_id": label_id,
         }).execute()
@@ -168,22 +157,21 @@ def attach_label(
         raise
 
 
-def detach_label(
-    supabase: Client, *, user_id: str, task_id: str, label_id: str
+async def detach_label(
+    supabase: AsyncClient, *, user_id: str, task_id: str, label_id: str
 ) -> None:
     task = (
-        supabase.table("tasks")
+        await supabase.table("tasks")
         .select("workspace_id")
         .eq("id", task_id)
         .single()
         .execute()
-        .data
-    )
+    ).data
     if not task:
         raise TaskNotFoundError(task_id)
-    if not _is_member(supabase, user_id=user_id, workspace_id=task["workspace_id"]):
+    if not await _is_member(supabase, user_id=user_id, workspace_id=task["workspace_id"]):
         raise LabelPermissionError(task_id)
-    (
+    await (
         supabase.table("task_labels")
         .delete()
         .eq("task_id", task_id)

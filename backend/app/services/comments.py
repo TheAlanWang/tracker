@@ -8,7 +8,7 @@ the comment author are skipped.
 
 import re
 
-from supabase import Client
+from supabase import AsyncClient
 
 from app.schemas.comment import CommentCreate, CommentResponse, CommentUpdate
 
@@ -29,58 +29,55 @@ class TaskNotFoundError(CommentError):
     pass
 
 
-def _is_member(supabase: Client, *, user_id: str, workspace_id: str) -> bool:
+async def _is_member(supabase: AsyncClient, *, user_id: str, workspace_id: str) -> bool:
     rows = (
-        supabase.table("workspace_members")
+        await supabase.table("workspace_members")
         .select("role")
         .eq("workspace_id", workspace_id)
         .eq("user_id", user_id)
         .execute()
-        .data
-    )
+    ).data
     return bool(rows)
 
 
-def _fetch_task(supabase: Client, task_id: str) -> dict | None:
+async def _fetch_task(supabase: AsyncClient, task_id: str) -> dict | None:
     return (
-        supabase.table("tasks")
+        await supabase.table("tasks")
         .select("*")
         .eq("id", task_id)
         .single()
         .execute()
-        .data
-    )
+    ).data
 
 
-def _ensure_member_via_task(supabase: Client, user_id: str, task_id: str) -> dict:
-    task = _fetch_task(supabase, task_id)
+async def _ensure_member_via_task(supabase: AsyncClient, user_id: str, task_id: str) -> dict:
+    task = await _fetch_task(supabase, task_id)
     if not task:
         raise TaskNotFoundError(task_id)
-    if not _is_member(supabase, user_id=user_id, workspace_id=task["workspace_id"]):
+    if not await _is_member(supabase, user_id=user_id, workspace_id=task["workspace_id"]):
         raise CommentPermissionError(task_id)
     return task
 
 
-def list_comments(
-    supabase: Client, *, user_id: str, task_id: str
+async def list_comments(
+    supabase: AsyncClient, *, user_id: str, task_id: str
 ) -> list[CommentResponse]:
-    _ensure_member_via_task(supabase, user_id, task_id)
+    await _ensure_member_via_task(supabase, user_id, task_id)
     rows = (
-        supabase.table("comments")
+        await supabase.table("comments")
         .select("*")
         .eq("task_id", task_id)
         .order("created_at")
         .execute()
-        .data
-    )
+    ).data
     return [CommentResponse(**r) for r in rows]
 
 
 _MENTION_RE = re.compile(r"@([A-Za-z0-9._-]+)")
 
 
-def _fan_out_mentions(
-    supabase: Client,
+async def _fan_out_mentions(
+    supabase: AsyncClient,
     *,
     task_id: str,
     author_id: str,
@@ -98,12 +95,11 @@ def _fan_out_mentions(
     # Resolve the task's workspace so we only mention people who can actually
     # see this task.
     task_rows = (
-        supabase.table("tasks")
+        await supabase.table("tasks")
         .select("workspace_id, identifier, title")
         .eq("id", task_id)
         .execute()
-        .data
-    )
+    ).data
     if not task_rows:
         return
     workspace_id = task_rows[0]["workspace_id"]
@@ -111,12 +107,11 @@ def _fan_out_mentions(
     task_title = task_rows[0]["title"]
 
     member_rows = (
-        supabase.table("workspace_members")
+        await supabase.table("workspace_members")
         .select("user_id")
         .eq("workspace_id", workspace_id)
         .execute()
-        .data
-    )
+    ).data
     member_ids = {r["user_id"] for r in member_rows}
     if not member_ids:
         return
@@ -145,7 +140,7 @@ def _fan_out_mentions(
 
     for mentioned_id in matched:
         try:
-            supabase.table("notifications").insert(
+            await supabase.table("notifications").insert(
                 {
                     "user_id": mentioned_id,
                     "type": "mentioned",
@@ -163,21 +158,20 @@ def _fan_out_mentions(
             pass  # swallow per-row failures — better than half-notified
 
 
-def create_comment(
-    supabase: Client, *, user_id: str, task_id: str, payload: CommentCreate
+async def create_comment(
+    supabase: AsyncClient, *, user_id: str, task_id: str, payload: CommentCreate
 ) -> CommentResponse:
-    _ensure_member_via_task(supabase, user_id, task_id)
+    await _ensure_member_via_task(supabase, user_id, task_id)
     row = (
-        supabase.table("comments")
+        await supabase.table("comments")
         .insert({
             "task_id": task_id,
             "author_id": user_id,
             "body": payload.body,
         })
         .execute()
-        .data[0]
-    )
-    _fan_out_mentions(
+    ).data[0]
+    await _fan_out_mentions(
         supabase,
         task_id=task_id,
         author_id=user_id,
@@ -187,44 +181,41 @@ def create_comment(
     return CommentResponse(**row)
 
 
-def update_comment(
-    supabase: Client, *, user_id: str, comment_id: str, payload: CommentUpdate
+async def update_comment(
+    supabase: AsyncClient, *, user_id: str, comment_id: str, payload: CommentUpdate
 ) -> CommentResponse:
     row = (
-        supabase.table("comments")
+        await supabase.table("comments")
         .select("*")
         .eq("id", comment_id)
         .single()
         .execute()
-        .data
-    )
+    ).data
     if not row:
         raise CommentNotFoundError(comment_id)
     if row["author_id"] != user_id:
         raise CommentPermissionError(comment_id)
     updated = (
-        supabase.table("comments")
+        await supabase.table("comments")
         .update({"body": payload.body})
         .eq("id", comment_id)
         .execute()
-        .data[0]
-    )
+    ).data[0]
     return CommentResponse(**updated)
 
 
-def delete_comment(
-    supabase: Client, *, user_id: str, comment_id: str
+async def delete_comment(
+    supabase: AsyncClient, *, user_id: str, comment_id: str
 ) -> None:
     row = (
-        supabase.table("comments")
+        await supabase.table("comments")
         .select("*")
         .eq("id", comment_id)
         .single()
         .execute()
-        .data
-    )
+    ).data
     if not row:
         raise CommentNotFoundError(comment_id)
     if row["author_id"] != user_id:
         raise CommentPermissionError(comment_id)
-    supabase.table("comments").delete().eq("id", comment_id).execute()
+    await supabase.table("comments").delete().eq("id", comment_id).execute()

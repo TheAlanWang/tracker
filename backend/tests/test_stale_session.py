@@ -12,7 +12,7 @@ from unittest.mock import patch
 from postgrest.exceptions import APIError
 
 
-def test_create_workspace_stale_user_returns_401(client, make_token):
+async def test_create_workspace_stale_user_returns_401(client, make_token):
     """Stale JWT (auth.users wiped) → FK 23503 → translated to 401."""
     fk_error = APIError({
         "code": "23503",
@@ -34,7 +34,7 @@ def test_create_workspace_stale_user_returns_401(client, make_token):
         assert "no longer exists" in response.json()["detail"].lower()
 
 
-def test_unrelated_apierror_still_500(make_token):
+async def test_unrelated_apierror_still_500(make_token):
     """Other APIErrors (e.g. missing relation) should NOT be translated to 401.
 
     FastAPI's TestClient re-raises unhandled server exceptions by default.

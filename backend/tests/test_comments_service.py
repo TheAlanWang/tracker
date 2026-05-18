@@ -38,7 +38,7 @@ def mock_supabase():
     return MagicMock()
 
 
-def test_list_comments_member_ok(mock_supabase):
+async def test_list_comments_member_ok(mock_supabase):
     tasks_chain = MagicMock()
     tasks_chain.select.return_value.eq.return_value.single.return_value.execute.return_value.data = _task_row()
     members_chain = MagicMock()
@@ -55,11 +55,11 @@ def test_list_comments_member_ok(mock_supabase):
         raise AssertionError(f"unexpected: {name}")
     mock_supabase.table.side_effect = table_router
 
-    result = list_comments(mock_supabase, user_id="u-1", task_id="i-1")
+    result = await list_comments(mock_supabase, user_id="u-1", task_id="i-1")
     assert len(result) == 2
 
 
-def test_create_comment_inserts_with_author(mock_supabase):
+async def test_create_comment_inserts_with_author(mock_supabase):
     tasks_chain = MagicMock()
     tasks_chain.select.return_value.eq.return_value.single.return_value.execute.return_value.data = _task_row()
     members_chain = MagicMock()
@@ -74,7 +74,7 @@ def test_create_comment_inserts_with_author(mock_supabase):
         raise AssertionError(f"unexpected: {name}")
     mock_supabase.table.side_effect = table_router
 
-    result = create_comment(
+    result = await create_comment(
         mock_supabase, user_id="u-1", task_id="i-1",
         payload=CommentCreate(body="new"),
     )
@@ -87,7 +87,7 @@ def test_create_comment_inserts_with_author(mock_supabase):
     }
 
 
-def test_update_comment_happy_path(mock_supabase):
+async def test_update_comment_happy_path(mock_supabase):
     comments_chain_fetch = MagicMock()
     comments_chain_fetch.select.return_value.eq.return_value.single.return_value.execute.return_value.data = _comment_row()
     comments_chain_update = MagicMock()
@@ -101,14 +101,14 @@ def test_update_comment_happy_path(mock_supabase):
         raise AssertionError(f"unexpected: {name}")
     mock_supabase.table.side_effect = table_router
 
-    result = update_comment(
+    result = await update_comment(
         mock_supabase, user_id="u-1", comment_id="c-1",
         payload=CommentUpdate(body="updated"),
     )
     assert result.body == "updated"
 
 
-def test_delete_comment_author_only(mock_supabase):
+async def test_delete_comment_author_only(mock_supabase):
     comments_chain = MagicMock()
     comments_chain.select.return_value.eq.return_value.single.return_value.execute.return_value.data = _comment_row(author_id="other")
 
@@ -118,4 +118,4 @@ def test_delete_comment_author_only(mock_supabase):
     mock_supabase.table.side_effect = table_router
 
     with pytest.raises(CommentPermissionError):
-        delete_comment(mock_supabase, user_id="u-1", comment_id="c-1")
+        await delete_comment(mock_supabase, user_id="u-1", comment_id="c-1")

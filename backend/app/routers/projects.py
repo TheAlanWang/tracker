@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from supabase import Client
+from supabase import AsyncClient
 
 from app.core.deps import get_current_user_id, get_supabase_admin
 from app.schemas.project import ProjectCreate, ProjectResponse, ProjectUpdate
@@ -20,13 +20,13 @@ router = APIRouter(tags=["projects"])
 @router.get(
     "/workspaces/{ws_id}/projects", response_model=list[ProjectResponse]
 )
-def list_(
+async def list_(
     ws_id: str,
     user_id: str = Depends(get_current_user_id),
-    supabase: Client = Depends(get_supabase_admin),
+    supabase: AsyncClient = Depends(get_supabase_admin),
 ):
     try:
-        return list_projects(supabase, user_id=user_id, workspace_id=ws_id)
+        return await list_projects(supabase, user_id=user_id, workspace_id=ws_id)
     except ProjectPermissionError as exc:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN) from exc
 
@@ -36,14 +36,14 @@ def list_(
     response_model=ProjectResponse,
     status_code=status.HTTP_201_CREATED,
 )
-def create(
+async def create(
     ws_id: str,
     payload: ProjectCreate,
     user_id: str = Depends(get_current_user_id),
-    supabase: Client = Depends(get_supabase_admin),
+    supabase: AsyncClient = Depends(get_supabase_admin),
 ):
     try:
-        return create_project(
+        return await create_project(
             supabase, user_id=user_id, workspace_id=ws_id, payload=payload
         )
     except ProjectPermissionError as exc:
@@ -56,13 +56,13 @@ def create(
 
 
 @router.get("/projects/{p_id}", response_model=ProjectResponse)
-def get(
+async def get(
     p_id: str,
     user_id: str = Depends(get_current_user_id),
-    supabase: Client = Depends(get_supabase_admin),
+    supabase: AsyncClient = Depends(get_supabase_admin),
 ):
     try:
-        return get_project(supabase, user_id=user_id, project_id=p_id)
+        return await get_project(supabase, user_id=user_id, project_id=p_id)
     except ProjectPermissionError as exc:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN) from exc
     except ProjectNotFoundError as exc:
@@ -70,14 +70,14 @@ def get(
 
 
 @router.patch("/projects/{p_id}", response_model=ProjectResponse)
-def update(
+async def update(
     p_id: str,
     payload: ProjectUpdate,
     user_id: str = Depends(get_current_user_id),
-    supabase: Client = Depends(get_supabase_admin),
+    supabase: AsyncClient = Depends(get_supabase_admin),
 ):
     try:
-        return update_project(supabase, user_id=user_id, project_id=p_id, payload=payload)
+        return await update_project(supabase, user_id=user_id, project_id=p_id, payload=payload)
     except ProjectPermissionError as exc:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN) from exc
     except ProjectNotFoundError as exc:
@@ -90,13 +90,13 @@ def update(
 
 
 @router.delete("/projects/{p_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete(
+async def delete(
     p_id: str,
     user_id: str = Depends(get_current_user_id),
-    supabase: Client = Depends(get_supabase_admin),
+    supabase: AsyncClient = Depends(get_supabase_admin),
 ):
     try:
-        delete_project(supabase, user_id=user_id, project_id=p_id)
+        await delete_project(supabase, user_id=user_id, project_id=p_id)
     except ProjectPermissionError as exc:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN) from exc
     except ProjectNotFoundError as exc:
