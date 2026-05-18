@@ -1,4 +1,5 @@
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import { SpeedInsights } from "@vercel/speed-insights/react";
 
 import { ProjectLayout } from "@/components/ProjectLayout";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
@@ -40,6 +41,11 @@ function RootRoute() {
 export default function App() {
   return (
     <BrowserRouter>
+      {/* Vercel Speed Insights — real-user Core Web Vitals (LCP / CLS /
+          INP / TTFB), surfaced in Vercel Dashboard → Speed Insights. No
+          UI; just a beacon. Renders once at the root so it covers all
+          routes incl. SPA navigations. */}
+      <SpeedInsights />
       <Routes>
         {/* Legacy /login URL — keep functional but redirect to landing with
             the modal auto-open. */}
