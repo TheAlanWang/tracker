@@ -212,19 +212,18 @@ function ProjectSettingsContent({
                       </button>
                     );
                   })}
-                  {/* "Default" — same circular footprint as the swatches so
-                      it sits in the row visually. Dashed border + an "A"
-                      glyph signals "auto-pick from the project key". */}
+                  {/* "Default" — reset to no custom color. Same circular
+                      footprint as the swatches, dashed border to signal
+                      "no fill / auto-derived". Never shows a ring: when
+                      no color is set, the picker reads as "nothing
+                      selected" (the source of truth is the absence of a
+                      ring on any swatch). */}
                   <button
                     type="button"
                     onClick={() => setColorDraft(null)}
                     aria-label="Use default color"
                     title="Use default (auto-pick from project key)"
-                    className={`relative w-6 h-6 rounded-full border border-dashed flex items-center justify-center text-[10px] leading-none font-semibold transition-transform hover:scale-110 focus:outline-none ${
-                      colorDraft === null
-                        ? "ring-2 ring-offset-2 ring-slate-900 dark:ring-slate-100 dark:ring-offset-slate-900 border-slate-400 dark:border-slate-500 text-slate-600 dark:text-slate-300"
-                        : "border-slate-300 dark:border-slate-600 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300"
-                    }`}
+                    className="relative w-6 h-6 rounded-full border border-dashed border-slate-300 dark:border-slate-600 flex items-center justify-center text-[10px] leading-none font-semibold text-slate-400 dark:text-slate-500 transition-transform hover:scale-110 hover:text-slate-600 dark:hover:text-slate-300 focus:outline-none"
                   >
                     A
                   </button>
