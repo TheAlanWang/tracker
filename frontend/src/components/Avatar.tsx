@@ -1,3 +1,5 @@
+import { isUploadedAvatar } from "@/lib/avatar";
+
 type Props = {
   // Prefer display_name's first letter — user-controlled name reads more
   // naturally than email prefixes like "2alan@…" or "aw_personal@…".
@@ -41,7 +43,10 @@ export function Avatar({
   // the avatar gets a glaring white halo on dark backgrounds.
   const baseClass = `rounded-full overflow-hidden flex items-center justify-center text-white font-semibold shrink-0 ring-2 ring-white dark:ring-slate-900 ${className}`;
 
-  if (avatarUrl) {
+  // Only render the real <img> for avatars actually uploaded through our
+  // Storage bucket. Third-party defaults (Google initials etc.) skip this
+  // branch and fall through to the consistent fallback bubble below.
+  if (isUploadedAvatar(avatarUrl)) {
     return (
       <img
         src={avatarUrl}

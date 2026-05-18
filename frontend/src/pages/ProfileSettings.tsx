@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import { Camera } from "lucide-react";
 
 import { Avatar } from "@/components/Avatar";
+import { isUploadedAvatar } from "@/lib/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -128,17 +129,6 @@ function ProfileSettingsContent({
     }
   }
 
-  async function onAvatarRemoved() {
-    if (!me.avatar_url) return;
-    if (!confirm("Remove your avatar? Your initial will show instead.")) return;
-    try {
-      await updateMutation.mutateAsync({ avatar_url: "" });
-      toast.success("Avatar removed");
-    } catch {
-      toast.error("Failed to remove avatar");
-    }
-  }
-
   return (
     <div className="mx-auto max-w-3xl space-y-10">
       <header>
@@ -171,7 +161,7 @@ function ProfileSettingsContent({
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
                   disabled={uploading || updateMutation.isPending}
-                  aria-label={me.avatar_url ? "Change avatar" : "Upload avatar"}
+                  aria-label={isUploadedAvatar(me.avatar_url) ? "Change avatar" : "Upload avatar"}
                   className="group relative h-14 w-14 rounded-full overflow-hidden ring-1 ring-slate-200 dark:ring-slate-700 shadow-sm disabled:opacity-60 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                 >
                   <Avatar
@@ -188,16 +178,6 @@ function ProfileSettingsContent({
                     )}
                   </div>
                 </button>
-                {me.avatar_url && (
-                  <button
-                    type="button"
-                    onClick={onAvatarRemoved}
-                    disabled={uploading || updateMutation.isPending}
-                    className="text-sm text-rose-600 dark:text-rose-400 hover:underline disabled:opacity-50"
-                  >
-                    Remove
-                  </button>
-                )}
               </div>
             </SettingRow>
             <SettingRow
