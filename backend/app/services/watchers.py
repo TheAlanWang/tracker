@@ -59,7 +59,7 @@ async def _lookup_users(
         return {}
     result: dict[str, dict[str, str | None]] = {}
     try:
-        users = supabase.auth.admin.list_users()
+        users = await supabase.auth.admin.list_users()
         for u in users:
             if u.id in user_ids:
                 meta = u.user_metadata or {}

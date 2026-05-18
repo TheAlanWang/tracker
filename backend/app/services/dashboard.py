@@ -231,10 +231,11 @@ async def get_dashboard(
             {r["actor_id"] for r in activity_rows if r.get("actor_id")}
         )
         if actor_ids:
-            # auth.admin API stays sync (gotrue-py is sync) — only the
-            # PostgREST path is async. One blocking call here is fine.
+            # auth.admin API is async on AsyncClient — still a single
+            # blocking call relative to the gather'd queries above, but
+            # cheap enough at this point in the request.
             try:
-                users = supabase.auth.admin.list_users()
+                users = await supabase.auth.admin.list_users()
                 for u in users:
                     if u.id in actor_ids:
                         if u.email:

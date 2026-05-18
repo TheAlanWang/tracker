@@ -121,7 +121,7 @@ async def _fan_out_mentions(
     # auth.users / user_metadata.
     matched: list[str] = []
     try:
-        users = supabase.auth.admin.list_users()
+        users = await supabase.auth.admin.list_users()
         for u in users:
             if u.id not in member_ids:
                 continue

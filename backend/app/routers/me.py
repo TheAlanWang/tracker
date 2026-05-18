@@ -103,7 +103,7 @@ async def update_profile(
 
     # Fetch updated user from admin API for fresh metadata
     try:
-        user_obj = supabase.auth.admin.get_user_by_id(user_id)
+        user_obj = await supabase.auth.admin.get_user_by_id(user_id)
         if user_obj and user_obj.user:
             email = email or user_obj.user.email
             meta = user_obj.user.user_metadata or {}
@@ -147,7 +147,7 @@ async def delete_me(
     "Someone".
     """
     try:
-        supabase.auth.admin.delete_user(user_id)
+        await supabase.auth.admin.delete_user(user_id)
     except Exception as exc:
         logger.exception("Failed to delete user %s", user_id)
         raise HTTPException(

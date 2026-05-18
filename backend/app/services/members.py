@@ -56,7 +56,7 @@ async def _lookup_user_emails(supabase: AsyncClient, user_ids: list[str]) -> dic
     if not user_ids:
         return {}
     try:
-        users = supabase.auth.admin.list_users()
+        users = await supabase.auth.admin.list_users()
         return {u.id: (u.email or "") for u in users if u.id in user_ids}
     except Exception:
         return {}
@@ -70,7 +70,7 @@ async def _lookup_user_profiles(
         return {}
     result: dict[str, dict[str, str | None]] = {}
     try:
-        users = supabase.auth.admin.list_users()
+        users = await supabase.auth.admin.list_users()
         for u in users:
             if u.id in user_ids:
                 meta = u.user_metadata or {}

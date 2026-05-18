@@ -41,7 +41,7 @@ async def list_my_notifications(
     actor_info: dict[str, dict[str, str | None]] = {}
     if actor_ids:
         try:
-            users = supabase.auth.admin.list_users()
+            users = await supabase.auth.admin.list_users()
             for u in users:
                 if u.id in actor_ids:
                     meta = u.user_metadata or {}

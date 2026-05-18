@@ -79,7 +79,7 @@ async def _lookup_users(
         return {}
     result: dict[str, dict[str, str | None]] = {}
     try:
-        users = supabase.auth.admin.list_users()
+        users = await supabase.auth.admin.list_users()
         for u in users:
             if u.id in user_ids:
                 meta = u.user_metadata or {}
@@ -155,7 +155,7 @@ async def create_invitation(
 
     # Already a member? Look the user up by email.
     try:
-        users = supabase.auth.admin.list_users()
+        users = await supabase.auth.admin.list_users()
     except Exception:
         users = []
     target = next(
@@ -203,7 +203,7 @@ async def create_invitation(
     # which is enough as long as they revisit the app.
     if target is None:
         try:
-            supabase.auth.admin.invite_user_by_email(
+            await supabase.auth.admin.invite_user_by_email(
                 normalized,
                 {
                     "data": {"invited_to_workspace_id": workspace_id},
@@ -293,7 +293,7 @@ async def revoke_invitation(
 
 async def _resolve_user_email(supabase: AsyncClient, *, user_id: str) -> str | None:
     try:
-        users = supabase.auth.admin.list_users()
+        users = await supabase.auth.admin.list_users()
         for u in users:
             if u.id == user_id:
                 return (u.email or "").lower() or None
