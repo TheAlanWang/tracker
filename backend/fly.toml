@@ -27,12 +27,18 @@ primary_region = "iad"  # US East (Ashburn). Change to sjc / lax / sea if closer
 
 [[http_service.checks]]
   interval = "30s"
-  timeout = "5s"
-  grace_period = "10s"
+  # Bumped from 5s → 15s so a single-worker uvicorn busy with a slow
+  # outbound request (e.g. JWKS fetch on cold cache) doesn't get marked
+  # unhealthy and cause PR04 load-balancing errors.
+  timeout = "15s"
+  grace_period = "30s"
   method = "GET"
   path = "/health"
 
 [[vm]]
   cpu_kind = "shared"
   cpus = 1
-  memory_mb = 256
+  # 512MB headroom — 256 was tight for Python + FastAPI + supabase-py
+  # + cached JWKS; under load we saw OOM-adjacent slowness that tripped
+  # the health check.
+  memory_mb = 512

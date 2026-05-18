@@ -1,4 +1,5 @@
 import time
+from threading import Lock
 
 import jwt
 from jwt import InvalidTokenError as PyJWTInvalidTokenError
@@ -7,6 +8,29 @@ from jwt import PyJWKClient
 
 class InvalidTokenError(Exception):
     """Raised when JWT verification fails for any reason."""
+
+
+# JWKS clients are expensive to instantiate (each verifies its own TLS
+# session to fetch the JWKS document) so we cache one per issuer for the
+# lifetime of the process. PyJWKClient itself caches the fetched keys
+# internally with a 5 minute lifespan; reusing the same client across
+# requests means we only pay the network round-trip once per ~5 minutes
+# per issuer, not on every request.
+_jwks_clients: dict[str, PyJWKClient] = {}
+_jwks_clients_lock = Lock()
+
+
+def _get_jwks_client(jwks_url: str) -> PyJWKClient:
+    """Return a process-wide cached PyJWKClient for the given URL."""
+    client = _jwks_clients.get(jwks_url)
+    if client is not None:
+        return client
+    with _jwks_clients_lock:
+        client = _jwks_clients.get(jwks_url)
+        if client is None:
+            client = PyJWKClient(jwks_url, cache_keys=True, lifespan=600)
+            _jwks_clients[jwks_url] = client
+        return client
 
 
 def _get_header_alg(token: str) -> str:
@@ -35,7 +59,7 @@ def verify_and_decode_supabase_jwt(token: str, jwt_secret: str) -> dict:
             iss = unverified.get("iss", "")
             # iss is e.g. "http://127.0.0.1:54321/auth/v1"
             jwks_url = iss.rstrip("/") + "/.well-known/jwks.json"
-            jwks_client = PyJWKClient(jwks_url, cache_keys=True)
+            jwks_client = _get_jwks_client(jwks_url)
             signing_key = jwks_client.get_signing_key_from_jwt(token)
             return jwt.decode(
                 token,
