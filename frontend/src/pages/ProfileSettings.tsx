@@ -1,11 +1,16 @@
 // Profile Settings page.
 //
-// Two sections:
+// Three sections:
 //   1. General settings — edit display name, view (read-only) sign-in email.
 //      Display name is what the rest of the app uses for greetings, avatars,
 //      and activity attribution; missing display name silently falls back to
 //      email in those surfaces.
-//   2. Workspace invitations — pending invites for the current user, with
+//   2. Sign-in methods — view linked auth providers, add a password to an
+//      OAuth-only account, link/unlink Google. The "primary method + bind
+//      others" pattern (à la GitHub/Linear): the login page stays simple,
+//      and adding methods is gated behind an authenticated session, so we
+//      never need an anonymous "does this email exist?" lookup.
+//   3. Workspace invitations — pending invites for the current user, with
 //      accept/decline. Renders only when there are pending invitations.
 //
 // Routed under SettingsLayout (/w/:wsSlug/profile), so the workspaces + project
@@ -32,6 +37,7 @@ import {
   useDeleteAccount,
   useUpdateProfile,
 } from "@/hooks/useCurrentUser";
+import { useAuthIdentities } from "@/hooks/useAuthIdentities";
 import { supabase } from "@/lib/supabase";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 
@@ -212,6 +218,8 @@ function ProfileSettingsContent({
           </div>
         </form>
       </section>
+
+      <SignInMethodsSection />
 
       {invitations.length > 0 && (
         <InvitationsSection invitations={invitations} />
@@ -447,6 +455,261 @@ function InvitationsSection({ invitations }: { invitations: Invitation[] }) {
         })}
       </div>
     </section>
+  );
+}
+
+function SignInMethodsSection() {
+  const { identities } = useAuthIdentities();
+  const [passwordModal, setPasswordModal] = useState<"set" | "change" | null>(
+    null,
+  );
+  const [linking, setLinking] = useState(false);
+  const [unlinking, setUnlinking] = useState(false);
+
+  // Pre-flight: still fetching the session. Render a placeholder so the
+  // section's visual weight is stable when it appears.
+  if (!identities) {
+    return (
+      <section className="space-y-4">
+        <h2 className="text-xl font-medium text-slate-900 dark:text-slate-100">
+          Sign-in methods
+        </h2>
+        <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 text-sm text-slate-500 dark:text-slate-400">
+          Loading…
+        </div>
+      </section>
+    );
+  }
+
+  const emailIdentity = identities.find((i) => i.provider === "email");
+  const googleIdentity = identities.find((i) => i.provider === "google");
+  // Last-method guard: never let a user remove their only way to sign in.
+  // Currently the only removable identity is Google; password is changed
+  // rather than removed, so this check only gates the unlink button.
+  const wouldLockOut = !emailIdentity;
+
+  async function handleLinkGoogle() {
+    setLinking(true);
+    // redirectTo: same page, so the user lands back on /profile and sees
+    // the updated identities list. Supabase processes the URL fragment
+    // on arrival; onAuthStateChange("USER_UPDATED") fires; the hook
+    // refreshes; the row flips to "Linked as …".
+    const { error } = await supabase.auth.linkIdentity({
+      provider: "google",
+      options: { redirectTo: window.location.href },
+    });
+    if (error) {
+      toast.error(error.message);
+      setLinking(false);
+    }
+    // On success the page navigates away to Google; no need to clear state.
+  }
+
+  async function handleUnlinkGoogle() {
+    if (!googleIdentity || wouldLockOut) return;
+    setUnlinking(true);
+    try {
+      const { error } = await supabase.auth.unlinkIdentity(googleIdentity);
+      if (error) throw error;
+      toast.success("Google account unlinked.");
+    } catch (err) {
+      const detail = err instanceof Error ? err.message : "Failed to unlink";
+      toast.error(detail);
+    } finally {
+      setUnlinking(false);
+    }
+  }
+
+  return (
+    <>
+      <section className="space-y-4">
+        <h2 className="text-xl font-medium text-slate-900 dark:text-slate-100">
+          Sign-in methods
+        </h2>
+        <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 divide-y divide-slate-200 dark:divide-slate-800">
+          <SettingRow
+            label="Password"
+            description={
+              emailIdentity
+                ? "Sign in with email and password."
+                : "Not set. Add a password to sign in without Google."
+            }
+          >
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() =>
+                setPasswordModal(emailIdentity ? "change" : "set")
+              }
+            >
+              {emailIdentity ? "Change password" : "Set password"}
+            </Button>
+          </SettingRow>
+          <SettingRow
+            label="Google"
+            description={
+              googleIdentity
+                ? `Linked as ${
+                    (googleIdentity.identity_data?.email as string | undefined) ??
+                    "your Google account"
+                  }.`
+                : "Not linked. Connect Google for one-click sign-in."
+            }
+          >
+            {googleIdentity ? (
+              <Button
+                type="button"
+                variant="outline"
+                disabled={unlinking || wouldLockOut}
+                onClick={handleUnlinkGoogle}
+                title={
+                  wouldLockOut
+                    ? "Set a password first so you can still sign in."
+                    : undefined
+                }
+              >
+                {unlinking ? "Unlinking…" : "Unlink"}
+              </Button>
+            ) : (
+              <Button
+                type="button"
+                variant="outline"
+                disabled={linking}
+                onClick={handleLinkGoogle}
+              >
+                {linking ? "Redirecting…" : "Link Google account"}
+              </Button>
+            )}
+          </SettingRow>
+        </div>
+      </section>
+
+      {passwordModal && (
+        <PasswordModal
+          mode={passwordModal}
+          onClose={() => setPasswordModal(null)}
+        />
+      )}
+    </>
+  );
+}
+
+function PasswordModal({
+  mode,
+  onClose,
+}: {
+  mode: "set" | "change";
+  onClose: () => void;
+}) {
+  const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  // Supabase's default minimum is 6, but 8 is the common product-default
+  // and matches what LoginDialog enforces at sign-up.
+  const longEnough = password.length >= 8;
+  const matches = password === confirm;
+  const canSubmit = longEnough && matches;
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!canSubmit) return;
+    setSubmitting(true);
+    try {
+      // updateUser({ password }) works for both cases:
+      //   - OAuth-only user: adds the email-provider identity (Supabase
+      //     uses the existing user.email as the credential's email)
+      //   - User who already has password: rotates it
+      const { error } = await supabase.auth.updateUser({ password });
+      if (error) throw error;
+      toast.success(mode === "set" ? "Password set." : "Password updated.");
+      onClose();
+    } catch (err) {
+      const detail = err instanceof Error ? err.message : "Failed to update";
+      toast.error(detail);
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4"
+      onClick={() => !submitting && onClose()}
+    >
+      <form
+        onClick={(e) => e.stopPropagation()}
+        onSubmit={handleSubmit}
+        className="w-full max-w-md rounded-xl bg-white dark:bg-slate-900 shadow-2xl p-6 space-y-4"
+      >
+        <div>
+          <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+            {mode === "set" ? "Set a password" : "Change password"}
+          </h2>
+          <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
+            {mode === "set"
+              ? "Add an email + password login alongside your existing methods."
+              : "Enter a new password. You'll still be signed in afterward."}
+          </p>
+        </div>
+        <div className="space-y-3">
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-slate-700 dark:text-slate-300">
+              New password
+            </label>
+            <Input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              disabled={submitting}
+              autoFocus
+              minLength={8}
+              autoComplete="new-password"
+            />
+            {password.length > 0 && !longEnough && (
+              <p className="text-xs text-red-600 dark:text-red-400">
+                At least 8 characters.
+              </p>
+            )}
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-slate-700 dark:text-slate-300">
+              Confirm new password
+            </label>
+            <Input
+              type="password"
+              value={confirm}
+              onChange={(e) => setConfirm(e.target.value)}
+              disabled={submitting}
+              minLength={8}
+              autoComplete="new-password"
+            />
+            {confirm.length > 0 && !matches && (
+              <p className="text-xs text-red-600 dark:text-red-400">
+                Passwords don't match.
+              </p>
+            )}
+          </div>
+        </div>
+        <div className="flex justify-end gap-2 pt-1">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onClose}
+            disabled={submitting}
+          >
+            Cancel
+          </Button>
+          <Button type="submit" disabled={!canSubmit || submitting}>
+            {submitting
+              ? "Saving…"
+              : mode === "set"
+              ? "Set password"
+              : "Update password"}
+          </Button>
+        </div>
+      </form>
+    </div>
   );
 }
 

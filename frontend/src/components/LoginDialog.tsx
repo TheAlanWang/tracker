@@ -146,12 +146,25 @@ export function LoginDialog({
         setAuthError(friendlyAuthError(error.message, mode));
         return;
       }
-      // Sign-up + Supabase has "Confirm email" ON → user created but no
-      // session yet. Stay in the dialog and tell them to check email
-      // instead of silently closing and bouncing them back to Landing.
-      if (mode === "signup" && !data.session) {
-        setSignupEmailSent(email);
-        return;
+      if (mode === "signup") {
+        // Supabase anti-enumeration: signUp with an email that already
+        // has an account returns success with NO error, NO confirmation
+        // email sent, and an empty `identities` array on the user. Detect
+        // that signal and point the user at the right path instead of
+        // showing a misleading "check your inbox" card that never lands.
+        if (data.user && (data.user.identities?.length ?? 0) === 0) {
+          setAuthError(
+            "This email already has an account. If you signed up with Google, use the Google button below — then you can add a password from Profile Settings.",
+          );
+          return;
+        }
+        // Fresh signup + "Confirm email" ON → user created but no session
+        // yet. Stay in the dialog and tell them to check email instead of
+        // silently closing and bouncing them back to Landing.
+        if (!data.session) {
+          setSignupEmailSent(email);
+          return;
+        }
       }
       onClose();
       navigate("/");
