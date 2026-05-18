@@ -14,6 +14,7 @@
 
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { MailCheck } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -102,11 +103,18 @@ export function LoginDialog({
   // Inline auth error (wrong password, email taken, etc). Errors *about this
   // form* belong here, not in a corner toast that can be missed.
   const [authError, setAuthError] = useState<string | null>(null);
+  // When sign-up succeeds with email confirmation ON, Supabase returns no
+  // session — the user has to click a verification link first. Holding the
+  // email here flips the dialog to a "check your inbox" state instead of
+  // silently closing.
+  const [signupEmailSent, setSignupEmailSent] = useState<string | null>(null);
   // Mode-switch clears the error so a "wrong password" from sign-in doesn't
-  // linger when the user flips to sign-up.
+  // linger when the user flips to sign-up. Also resets the post-signup
+  // success state so the user can come back and sign in.
   function switchMode(next: Mode) {
     setMode(next);
     setAuthError(null);
+    setSignupEmailSent(null);
   }
 
   useEffect(() => {
@@ -133,9 +141,16 @@ export function LoginDialog({
               // it at signup avoids a "who are you?" follow-up on first load.
               options: { data: { display_name: name.trim() || null } },
             });
-      const { error } = await op;
+      const { data, error } = await op;
       if (error) {
         setAuthError(friendlyAuthError(error.message, mode));
+        return;
+      }
+      // Sign-up + Supabase has "Confirm email" ON → user created but no
+      // session yet. Stay in the dialog and tell them to check email
+      // instead of silently closing and bouncing them back to Landing.
+      if (mode === "signup" && !data.session) {
+        setSignupEmailSent(email);
         return;
       }
       onClose();
@@ -201,6 +216,40 @@ export function LoginDialog({
           </svg>
         </button>
 
+        {signupEmailSent ? (
+          <div className="space-y-4 text-center pt-2 pb-1">
+            <div className="mx-auto w-12 h-12 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 flex items-center justify-center">
+              <MailCheck
+                className="w-6 h-6 text-emerald-600 dark:text-emerald-400"
+                strokeWidth={1.8}
+              />
+            </div>
+            <div className="space-y-1">
+              <h2 className="text-xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
+                Check your inbox
+              </h2>
+              <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
+                We sent a verification link to{" "}
+                <span className="font-medium text-slate-700 dark:text-slate-300">
+                  {signupEmailSent}
+                </span>
+                . Click it to finish signing up.
+              </p>
+            </div>
+            <p className="text-xs text-slate-400 dark:text-slate-500">
+              Didn't get it? Check spam, or wait a minute and try again.
+            </p>
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full rounded-md"
+              onClick={onClose}
+            >
+              Close
+            </Button>
+          </div>
+        ) : (
+        <>
         <div className="mb-5 flex items-start gap-3">
           <ModeIcon mode={mode} />
           <div className="flex-1 min-w-0">
@@ -372,6 +421,8 @@ export function LoginDialog({
             </>
           )}
         </p>
+        </>
+        )}
       </div>
     </div>
   );
