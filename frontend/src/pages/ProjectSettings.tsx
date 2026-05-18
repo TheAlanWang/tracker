@@ -7,6 +7,7 @@
 
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { Check } from "lucide-react";
 import { toast } from "sonner";
 
 import { SettingsLayout } from "@/components/SettingsLayout";
@@ -185,7 +186,7 @@ function ProjectSettingsContent({
                 />
               </SettingRow>
               <SettingRow label="Color">
-                <div className="flex items-center justify-between max-w-md">
+                <div className="flex items-center gap-2.5 flex-wrap">
                   {PROJECT_COLOR_PALETTE.map((c) => {
                     const active = colorDraft === c;
                     return (
@@ -195,30 +196,37 @@ function ProjectSettingsContent({
                         onClick={() => setColorDraft(c)}
                         aria-label={c}
                         title={c}
-                        className={`w-4 h-4 rounded-full border-2 transition-all ${
+                        className={`relative w-6 h-6 rounded-full transition-transform hover:scale-110 focus:outline-none ${
                           active
-                            ? "border-slate-900 dark:border-slate-100 scale-110"
-                            : "border-transparent hover:scale-110"
+                            ? "ring-2 ring-offset-2 ring-slate-900 dark:ring-slate-100 dark:ring-offset-slate-900"
+                            : ""
                         }`}
                         style={{ backgroundColor: c }}
-                      />
+                      >
+                        {active && (
+                          <Check
+                            className="absolute inset-0 m-auto w-3.5 h-3.5 text-white"
+                            strokeWidth={3}
+                          />
+                        )}
+                      </button>
                     );
                   })}
-                  {/* "Default" — reverts to the hash-derived hue from the
-                      key. Renders that hue as a preview so the user sees
-                      what they'd be reverting to. */}
+                  {/* "Default" — same circular footprint as the swatches so
+                      it sits in the row visually. Dashed border + an "A"
+                      glyph signals "auto-pick from the project key". */}
                   <button
                     type="button"
                     onClick={() => setColorDraft(null)}
+                    aria-label="Use default color"
                     title="Use default (auto-pick from project key)"
-                    className={`inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[11px] transition-colors ${
+                    className={`relative w-6 h-6 rounded-full border border-dashed flex items-center justify-center text-[10px] leading-none font-semibold transition-transform hover:scale-110 focus:outline-none ${
                       colorDraft === null
-                        ? "border-slate-900 dark:border-slate-100 text-slate-900 dark:text-slate-100"
-                        : "border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100"
+                        ? "ring-2 ring-offset-2 ring-slate-900 dark:ring-slate-100 dark:ring-offset-slate-900 border-slate-400 dark:border-slate-500 text-slate-600 dark:text-slate-300"
+                        : "border-slate-300 dark:border-slate-600 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300"
                     }`}
                   >
-                    <span className="w-1.5 h-1.5 rounded-full bg-slate-400 dark:bg-slate-500" />
-                    Default
+                    A
                   </button>
                 </div>
               </SettingRow>
