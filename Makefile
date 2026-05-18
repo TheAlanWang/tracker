@@ -1,4 +1,8 @@
-.PHONY: help install dev dev-prd api api-prd web web-prd test test-api test-web test-e2e migrate seed clean db-status
+.PHONY: help install dev dev-prd api api-prd web web-prd bench test test-api test-web test-e2e migrate seed clean db-status
+
+# Bench tunables — override on the CLI:  make bench COUNT=50 CONC=5
+COUNT ?= 100
+CONC ?= 1
 
 help:
 	@echo "Common targets:"
@@ -9,6 +13,8 @@ help:
 	@echo "  api-prd      start only the FastAPI server (.env.prd)"
 	@echo "  web          start only the Vite dev server (.env.dev)"
 	@echo "  web-prd      start only the Vite dev server (.env.prd)"
+	@echo "  bench        latency benchmark against PROD /me/dashboard"
+	@echo "                 override: make bench COUNT=50 CONC=5"
 	@echo "  test         run all tests (api + web + e2e)"
 	@echo "  test-api     run backend pytest"
 	@echo "  test-web     run frontend vitest"
@@ -49,6 +55,9 @@ web:
 
 web-prd:
 	cd frontend && pnpm dev --mode prd
+
+bench:
+	@cd backend && APP_ENV=prd uv run python -m scripts.bench --count $(COUNT) --concurrency $(CONC)
 
 test: test-api test-web
 
