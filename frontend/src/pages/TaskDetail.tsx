@@ -23,6 +23,7 @@ import { useLocation, useNavigate, useParams } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { toast } from "sonner";
+import { Activity as ActivityIcon, AlignLeft, MessageSquare, Trash2 } from "lucide-react";
 
 import { Avatar } from "@/components/Avatar";
 import {
@@ -769,9 +770,10 @@ export function TaskDetailContent({
             in edit mode keep showing it so the textarea is reachable. */}
         {(isEditing || descDraft.trim()) && (
           <div className="space-y-1">
-            <p className="text-xs font-medium uppercase text-muted-foreground">
-              Description
-            </p>
+            <h2 className="flex items-center gap-1.5 text-sm font-normal uppercase tracking-wide text-muted-foreground pb-2 border-b border-slate-200 dark:border-slate-800">
+              <AlignLeft className="w-3.5 h-3.5" aria-hidden />
+              <span>Description</span>
+            </h2>
             {isEditing ? (
               <textarea
                 className="w-full rounded border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-2 text-sm"
@@ -795,58 +797,18 @@ export function TaskDetailContent({
           </div>
         )}
 
-        {task && <ChecklistSection taskId={task.id} readOnly={!isEditing} />}
+        {/* Checklist items persist immediately via their own mutations,
+            so we don't gate edits behind the task-level Edit / Save flow.
+            This avoids the "I added an item, why is Save disabled?"
+            confusion. */}
+        {task && <ChecklistSection taskId={task.id} readOnly={false} />}
 
-        <section className="space-y-3 pt-6 border-t border-slate-200 dark:border-slate-800">
-          <h2 className="text-sm font-semibold uppercase text-muted-foreground">
-            Comments ({comments.length})
-          </h2>
-          {comments.map((c) => (
-            <div
-              key={c.id}
-              className="rounded border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3"
-            >
-              <div className="flex justify-between items-baseline">
-                <p className="text-xs text-muted-foreground">
-                  {resolveActor(c.author_id)} ·{" "}
-                  {new Date(c.created_at).toLocaleString()}
-                </p>
-                <button
-                  type="button"
-                  className="text-xs text-red-600 hover:underline"
-                  onClick={() => onDeleteComment(c.id)}
-                >
-                  Delete
-                </button>
-              </div>
-              <div className="mt-1">
-                <CommentBody body={c.body} members={members} />
-              </div>
-            </div>
-          ))}
-          <form onSubmit={onPostComment} className="space-y-2">
-            <MentionTextarea
-              value={commentDraft}
-              onChange={setCommentDraft}
-              members={members}
-              placeholder="Write a comment… use @ to mention a teammate"
-              rows={3}
-              maxLength={10000}
-              className="w-full rounded border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 p-2 text-sm"
-            />
-            <Button
-              type="submit"
-              disabled={
-                createCommentMutation.isPending || !commentDraft.trim()
-              }
-            >
-              {createCommentMutation.isPending ? "Posting…" : "Post comment"}
-            </Button>
-          </form>
-        </section>
-
-        <details className="pt-6 border-t border-slate-200 dark:border-slate-800 group">
-          <summary className="cursor-pointer list-none flex items-center gap-1.5 text-sm font-semibold uppercase text-muted-foreground hover:text-slate-700 dark:hover:text-slate-300">
+        {/* Comments uses the same collapsible <details> pattern as
+            Activity below — default open so the conversation is visible
+            on first paint, but users can fold it away when the side rail
+            is what they're reading. */}
+        <details open className="pt-6 group">
+          <summary className="cursor-pointer list-none flex items-center gap-1.5 text-sm font-normal uppercase tracking-wide text-muted-foreground hover:text-slate-700 dark:hover:text-slate-300 group-open:pb-2 group-open:border-b border-slate-200 dark:border-slate-800">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               viewBox="0 0 20 20"
@@ -859,6 +821,125 @@ export function TaskDetailContent({
                 clipRule="evenodd"
               />
             </svg>
+            <MessageSquare className="w-3.5 h-3.5" aria-hidden />
+            <span>Comments</span>
+            {comments.length > 0 && (
+              <span className="text-slate-400 dark:text-slate-500 font-medium normal-case tracking-normal">
+                ({comments.length})
+              </span>
+            )}
+          </summary>
+          <div className="mt-3 space-y-3">
+          {comments.length === 0 ? (
+            <p className="text-sm italic text-slate-400 dark:text-slate-500">
+              No comments yet.
+            </p>
+          ) : (
+            comments.map((c) => {
+              // Look the author up in members to render avatar + real name;
+              // falls back to resolveActor's text-only output if not found
+              // (e.g. departed members, system actors).
+              const author = members.find((m) => m.user_id === c.author_id);
+              const authorName = resolveActor(c.author_id);
+              const fullTime = new Date(c.created_at).toLocaleString();
+              const isMine = !!me && c.author_id === me.id;
+              return (
+                <div
+                  key={c.id}
+                  className="group rounded border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3"
+                >
+                  {/* Body first — that's what people scan; author/time
+                      below as a subordinate footer. */}
+                  <CommentBody body={c.body} members={members} />
+                  <div className="mt-3 pt-2 border-t border-slate-100 dark:border-slate-800/60 flex items-center gap-2">
+                    <Avatar
+                      displayName={author?.display_name ?? null}
+                      email={author?.email ?? null}
+                      size={20}
+                      className="shrink-0"
+                    />
+                    <div className="flex-1 min-w-0 text-xs text-slate-500 dark:text-slate-400 truncate">
+                      <span className="font-medium text-slate-700 dark:text-slate-300">
+                        {authorName}
+                      </span>
+                      <span className="mx-1.5 text-slate-300 dark:text-slate-600">
+                        ·
+                      </span>
+                      <span title={fullTime}>
+                        {formatRelativeTime(c.created_at)}
+                      </span>
+                    </div>
+                    {isMine && (
+                      <button
+                        type="button"
+                        onClick={() => onDeleteComment(c.id)}
+                        title="Delete comment"
+                        aria-label="Delete comment"
+                        className="opacity-0 group-hover:opacity-100 focus:opacity-100 text-slate-400 dark:text-slate-500 hover:text-red-600 dark:hover:text-red-500 transition-opacity rounded p-1 -mr-1"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" aria-hidden />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })
+          )}
+          <form onSubmit={onPostComment} className="space-y-2">
+            <MentionTextarea
+              value={commentDraft}
+              onChange={setCommentDraft}
+              members={members}
+              placeholder="Write a comment… use @ to mention a teammate"
+              rows={3}
+              maxLength={10000}
+              className="w-full rounded border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 p-2 text-sm"
+            />
+            {/* Buttons only appear once the user has typed something —
+                resting state is just the textarea + placeholder, no
+                idle "Post comment" sitting around disabled. The
+                placeholder copy is enough to tell people this is a
+                type-and-submit affordance. */}
+            {commentDraft.trim() && (
+              <div className="flex items-center gap-2">
+                <Button
+                  type="submit"
+                  disabled={createCommentMutation.isPending}
+                >
+                  {createCommentMutation.isPending ? "Posting…" : "Post comment"}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setCommentDraft("")}
+                  disabled={createCommentMutation.isPending}
+                >
+                  Cancel
+                </Button>
+              </div>
+            )}
+          </form>
+          </div>
+        </details>
+
+        <details className="pt-6 group">
+          <summary className="cursor-pointer list-none flex items-center gap-1.5 text-sm font-normal uppercase tracking-wide text-muted-foreground hover:text-slate-700 dark:hover:text-slate-300 group-open:pb-2 group-open:border-b border-slate-200 dark:border-slate-800">
+            {/* Disclosure chevron stays — rotates to indicate open/closed.
+                Activity icon mirrors the per-section icon pattern used by
+                Description / Checklist / Comments. */}
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 20 20"
+              fill="currentColor"
+              className="w-3 h-3 transition-transform group-open:rotate-90"
+            >
+              <path
+                fillRule="evenodd"
+                d="M7.21 14.77a.75.75 0 0 1 .02-1.06L11.168 10 7.23 6.29a.75.75 0 1 1 1.04-1.08l4.5 4.25a.75.75 0 0 1 0 1.08l-4.5 4.25a.75.75 0 0 1-1.06-.02Z"
+                clipRule="evenodd"
+              />
+            </svg>
+            <ActivityIcon className="w-3.5 h-3.5" aria-hidden />
             <span>Activity</span>
             {activity.length > 0 && (
               <span className="text-slate-400 dark:text-slate-500 font-medium normal-case tracking-normal">

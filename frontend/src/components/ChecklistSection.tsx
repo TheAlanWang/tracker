@@ -14,6 +14,7 @@
 // form, fill it, submit".
 
 import { useState } from "react";
+import { ListChecks } from "lucide-react";
 
 import {
   type ChecklistItem,
@@ -203,16 +204,29 @@ export function ChecklistSection({
   if (readOnly && total === 0) return null;
 
   return (
-    <section className="space-y-2 pt-6 border-t border-slate-200 dark:border-slate-800">
-      <h2 className="text-sm font-semibold uppercase text-muted-foreground">
-        Checklist{" "}
+    <details open className="pt-6 group">
+      <summary className="cursor-pointer list-none flex items-center gap-1.5 text-sm font-normal uppercase tracking-wide text-muted-foreground hover:text-slate-700 dark:hover:text-slate-300 group-open:pb-2 group-open:border-b border-slate-200 dark:border-slate-800">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 20 20"
+          fill="currentColor"
+          className="w-3 h-3 transition-transform group-open:rotate-90"
+        >
+          <path
+            fillRule="evenodd"
+            d="M7.21 14.77a.75.75 0 0 1 .02-1.06L11.168 10 7.23 6.29a.75.75 0 1 1 1.04-1.08l4.5 4.25a.75.75 0 0 1 0 1.08l-4.5 4.25a.75.75 0 0 1-1.06-.02Z"
+            clipRule="evenodd"
+          />
+        </svg>
+        <ListChecks className="w-3.5 h-3.5" aria-hidden />
+        <span>Checklist</span>
         {total > 0 && (
-          <span className="text-slate-400 dark:text-slate-500">
+          <span className="text-slate-400 dark:text-slate-500 font-medium normal-case tracking-normal">
             ({done}/{total})
           </span>
         )}
-      </h2>
-      <ul className="space-y-0">
+      </summary>
+      <ul className="space-y-0 mt-2">
         {items.map((it) => (
           <ChecklistRow
             key={it.id}
@@ -231,7 +245,7 @@ export function ChecklistSection({
           pending={createItem.isPending}
         />
       </ul>
-    </section>
+    </details>
   );
 }
 
