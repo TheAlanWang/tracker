@@ -809,7 +809,6 @@ export function TaskDetailContent({
         {task && (
           <ChecklistSection
             taskId={task.id}
-            readOnly={false}
             // forceShow is gated on isEditing too — if the user clicks
             // "+ Add checklist" then leaves edit mode without typing,
             // the empty section folds back so we're not stuck rendering

@@ -530,6 +530,13 @@ function SignInMethodsSection() {
         <h2 className="text-xl font-medium text-slate-900 dark:text-slate-100">
           Sign-in methods
         </h2>
+        {/* Section-level meta hint: states the "at least one method"
+            rule once instead of repeating it across rows. Lets each row's
+            description stay self-contained (Password explains password,
+            Google explains Google — neither references the other). */}
+        <p className="-mt-2 text-sm text-slate-500 dark:text-slate-400">
+          You need at least one active sign-in method.
+        </p>
         <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 divide-y divide-slate-200 dark:divide-slate-800">
           <SettingRow
             label="Password"
@@ -561,19 +568,20 @@ function SignInMethodsSection() {
             }
           >
             {googleIdentity ? (
-              <Button
-                type="button"
-                variant="outline"
-                disabled={unlinking || wouldLockOut}
-                onClick={handleUnlinkGoogle}
-                title={
-                  wouldLockOut
-                    ? "Set a password first so you can still sign in."
-                    : undefined
-                }
-              >
-                {unlinking ? "Unlinking…" : "Unlink"}
-              </Button>
+              // Hide Unlink entirely when it would lock the user out —
+              // an action they can't perform is just noise. The "Add a
+              // password to enable unlinking" hint in the description
+              // tells them how to get there.
+              wouldLockOut ? null : (
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={unlinking}
+                  onClick={handleUnlinkGoogle}
+                >
+                  {unlinking ? "Unlinking…" : "Unlink"}
+                </Button>
+              )
             ) : (
               <Button
                 type="button"

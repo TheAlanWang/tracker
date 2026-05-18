@@ -184,14 +184,9 @@ function AddRow({
 
 export function ChecklistSection({
   taskId,
-  readOnly = false,
   forceShow = false,
 }: {
   taskId: string;
-  // When true, hides the "+ Add" ghost row and the × delete button on
-  // each item, AND collapses the whole section if there are zero items.
-  // TaskDetail flips this in view mode so empty fields don't take space.
-  readOnly?: boolean;
   // When true, render the section even with zero items so the AddRow
   // is reachable. Parent flips this from a "+ Add checklist" entry-
   // point button when the section is otherwise hidden.
