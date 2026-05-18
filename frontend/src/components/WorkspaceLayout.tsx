@@ -54,6 +54,7 @@ import { slugifyWorkspace } from "@/lib/slug";
 import { supabase } from "@/lib/supabase";
 
 const LAST_WORKSPACE_KEY = "tracker.lastWorkspaceSlug";
+const SIDEBAR_COLLAPSED_KEY = "tracker.sidebarCollapsed";
 
 // Three-segment theme switch inside the avatar dropdown — Supabase /
 // Vercel style. Visually segmented because users like to *see* which
@@ -756,6 +757,18 @@ export function WorkspaceLayout() {
   const wsMenuRef = useRef<HTMLDivElement>(null);
   const profileMenuRef = useRef<HTMLDivElement>(null);
 
+  // Sidebar collapse state — persisted so refreshes / new tabs respect the
+  // user's preference. Reads synchronously from localStorage on first paint
+  // (lazy init) to avoid a one-frame expanded flash for users who keep it
+  // collapsed.
+  const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    return window.localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === "1";
+  });
+  useEffect(() => {
+    window.localStorage.setItem(SIDEBAR_COLLAPSED_KEY, sidebarCollapsed ? "1" : "0");
+  }, [sidebarCollapsed]);
+
   useNotificationsRealtime(me?.id);
 
   useEffect(() => {
@@ -1067,29 +1080,37 @@ export function WorkspaceLayout() {
                     >
                       Workspace Settings
                     </ProfileMenuItem>
-                    {pKey && (
-                      <ProfileMenuItem
-                        onClick={() => {
-                          setProfileMenuOpen(false);
-                          navigate(`/w/${wsSlug}/p/${pKey}/settings`);
-                        }}
-                        icon={
-                          <svg
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth={1.7}
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            className="w-4 h-4"
-                          >
-                            <path d="M3 7a2 2 0 0 1 2-2h4l2 2.5h8a2 2 0 0 1 2 2V18a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7Z" />
-                          </svg>
-                        }
-                      >
-                        Project Settings
-                      </ProfileMenuItem>
-                    )}
+                    {/* Always visible. Without a current project context
+                        (pKey is undefined when the user is on Dashboard /
+                        Backlog / Profile / etc.), route to workspace
+                        settings so the SettingsLayout sidebar can serve
+                        as a project picker — beats hiding the menu item
+                        and making users wonder where it went. */}
+                    <ProfileMenuItem
+                      onClick={() => {
+                        setProfileMenuOpen(false);
+                        navigate(
+                          pKey
+                            ? `/w/${wsSlug}/p/${pKey}/settings`
+                            : `/w/${wsSlug}/settings`,
+                        );
+                      }}
+                      icon={
+                        <svg
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth={1.7}
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          className="w-4 h-4"
+                        >
+                          <path d="M3 7a2 2 0 0 1 2-2h4l2 2.5h8a2 2 0 0 1 2 2V18a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7Z" />
+                        </svg>
+                      }
+                    >
+                      Project Settings
+                    </ProfileMenuItem>
                   </div>
 
                   {/* Theme switcher — Supabase-style 3-segment control.
@@ -1139,6 +1160,8 @@ export function WorkspaceLayout() {
             wsSlug={wsSlug ?? ""}
             currentWsId={currentWs?.id ?? ""}
             goalsEnabled={!!currentWs?.features?.goals}
+            collapsed={sidebarCollapsed}
+            onToggle={() => setSidebarCollapsed((v) => !v)}
           />
         )}
 
@@ -1219,6 +1242,8 @@ function SidebarNav({
   wsSlug,
   currentWsId,
   goalsEnabled,
+  collapsed,
+  onToggle,
 }: {
   wsSlug: string;
   currentWsId: string;
@@ -1226,6 +1251,11 @@ function SidebarNav({
   // Hidden by default; the Goals page still exists at /w/:slug/goals for
   // users who type the URL directly (no aggressive route blocking).
   goalsEnabled: boolean;
+  // When true, sidebar renders as a ~48px icons-only rail. Labels are
+  // dropped from the DOM (cleaner than `hidden` because tooltips read
+  // from `title=` on the parent button instead of the now-hidden span).
+  collapsed: boolean;
+  onToggle: () => void;
 }) {
   const navigate = useNavigate();
   const { pathname } = useLocation();
@@ -1311,17 +1341,26 @@ function SidebarNav({
   // Primary nav items (Dashboard / My Tasks). Keep them visually lightweight
   // — a normal (non-bold) weight at the standard sidebar size reads cleaner
   // than the previous semibold treatment.
-  const itemBase =
-    "group flex items-center gap-2.5 w-full text-left rounded-md px-2 py-1.5 text-sm font-normal tracking-tight transition-colors";
+  // Collapsed-mode tweak: drop `gap-2.5` and use `justify-center` so the
+  // icon sits centered in the 48px rail instead of left-padded against
+  // an absent label.
+  const itemBase = collapsed
+    ? "group flex items-center justify-center w-full rounded-md py-1.5 text-sm transition-colors"
+    : "group flex items-center gap-2.5 w-full text-left rounded-md px-2 py-1.5 text-sm font-normal tracking-tight transition-colors";
   const itemIdle = `${itemBase} text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800`;
   const itemActive = `${itemBase} text-slate-900 dark:text-slate-100 bg-slate-100 dark:bg-slate-800 font-medium`;
 
   return (
-    <aside className="w-56 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3 flex flex-col gap-0.5 overflow-y-auto">
+    <aside
+      className={`${collapsed ? "w-12" : "w-56"} shrink-0 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-2 flex flex-col gap-0.5 overflow-y-auto overflow-x-hidden transition-[width] duration-200 ease-out`}
+    >
+      {/* Collapse toggle lives in the header (WorkspaceLayout) so it
+          doesn't push the primary nav items down. */}
       <button
         type="button"
         className={onDashboard ? itemActive : itemIdle}
         onClick={() => navigate(`/w/${wsSlug}/dashboard`)}
+        title={collapsed ? "Dashboard" : undefined}
       >
         <svg
           viewBox="0 0 24 24"
@@ -1335,13 +1374,14 @@ function SidebarNav({
           <path d="M4 19V9l8-5 8 5v10" />
           <path d="M9 19v-6h6v6" />
         </svg>
-        <span>Dashboard</span>
+        {!collapsed && <span>Dashboard</span>}
       </button>
       {goalsEnabled && (
         <button
           type="button"
           className={onGoals ? itemActive : itemIdle}
           onClick={() => navigate(`/w/${wsSlug}/goals`)}
+          title={collapsed ? "Goals" : undefined}
         >
           <svg
             viewBox="0 0 24 24"
@@ -1356,13 +1396,14 @@ function SidebarNav({
             <circle cx="12" cy="12" r="5" />
             <circle cx="12" cy="12" r="1.5" fill="currentColor" />
           </svg>
-          <span>Goals</span>
+          {!collapsed && <span>Goals</span>}
         </button>
       )}
       <button
         type="button"
         className={onMyTasks ? itemActive : itemIdle}
         onClick={() => navigate(`/w/${wsSlug}/my-issues`)}
+        title={collapsed ? "My Tasks" : undefined}
       >
         <svg
           viewBox="0 0 24 24"
@@ -1376,23 +1417,38 @@ function SidebarNav({
           <path d="M9 11l3 3 8-8" />
           <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
         </svg>
-        <span>My Tasks</span>
+        {!collapsed && <span>My Tasks</span>}
       </button>
 
-      <div className="flex items-center justify-between px-2 pt-5 pb-1.5">
-        <span className="text-[10px] uppercase tracking-[0.12em] text-slate-400 dark:text-slate-500 font-semibold">
-          Projects
-        </span>
+      {/* Projects header + "+" button: when collapsed, the section header
+          disappears and "+" centers under the nav icons as the only
+          new-project entry point. */}
+      {collapsed ? (
         <button
           type="button"
           onClick={openModal}
-          className="text-slate-400 dark:text-slate-500 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 rounded w-5 h-5 flex items-center justify-center text-base leading-none"
+          className="self-center text-slate-400 dark:text-slate-500 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 rounded w-7 h-7 flex items-center justify-center text-base leading-none mt-4 mb-1"
           title="New project"
           aria-label="New project"
         >
           +
         </button>
-      </div>
+      ) : (
+        <div className="flex items-center justify-between px-2 pt-5 pb-1.5">
+          <span className="text-[10px] uppercase tracking-[0.12em] text-slate-400 dark:text-slate-500 font-semibold">
+            Projects
+          </span>
+          <button
+            type="button"
+            onClick={openModal}
+            className="text-slate-400 dark:text-slate-500 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 rounded w-5 h-5 flex items-center justify-center text-base leading-none"
+            title="New project"
+            aria-label="New project"
+          >
+            +
+          </button>
+        </div>
+      )}
 
       {showModal && (
         <div
@@ -1492,18 +1548,31 @@ function SidebarNav({
               onKeyDown={(e) => {
                 if (e.key === "Enter") navigate(`/w/${wsSlug}/p/${p.key}/board`);
               }}
+              title={collapsed ? p.name : undefined}
               className={
-                "group flex items-center gap-2 rounded-md px-2 py-1.5 text-[13px] font-normal tracking-tight transition-colors cursor-pointer " +
-                (isActive
-                  ? "text-slate-900 dark:text-slate-100 bg-slate-100 dark:bg-slate-800 font-medium"
-                  : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800")
+                collapsed
+                  ? "group flex items-center justify-center rounded-md py-1.5 transition-colors cursor-pointer " +
+                    (isActive
+                      ? "bg-slate-100 dark:bg-slate-800"
+                      : "hover:bg-slate-100 dark:hover:bg-slate-800")
+                  : "group flex items-center gap-2 rounded-md px-2 py-1.5 text-[13px] font-normal tracking-tight transition-colors cursor-pointer " +
+                    (isActive
+                      ? "text-slate-900 dark:text-slate-100 bg-slate-100 dark:bg-slate-800 font-medium"
+                      : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800")
               }
             >
               <span
-                className="w-1.5 h-1.5 rounded-full shrink-0"
+                className={
+                  collapsed
+                    ? "w-2 h-2 rounded-full shrink-0"
+                    : "w-1.5 h-1.5 rounded-full shrink-0"
+                }
                 style={{ backgroundColor: dotColor }}
               />
-              <span className="truncate min-w-0 flex-1">{p.name}</span>
+              {!collapsed && (
+                <span className="truncate min-w-0 flex-1">{p.name}</span>
+              )}
+              {!collapsed && (
               <button
                 type="button"
                 onClick={(e) => {
@@ -1528,10 +1597,44 @@ function SidebarNav({
                   <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z" />
                 </svg>
               </button>
+              )}
             </div>
           );
         })}
       </div>
+
+      {/* Collapse toggle pinned to the bottom of the rail via `mt-auto`
+          (works because the parent <aside> is flex-col). Right-aligned
+          when expanded (chevron points outward = "fold left"), centered
+          when collapsed. Small footprint either way — purely chrome,
+          not a nav item. */}
+      <button
+        type="button"
+        onClick={onToggle}
+        className={`mt-auto ${
+          collapsed ? "self-center" : "self-end"
+        } text-slate-400 dark:text-slate-500 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 rounded w-7 h-7 flex items-center justify-center mt-3`}
+        title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+        aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+      >
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth={1.7}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className="w-4 h-4"
+        >
+          <rect x="3" y="4" width="18" height="16" rx="2" />
+          <line x1="9" y1="4" x2="9" y2="20" />
+          {collapsed ? (
+            <path d="M13 9l3 3-3 3" />
+          ) : (
+            <path d="M16 9l-3 3 3 3" />
+          )}
+        </svg>
+      </button>
     </aside>
   );
 }

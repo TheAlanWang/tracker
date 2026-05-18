@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -23,14 +23,17 @@ type Props = {
 export function SettingsLayout({ children }: Props) {
   const { wsSlug, pKey } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const { data: workspaces = [] } = useWorkspaces();
   const currentWs = workspaces.find((w) => w.slug === wsSlug);
   const { data: projects = [] } = useProjects(currentWs?.id ?? "");
   const createWsMutation = useCreateWorkspace();
 
-  // On project settings (pKey present), highlight project; otherwise highlight
-  // workspace itself.
+  // Three mutually-exclusive "what's selected" states. Profile is user-scoped
+  // (lives above the workspaces tree), so it suppresses the Workspaces row
+  // highlight even though the URL still contains wsSlug for context.
+  const onProfileSettings = location.pathname.endsWith("/profile");
   const onProjectSettings = !!pKey;
 
   const [newWsOpen, setNewWsOpen] = useState(false);
@@ -68,13 +71,38 @@ export function SettingsLayout({ children }: Props) {
   return (
     <div className="mx-auto max-w-7xl">
       <div className="grid grid-cols-[240px_1fr] gap-10">
-        <aside className="space-y-6">
+        {/* Sticky relative to WorkspaceLayout's main scroll container.
+            `self-start` keeps the grid item from stretching to row height
+            (sticky needs the element shorter than its container to behave).
+            `max-h-[calc(100vh-3.5rem)]` matches WorkspaceLayout's ~46px
+            header — caps the aside to the visible main area so a long
+            workspace+project list gets its own scrollbar instead of
+            overflowing. */}
+        <aside className="space-y-6 sticky top-0 self-start max-h-[calc(100vh-3.5rem)] overflow-y-auto pb-4">
+          <section className="space-y-1">
+            <p className="text-[11px] uppercase tracking-wide text-slate-400 dark:text-slate-500 font-semibold px-2 pb-1">
+              Account
+            </p>
+            <button
+              type="button"
+              onClick={() => navigate(`/w/${wsSlug}/profile`)}
+              className={
+                onProfileSettings
+                  ? "block w-full text-left rounded px-2 py-1.5 text-sm bg-slate-100 dark:bg-slate-800 font-medium text-slate-900 dark:text-slate-100"
+                  : "block w-full text-left rounded px-2 py-1.5 text-sm text-slate-700 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50"
+              }
+            >
+              Profile
+            </button>
+          </section>
+
           <section className="space-y-1">
             <p className="text-[11px] uppercase tracking-wide text-slate-400 dark:text-slate-500 font-semibold px-2 pb-1">
               Workspaces
             </p>
             {workspaces.map((w) => {
-              const active = w.slug === wsSlug && !onProjectSettings;
+              const active =
+                w.slug === wsSlug && !onProjectSettings && !onProfileSettings;
               return (
                 <button
                   key={w.id}

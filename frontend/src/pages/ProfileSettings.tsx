@@ -1,6 +1,10 @@
 // Profile Settings page.
 //
-// Three sections:
+// Three sections, all rendered inside <SettingsLayout> so the page shares
+// the same left-rail (Account → Profile, Workspaces, Projects) as Workspace
+// Settings and Project Settings — one consistent "settings space" instead
+// of three layouts.
+//
 //   1. General settings — edit display name, view (read-only) sign-in email.
 //      Display name is what the rest of the app uses for greetings, avatars,
 //      and activity attribution; missing display name silently falls back to
@@ -12,9 +16,6 @@
 //      never need an anonymous "does this email exist?" lookup.
 //   3. Workspace invitations — pending invites for the current user, with
 //      accept/decline. Renders only when there are pending invitations.
-//
-// Routed under SettingsLayout (/w/:wsSlug/profile), so the workspaces + project
-// sidebar lives one level up.
 
 import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -23,6 +24,7 @@ import { Camera } from "lucide-react";
 
 import { Avatar } from "@/components/Avatar";
 import { isUploadedAvatar } from "@/lib/avatar";
+import { SettingsLayout } from "@/components/SettingsLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -52,9 +54,9 @@ export default function ProfileSettings() {
 
   if (!me) {
     return (
-      <div className="mx-auto max-w-3xl py-10">
-        <p className="text-muted-foreground">Loading…</p>
-      </div>
+      <SettingsLayout>
+        <p className="text-muted-foreground py-10">Loading…</p>
+      </SettingsLayout>
     );
   }
 
@@ -136,13 +138,14 @@ function ProfileSettingsContent({
   }
 
   return (
-    <div className="mx-auto max-w-3xl space-y-10">
-      <header>
-        <h1 className="text-3xl font-semibold text-slate-900 dark:text-slate-100">Profile Settings</h1>
-        <p className="mt-2 text-slate-500 dark:text-slate-400">
-          Your personal account info — display name and email.
-        </p>
-      </header>
+    <SettingsLayout>
+      <div className="space-y-10">
+        <header>
+          <h1 className="text-3xl font-semibold text-slate-900 dark:text-slate-100">Profile Settings</h1>
+          <p className="mt-2 text-slate-500 dark:text-slate-400">
+            Your personal account info — display name and email.
+          </p>
+        </header>
 
       <section className="space-y-4">
         <h2 className="text-xl font-medium text-slate-900 dark:text-slate-100 dark:text-slate-100">General settings</h2>
@@ -225,8 +228,9 @@ function ProfileSettingsContent({
         <InvitationsSection invitations={invitations} />
       )}
 
-      <DangerZoneSection me={me} />
-    </div>
+        <DangerZoneSection me={me} />
+      </div>
+    </SettingsLayout>
   );
 }
 
