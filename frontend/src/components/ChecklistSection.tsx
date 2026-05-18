@@ -211,7 +211,7 @@ export function ChecklistSection({
   if (total === 0 && !forceShow) return null;
 
   return (
-    <details open className="group">
+    <details open className="pt-6 group">
       <summary className="cursor-pointer list-none flex items-center gap-1.5 text-sm font-normal uppercase tracking-wide text-muted-foreground hover:text-slate-700 dark:hover:text-slate-300 group-open:pb-2 group-open:border-b border-slate-200 dark:border-slate-800">
         <svg
           xmlns="http://www.w3.org/2000/svg"

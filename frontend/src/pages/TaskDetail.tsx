@@ -834,7 +834,7 @@ export function TaskDetailContent({
             Activity below — default open so the conversation is visible
             on first paint, but users can fold it away when the side rail
             is what they're reading. */}
-        <details open className="group">
+        <details open className="pt-6 group">
           <summary className="cursor-pointer list-none flex items-center gap-1.5 text-sm font-normal uppercase tracking-wide text-muted-foreground hover:text-slate-700 dark:hover:text-slate-300 group-open:pb-2 group-open:border-b border-slate-200 dark:border-slate-800">
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -949,7 +949,7 @@ export function TaskDetailContent({
           </div>
         </details>
 
-        <details className="group">
+        <details className="pt-6 group">
           <summary className="cursor-pointer list-none flex items-center gap-1.5 text-sm font-normal uppercase tracking-wide text-muted-foreground hover:text-slate-700 dark:hover:text-slate-300 group-open:pb-2 group-open:border-b border-slate-200 dark:border-slate-800">
             {/* Disclosure chevron stays — rotates to indicate open/closed.
                 Activity icon mirrors the per-section icon pattern used by
