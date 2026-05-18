@@ -1,22 +1,29 @@
-.PHONY: help install dev dev-prd api api-prd web web-prd test test-api test-web test-e2e migrate seed clean db-status
+.PHONY: help install dev dev-prd api api-prd web web-prd bench bench-local test test-api test-web test-e2e migrate seed clean db-status
+
+# Bench tunables — override on the CLI:  make bench COUNT=50 CONC=5
+COUNT ?= 100
+CONC ?= 1
 
 help:
 	@echo "Common targets:"
-	@echo "  install     install all dependencies (api + web)"
-	@echo "  dev         start full stack against LOCAL supabase (.env.dev)"
-	@echo "  dev-prd     start full stack against HOSTED supabase (.env.prd) — be careful"
-	@echo "  api         start only the FastAPI server (.env.dev)"
-	@echo "  api-prd     start only the FastAPI server (.env.prd)"
-	@echo "  web         start only the Vite dev server (.env.dev)"
-	@echo "  web-prd     start only the Vite dev server (.env.prd)"
-	@echo "  test        run all tests (api + web + e2e)"
-	@echo "  test-api    run backend pytest"
-	@echo "  test-web    run frontend vitest"
-	@echo "  test-e2e    run Playwright E2E tests"
-	@echo "  migrate     reset and apply migrations (destructive, local only)"
-	@echo "  seed        apply seed.sql"
-	@echo "  clean       stop Supabase Local"
-	@echo "  db-status   print Supabase Local URLs and keys"
+	@echo "  install      install all dependencies (api + web)"
+	@echo "  dev          start full stack against LOCAL supabase (.env.dev)"
+	@echo "  dev-prd      start full stack against HOSTED supabase (.env.prd) — be careful"
+	@echo "  api          start only the FastAPI server (.env.dev)"
+	@echo "  api-prd      start only the FastAPI server (.env.prd)"
+	@echo "  web          start only the Vite dev server (.env.dev)"
+	@echo "  web-prd      start only the Vite dev server (.env.prd)"
+	@echo "  bench        latency benchmark against PROD /me/dashboard"
+	@echo "                 override: make bench COUNT=50 CONC=5"
+	@echo "  bench-local  same, against local API at :8000 (run 'make dev' first)"
+	@echo "  test         run all tests (api + web + e2e)"
+	@echo "  test-api     run backend pytest"
+	@echo "  test-web     run frontend vitest"
+	@echo "  test-e2e     run Playwright E2E tests"
+	@echo "  migrate      reset and apply migrations (destructive, local only)"
+	@echo "  seed         apply seed.sql"
+	@echo "  clean        stop Supabase Local"
+	@echo "  db-status    print Supabase Local URLs and keys"
 
 install:
 	cd backend && uv sync
@@ -51,10 +58,10 @@ web-prd:
 	cd frontend && pnpm dev --mode prd
 
 bench:
-	@cd backend && APP_ENV=prd uv run python -m scripts.bench --count 100 --concurrency 1
+	@cd backend && APP_ENV=prd uv run python -m scripts.bench --count $(COUNT) --concurrency $(CONC)
 
 bench-local:
-	@cd backend && APP_ENV=dev uv run python -m scripts.bench --url http://127.0.0.1:8000 --count 100 --concurrency 1
+	@cd backend && APP_ENV=dev uv run python -m scripts.bench --url http://127.0.0.1:8000 --count $(COUNT) --concurrency $(CONC)
 
 test: test-api test-web
 
