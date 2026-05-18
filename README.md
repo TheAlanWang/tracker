@@ -2,9 +2,9 @@
 
 A modern, Linear / Jira-style task tracker for small teams.
 
-**Live demo:** [tracker-lr3b.onrender.com](https://tracker-lr3b.onrender.com) — sign up with email or Google.
+**Live demo:** [tracker.thealanwang.xyz](https://tracker.thealanwang.xyz) — sign up with email or Google.
 
-![License](https://img.shields.io/badge/license-MIT-blue) ![Vite](https://img.shields.io/badge/Vite-7-646CFF?logo=vite&logoColor=white) ![React](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=white) ![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white) ![FastAPI](https://img.shields.io/badge/FastAPI-0.110+-009688?logo=fastapi&logoColor=white) ![Supabase](https://img.shields.io/badge/Supabase-Postgres+Auth-3ECF8E?logo=supabase&logoColor=white) ![Fly.io](https://img.shields.io/badge/Fly.io-backend-8B5CF6?logo=fly.io&logoColor=white) ![Render](https://img.shields.io/badge/Render-frontend-46E3B7?logo=render&logoColor=white)
+![License](https://img.shields.io/badge/license-MIT-blue) ![Vite](https://img.shields.io/badge/Vite-7-646CFF?logo=vite&logoColor=white) ![React](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=white) ![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white) ![FastAPI](https://img.shields.io/badge/FastAPI-0.110+-009688?logo=fastapi&logoColor=white) ![Supabase](https://img.shields.io/badge/Supabase-Postgres+Auth-3ECF8E?logo=supabase&logoColor=white) ![Fly.io](https://img.shields.io/badge/Fly.io-backend-8B5CF6?logo=fly.io&logoColor=white) ![Vercel](https://img.shields.io/badge/Vercel-frontend-000000?logo=vercel&logoColor=white)
 
 Built local-first with a clean path to cloud deployment. Vite + React + TypeScript on the front, FastAPI on the back, Supabase (Postgres + Auth + Storage + Realtime) for data.
 
@@ -26,7 +26,7 @@ Built local-first with a clean path to cloud deployment. Vite + React + TypeScri
 
 | Frontend | Backend | Data | Hosting |
 | --- | --- | --- | --- |
-| Vite + React 18 + TS | FastAPI (Python 3.12+) | Supabase Postgres + RLS | Frontend: Render (static) |
+| Vite + React 18 + TS | FastAPI (Python 3.12+) | Supabase Postgres + RLS | Frontend: Vercel + custom domain |
 | Tailwind v3 + shadcn | uv (deps), pytest | Supabase Auth (email + Google OAuth, JWKS) | Backend: Fly.io (Dockerfile) |
 | React Query v5 | PyJWT (ES256 via JWKS, HS256 for service tokens) | Supabase Storage (avatars) | DB / Auth: Supabase Cloud |
 | react-router v6 | python-dotenv (`APP_ENV=dev/prd`) | Realtime via Supabase channels | Email: Resend SMTP |
@@ -92,7 +92,7 @@ supabase/migrations/  Versioned SQL migrations
 
 Everything in this repo deploys on `git push`:
 
-- **Frontend** → Render Static Site (build = `pnpm install && pnpm build`, publish = `dist`), rewrites `/*` → `/index.html` for the SPA router.
+- **Frontend** → Vercel (Vite preset auto-detects everything; SPA rewrites are built-in). Served from `tracker.thealanwang.xyz` via Vercel-managed DNS.
 - **Backend** → Fly.io via GitHub Actions (`.github/workflows/fly-deploy.yml`). One `shared-cpu-1x` machine in `iad` with 512MB RAM. Dockerfile uses `uv` for fast deps installs.
 - **Supabase** → GitHub Integration auto-applies new SQL in `supabase/migrations/` on push to `main`.
 - **Email** → Resend SMTP wired into Supabase Auth (sender domain verified via SPF + DKIM).
