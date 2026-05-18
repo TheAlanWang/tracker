@@ -360,6 +360,11 @@ export function TaskDetailContent({
     ?.features?.goals;
   const { data: checklistItems = [] } = useChecklist(task?.id ?? "");
   const uncheckedCount = checklistItems.filter((i) => !i.done).length;
+  // Bridge state for the empty → first-item flow: clicking "+ Add
+  // checklist" mounts ChecklistSection in forceShow mode. Once the
+  // user types the first item, `checklistItems.length > 0` makes the
+  // section visible regardless, so this flag is one-shot per session.
+  const [showEmptyChecklist, setShowEmptyChecklist] = useState(false);
   const { data: deps } = useDependencies(task?.id ?? "");
   // For the empty-section hiding rule — TaskDetail needs to know whether
   // Labels has any content so it can collapse the row in view mode.
@@ -799,15 +804,37 @@ export function TaskDetailContent({
 
         {/* Checklist items persist immediately via their own mutations,
             so we don't gate edits behind the task-level Edit / Save flow.
-            This avoids the "I added an item, why is Save disabled?"
-            confusion. */}
-        {task && <ChecklistSection taskId={task.id} readOnly={false} />}
+            The section hides itself when empty; the small entry-point
+            button below mounts it in "ready to add first item" mode. */}
+        {task && (
+          <ChecklistSection
+            taskId={task.id}
+            readOnly={false}
+            // forceShow is gated on isEditing too — if the user clicks
+            // "+ Add checklist" then leaves edit mode without typing,
+            // the empty section folds back so we're not stuck rendering
+            // an empty AddRow forever.
+            forceShow={isEditing && showEmptyChecklist}
+          />
+        )}
+        {task &&
+          isEditing &&
+          checklistItems.length === 0 &&
+          !showEmptyChecklist && (
+            <button
+              type="button"
+              onClick={() => setShowEmptyChecklist(true)}
+              className="text-sm text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 transition-colors"
+            >
+              + Add checklist
+            </button>
+          )}
 
         {/* Comments uses the same collapsible <details> pattern as
             Activity below — default open so the conversation is visible
             on first paint, but users can fold it away when the side rail
             is what they're reading. */}
-        <details open className="pt-6 group">
+        <details open className="group">
           <summary className="cursor-pointer list-none flex items-center gap-1.5 text-sm font-normal uppercase tracking-wide text-muted-foreground hover:text-slate-700 dark:hover:text-slate-300 group-open:pb-2 group-open:border-b border-slate-200 dark:border-slate-800">
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -922,7 +949,7 @@ export function TaskDetailContent({
           </div>
         </details>
 
-        <details className="pt-6 group">
+        <details className="group">
           <summary className="cursor-pointer list-none flex items-center gap-1.5 text-sm font-normal uppercase tracking-wide text-muted-foreground hover:text-slate-700 dark:hover:text-slate-300 group-open:pb-2 group-open:border-b border-slate-200 dark:border-slate-800">
             {/* Disclosure chevron stays — rotates to indicate open/closed.
                 Activity icon mirrors the per-section icon pattern used by
@@ -971,7 +998,7 @@ export function TaskDetailContent({
 
       <aside className="space-y-4 border-l border-slate-200 dark:border-slate-800 pl-6 self-start sticky top-0 pb-4">
         <div className="space-y-1">
-          <p className="text-xs font-medium uppercase text-muted-foreground">
+          <p className="text-sm font-normal uppercase tracking-wide text-muted-foreground">
             Status
           </p>
           {isEditing ? (
@@ -989,7 +1016,7 @@ export function TaskDetailContent({
         {/* Priority — hide entire block in view mode when "No priority". */}
         {(isEditing || priorityDraft !== "no_priority") && (
           <div className="space-y-1">
-            <p className="text-xs font-medium uppercase text-muted-foreground">
+            <p className="text-sm font-normal uppercase tracking-wide text-muted-foreground">
               Priority
             </p>
             {isEditing ? (
@@ -1008,7 +1035,7 @@ export function TaskDetailContent({
         {/* Due date — hide in view mode when unset. */}
         {(isEditing || dueDateDraft) && (
           <div className="space-y-1">
-            <p className="text-xs font-medium uppercase text-muted-foreground">
+            <p className="text-sm font-normal uppercase tracking-wide text-muted-foreground">
               Due date
             </p>
             {isEditing ? (
@@ -1033,7 +1060,7 @@ export function TaskDetailContent({
         {/* Sprint — hide in view mode when the task is in backlog (no sprint). */}
         {(isEditing || sprintDraft) && (
           <div className="space-y-1">
-            <p className="text-xs font-medium uppercase text-muted-foreground">
+            <p className="text-sm font-normal uppercase tracking-wide text-muted-foreground">
               Sprint
             </p>
             {isEditing ? (
@@ -1062,7 +1089,7 @@ export function TaskDetailContent({
         {/* Hide entire Goal block in view mode when no goal is linked. */}
         {goalsEnabled && (isEditing || goalDraft) && (
           <div className="space-y-1">
-            <p className="text-xs font-medium uppercase text-muted-foreground">
+            <p className="text-sm font-normal uppercase tracking-wide text-muted-foreground">
               Goal
             </p>
             {isEditing ? (
@@ -1082,7 +1109,7 @@ export function TaskDetailContent({
         {/* Assignee — hide in view mode when unassigned. */}
         {(isEditing || assigneeDraft) && (
           <div className="space-y-1">
-            <p className="text-xs font-medium uppercase text-muted-foreground">
+            <p className="text-sm font-normal uppercase tracking-wide text-muted-foreground">
               Assignee
             </p>
             {isEditing ? (
@@ -1164,7 +1191,7 @@ export function TaskDetailContent({
 
         {(isEditing || taskLabels.length > 0) && (
           <div className="space-y-1">
-            <p className="text-xs font-medium uppercase text-muted-foreground">
+            <p className="text-sm font-normal uppercase tracking-wide text-muted-foreground">
               Labels
             </p>
             <LabelsEditor
@@ -1201,7 +1228,7 @@ export function TaskDetailContent({
         />
 
         <div className="space-y-1">
-          <p className="text-xs font-medium uppercase text-muted-foreground">
+          <p className="text-sm font-normal uppercase tracking-wide text-muted-foreground">
             Created
           </p>
           {/* Matches Due Date's format ("May 12, 2026") with the time

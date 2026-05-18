@@ -185,12 +185,17 @@ function AddRow({
 export function ChecklistSection({
   taskId,
   readOnly = false,
+  forceShow = false,
 }: {
   taskId: string;
   // When true, hides the "+ Add" ghost row and the × delete button on
   // each item, AND collapses the whole section if there are zero items.
   // TaskDetail flips this in view mode so empty fields don't take space.
   readOnly?: boolean;
+  // When true, render the section even with zero items so the AddRow
+  // is reachable. Parent flips this from a "+ Add checklist" entry-
+  // point button when the section is otherwise hidden.
+  forceShow?: boolean;
 }) {
   const { data: items = [] } = useChecklist(taskId);
   const createItem = useCreateChecklistItem(taskId);
@@ -200,11 +205,13 @@ export function ChecklistSection({
   const total = items.length;
   const done = items.filter((i) => i.done).length;
 
-  // Hide entirely when there's nothing to show and the user can't add.
-  if (readOnly && total === 0) return null;
+  // Hide entirely when empty. Keeps tasks that don't need a checklist
+  // visually clean. The parent shows a "+ Add checklist" button in
+  // place and flips `forceShow` when clicked so the AddRow appears.
+  if (total === 0 && !forceShow) return null;
 
   return (
-    <details open className="pt-6 group">
+    <details open className="group">
       <summary className="cursor-pointer list-none flex items-center gap-1.5 text-sm font-normal uppercase tracking-wide text-muted-foreground hover:text-slate-700 dark:hover:text-slate-300 group-open:pb-2 group-open:border-b border-slate-200 dark:border-slate-800">
         <svg
           xmlns="http://www.w3.org/2000/svg"
