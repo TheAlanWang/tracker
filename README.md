@@ -2,6 +2,10 @@
 
 A modern, Linear / Jira-style task tracker for small teams.
 
+**Live demo:** [tracker-lr3b.onrender.com](https://tracker-lr3b.onrender.com) — sign up with email or Google.
+
+![License](https://img.shields.io/badge/license-MIT-blue) ![Vite](https://img.shields.io/badge/Vite-7-646CFF?logo=vite&logoColor=white) ![React](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=white) ![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white) ![FastAPI](https://img.shields.io/badge/FastAPI-0.110+-009688?logo=fastapi&logoColor=white) ![Supabase](https://img.shields.io/badge/Supabase-Postgres+Auth-3ECF8E?logo=supabase&logoColor=white) ![Fly.io](https://img.shields.io/badge/Fly.io-backend-8B5CF6?logo=fly.io&logoColor=white) ![Render](https://img.shields.io/badge/Render-frontend-46E3B7?logo=render&logoColor=white)
+
 Built local-first with a clean path to cloud deployment. Vite + React + TypeScript on the front, FastAPI on the back, Supabase (Postgres + Auth + Storage + Realtime) for data.
 
 ## Features
@@ -20,12 +24,12 @@ Built local-first with a clean path to cloud deployment. Vite + React + TypeScri
 
 ## Tech stack
 
-| Frontend | Backend | Data |
-| --- | --- | --- |
-| Vite + React 18 + TypeScript | FastAPI (Python 3.12+) | Supabase (Postgres + Auth + Storage + Realtime) |
-| Tailwind v3 + shadcn primitives | uv for deps | RLS policies via `is_workspace_member()` |
-| React Query v5 | pytest | Migrations in `supabase/migrations/` |
-| react-router v6 | | |
+| Frontend | Backend | Data | Hosting |
+| --- | --- | --- | --- |
+| Vite + React 18 + TS | FastAPI (Python 3.12+) | Supabase Postgres + RLS | Frontend: Render (static) |
+| Tailwind v3 + shadcn | uv (deps), pytest | Supabase Auth (email + Google OAuth, JWKS) | Backend: Fly.io (Dockerfile) |
+| React Query v5 | PyJWT (ES256 via JWKS, HS256 for service tokens) | Supabase Storage (avatars) | DB / Auth: Supabase Cloud |
+| react-router v6 | python-dotenv (`APP_ENV=dev/prd`) | Realtime via Supabase channels | Email: Resend SMTP |
 
 ## Run locally
 
@@ -82,6 +86,18 @@ supabase/migrations/  Versioned SQL migrations
 - **Tables share chrome**: `components/TaskTableCard.tsx` owns the sticky thead + `table-fixed` + rounded card. Each list page brings its own columns + rows.
 - **Activity history**: triggers in `supabase/migrations/` capture field-level diffs into `task_activity`; one row per saved field.
 - **Dependencies**: BFS over the directed dep graph at save-time to reject cycles.
+- **JWKS-cached auth**: backend caches one `PyJWKClient` per issuer URL (`core/security.py`) — first JWT verify hits Supabase JWKS, subsequent ones reuse the cached key for 10 minutes. Avoids a per-request TLS round-trip on every authenticated call.
+
+## Deployment
+
+Everything in this repo deploys on `git push`:
+
+- **Frontend** → Render Static Site (build = `pnpm install && pnpm build`, publish = `dist`), rewrites `/*` → `/index.html` for the SPA router.
+- **Backend** → Fly.io via GitHub Actions (`.github/workflows/fly-deploy.yml`). One `shared-cpu-1x` machine in `iad` with 512MB RAM. Dockerfile uses `uv` for fast deps installs.
+- **Supabase** → GitHub Integration auto-applies new SQL in `supabase/migrations/` on push to `main`.
+- **Email** → Resend SMTP wired into Supabase Auth (sender domain verified via SPF + DKIM).
+
+Env vars are managed per platform (Render env tab, `fly secrets`, Supabase Dashboard). No prod `.env` files in the repo — see `backend/.env.example` and `frontend/.env.example` for the dev template, and the `APP_ENV` switch in `backend/app/core/config.py` for how `.env.dev` / `.env.prd` are selected.
 
 ## License
 
