@@ -4,10 +4,12 @@ import {
   DragOverlay,
   DragStartEvent,
   PointerSensor,
-  closestCorners,
+  closestCenter,
+  pointerWithin,
   useDroppable,
   useSensor,
   useSensors,
+  type CollisionDetection,
 } from "@dnd-kit/core";
 import {
   SortableContext,
@@ -48,6 +50,20 @@ const COLUMNS: { status: TaskStatus; label: string }[] = STATUS_ORDER.map((s) =>
 // Columns hidden by default on first visit (user can toggle in the menu).
 // Cancelled is noise on a working board — opt-in via the menu.
 const DEFAULT_HIDDEN: TaskStatus[] = ["cancelled"];
+
+// Custom collision strategy for the kanban: prefer whichever droppable
+// the pointer is INSIDE (a column, or a card within a column). Falls
+// back to nearest-center if the pointer happens to be over a gap. The
+// default `closestCorners` strategy picks the nearest droppable corner,
+// which mis-targets an empty column when a neighbour column has cards
+// — the neighbour card's corner is closer than the empty column's
+// outer corner, so cross-column drops to empty columns get routed to
+// the wrong column.
+const collisionStrategy: CollisionDetection = (args) => {
+  const inside = pointerWithin(args);
+  if (inside.length > 0) return inside;
+  return closestCenter(args);
+};
 
 function PriorityBadge({ priority }: { priority: TaskPriority }) {
   // Board cards are dense — hide quiet priorities to reduce visual noise.
@@ -581,7 +597,7 @@ export default function Board() {
       </div>
       <DndContext
         sensors={sensors}
-        collisionDetection={closestCorners}
+        collisionDetection={collisionStrategy}
         onDragStart={onDragStart}
         onDragOver={onDragOver}
         onDragEnd={onDragEnd}
