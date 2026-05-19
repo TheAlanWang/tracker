@@ -77,7 +77,16 @@ export function ProjectLayout() {
     <div>
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
+          {/* Workspace eyebrow — sits above the project title in a
+              lighter shade so users always know which workspace this
+              project lives in (helpful when the same project name
+              exists across workspaces). */}
+          {currentWs && (
+            <p className="text-xs font-medium text-slate-400 dark:text-slate-500 mb-0.5">
+              {currentWs.name}
+            </p>
+          )}
+          <h1 className="text-xl font-semibold text-slate-800 dark:text-slate-100">
             {currentProject.name}
           </h1>
           {currentProject.description && (
@@ -98,7 +107,7 @@ export function ProjectLayout() {
           + New Task
         </Button>
       </div>
-      <nav className="mt-3 flex items-center gap-1 border-b border-slate-200 dark:border-slate-800">
+      <nav className="mt-2 flex items-center gap-1 border-b border-slate-200 dark:border-slate-800">
         {TABS.map((t) => (
           <NavLink
             key={t.to}
@@ -111,7 +120,7 @@ export function ProjectLayout() {
           </NavLink>
         ))}
       </nav>
-      <div className="pt-3">
+      <div className="pt-2">
         <Outlet />
       </div>
 

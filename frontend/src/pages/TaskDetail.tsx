@@ -773,34 +773,39 @@ export function TaskDetailContent({
 
         {/* Hide the whole Description block in view mode when empty —
             in edit mode keep showing it so the textarea is reachable. */}
-        {(isEditing || descDraft.trim()) && (
-          <div className="space-y-1">
-            <h2 className="flex items-center gap-1.5 text-sm font-normal uppercase tracking-wide text-muted-foreground pb-2 border-b border-slate-200 dark:border-slate-800">
-              <AlignLeft className="w-3.5 h-3.5" aria-hidden />
-              <span>Description</span>
-            </h2>
-            {isEditing ? (
-              <textarea
-                className="w-full rounded border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-2 text-sm"
-                rows={6}
-                value={descDraft}
-                onChange={(e) => setDescDraft(e.target.value)}
-                placeholder="Add a description…"
-              />
-            ) : (
-              // Tweaks vs. raw @tailwindcss/typography: fenced <pre>
-              // blocks get a light slate bg + dark text (the default
-              // near-black dominates a mostly-prose description); inline
-              // <code> becomes a subtle pill with the plugin's auto
-              // backtick pseudo-elements suppressed.
-              <div className="prose prose-sm max-w-none text-slate-700 dark:text-slate-300 prose-pre:bg-slate-100 dark:prose-pre:bg-slate-800/60 prose-pre:text-slate-800 dark:prose-pre:text-slate-200 prose-pre:rounded-md prose-pre:p-3 prose-pre:text-[13px] prose-code:bg-slate-100 dark:prose-code:bg-slate-800/60 prose-code:text-slate-800 dark:prose-code:text-slate-200 prose-code:rounded prose-code:px-1 prose-code:py-0.5 prose-code:text-[0.85em] prose-code:font-normal prose-code:before:hidden prose-code:after:hidden">
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                  {descDraft}
-                </ReactMarkdown>
-              </div>
-            )}
-          </div>
-        )}
+        <div className="space-y-1">
+          <h2 className="flex items-center gap-1.5 text-sm font-normal uppercase tracking-wide text-muted-foreground pb-2 border-b border-slate-200 dark:border-slate-800">
+            <AlignLeft className="w-3.5 h-3.5" aria-hidden />
+            <span>Description</span>
+          </h2>
+          {isEditing ? (
+            <textarea
+              className="w-full rounded border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-2 text-sm"
+              rows={6}
+              value={descDraft}
+              onChange={(e) => setDescDraft(e.target.value)}
+              placeholder="Add a description…"
+            />
+          ) : descDraft.trim() ? (
+            // Tweaks vs. raw @tailwindcss/typography: fenced <pre>
+            // blocks get a light slate bg + dark text (the default
+            // near-black dominates a mostly-prose description); inline
+            // <code> becomes a subtle pill with the plugin's auto
+            // backtick pseudo-elements suppressed.
+            <div className="prose prose-sm max-w-none text-slate-700 dark:text-slate-300 prose-pre:bg-slate-100 dark:prose-pre:bg-slate-800/60 prose-pre:text-slate-800 dark:prose-pre:text-slate-200 prose-pre:rounded-md prose-pre:p-3 prose-pre:text-[13px] prose-code:bg-slate-100 dark:prose-code:bg-slate-800/60 prose-code:text-slate-800 dark:prose-code:text-slate-200 prose-code:rounded prose-code:px-1 prose-code:py-0.5 prose-code:text-[0.85em] prose-code:font-normal prose-code:before:hidden prose-code:after:hidden">
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                {descDraft}
+              </ReactMarkdown>
+            </div>
+          ) : (
+            // Empty + view mode: muted hint instead of hiding the section.
+            // Keeps the layout consistent across tasks regardless of whether
+            // a description has been written yet.
+            <p className="text-sm italic text-slate-400 dark:text-slate-500">
+              No description.
+            </p>
+          )}
+        </div>
 
         {/* Checklist items persist immediately via their own mutations,
             so we don't gate edits behind the task-level Edit / Save flow.

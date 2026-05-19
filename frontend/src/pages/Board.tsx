@@ -18,6 +18,8 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { SquarePen } from "lucide-react";
+import { toast } from "sonner";
 import { useParams } from "react-router-dom";
 
 import { AssigneePicker } from "@/components/AssigneePicker";
@@ -34,6 +36,7 @@ import {
   TaskStatus,
   useMoveTask,
   useTasks,
+  useUpdateTask,
 } from "@/features/tasks/api";
 import { useProjects } from "@/features/projects/api";
 import { useProjectTasksRealtime } from "@/features/realtime/useProjectTasksRealtime";
@@ -216,22 +219,21 @@ function BlockedBadge() {
   return (
     <span
       title="Blocked by another task"
-      className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide bg-amber-100 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300"
+      className="inline-flex items-center justify-center text-amber-600 dark:text-amber-400"
     >
       <svg
         viewBox="0 0 24 24"
         fill="none"
         stroke="currentColor"
-        strokeWidth={2}
+        strokeWidth={1.8}
         strokeLinecap="round"
         strokeLinejoin="round"
-        className="w-2.5 h-2.5"
+        className="w-3.5 h-3.5"
         aria-hidden
       >
         <rect x="5" y="11" width="14" height="9" rx="1.5" />
         <path d="M8 11V8a4 4 0 0 1 8 0v3" />
       </svg>
-      Blocked
     </span>
   );
 }
@@ -253,31 +255,131 @@ function CardBody({
   const { data: blockedIds } = useBlockedTaskIds(task.workspace_id);
   const isBlocked = blockedIds?.has(task.id) ?? false;
 
-  // Show meta row only if there's something to show — otherwise the title
-  // is the entire card (cleaner for unprioritized, undated, unassigned tasks).
-  const hasMeta =
-    (task.priority !== "no_priority" && task.priority !== "low") ||
-    task.due_date ||
-    assignee ||
-    isBlocked ||
-    interactive;
+  // Inline title editing — only on interactive cards (not the drag
+  // preview). Click the title text to swap the <div> for a <textarea>;
+  // Enter / blur commits via useUpdateTask, Esc cancels. stopPropagation
+  // on the textarea pointer events prevents drag from kicking in while
+  // editing, and on the title's onClick prevents the card-level click
+  // (which opens TaskDetailModal) from firing.
+  const [titleEditing, setTitleEditing] = useState(false);
+  const [titleDraft, setTitleDraft] = useState(task.title);
+  const updateMutation = useUpdateTask(task.id);
+
+  // Keep the draft in sync with task.title when not actively editing
+  // (covers realtime updates from other users / the modal).
+  useEffect(() => {
+    if (!titleEditing) setTitleDraft(task.title);
+  }, [task.title, titleEditing]);
+
+  async function commitTitle() {
+    const next = titleDraft.trim();
+    if (!next || next === task.title) {
+      setTitleDraft(task.title);
+      setTitleEditing(false);
+      return;
+    }
+    try {
+      await updateMutation.mutateAsync({ title: next });
+    } catch {
+      setTitleDraft(task.title);
+      toast.error("Failed to update title");
+    }
+    setTitleEditing(false);
+  }
+
+  // Title typographic style — kept as Geist (the UI font) with a heavier
+  // weight so it reads as title without introducing a second font family.
+  // Mixing a serif here meant CJK characters fell back to system sans
+  // while Latin chars rendered serif — same card, two fonts, looked
+  // unintentional.
+  const titleClass =
+    "text-[15px] font-medium tracking-tight text-slate-600 dark:text-slate-300 leading-snug";
 
   return (
     <>
-      {/* Identifier eyebrow — small mono label above the title. Matches
-          Linear/Jira's pattern of showing the task ID on every card so
-          you can refer to it in conversations without opening detail. */}
-      <p className="font-mono text-[10px] text-slate-400 dark:text-slate-500 tracking-wide mb-0.5">
-        {task.identifier}
-      </p>
-      <div className="text-sm text-slate-800 dark:text-slate-200 leading-snug">{task.title}</div>
-      {hasMeta && (
-        <div className="mt-2 flex items-center justify-between gap-2">
-          <div className="flex items-center gap-1.5 min-w-0 flex-wrap">
-            {isBlocked && <BlockedBadge />}
-            <PriorityBadge priority={task.priority} />
-            {task.due_date && <DueDateBadge date={task.due_date} />}
-          </div>
+      {titleEditing && interactive ? (
+        <textarea
+          autoFocus
+          value={titleDraft}
+          onChange={(e) => {
+            setTitleDraft(e.target.value);
+            // auto-grow so wrapping titles don't get clipped
+            e.target.style.height = "auto";
+            e.target.style.height = `${e.target.scrollHeight}px`;
+          }}
+          onFocus={(e) => {
+            e.target.style.height = "auto";
+            e.target.style.height = `${e.target.scrollHeight}px`;
+            // place caret at end (default would select-all from autoFocus)
+            const len = e.target.value.length;
+            e.target.setSelectionRange(len, len);
+          }}
+          onBlur={commitTitle}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              commitTitle();
+            } else if (e.key === "Escape") {
+              setTitleDraft(task.title);
+              setTitleEditing(false);
+            }
+          }}
+          onPointerDown={(e) => e.stopPropagation()}
+          onClick={(e) => e.stopPropagation()}
+          rows={1}
+          maxLength={500}
+          className={`${titleClass} w-full bg-transparent outline-none resize-none border-0 p-0 focus:ring-2 focus:ring-blue-300 dark:focus:ring-blue-700 rounded`}
+        />
+      ) : (
+        // Jira-style: title text stays a passive label (clicking the card
+        // — including the title — opens the detail modal). The explicit
+        // edit affordance is a Pencil icon that appears on card hover
+        // immediately after the title. Click it to enter inline edit.
+        <div className={`${titleClass} inline`}>
+          <span>{task.title}</span>
+          {interactive && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setTitleDraft(task.title);
+                setTitleEditing(true);
+              }}
+              onPointerDown={(e) => e.stopPropagation()}
+              title="Edit title"
+              aria-label="Edit title"
+              className="ml-1.5 inline-flex items-center align-[-2px] opacity-0 group-hover/card:opacity-100 focus:opacity-100 text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 transition-opacity"
+            >
+              <SquarePen className="w-3.5 h-3.5" aria-hidden />
+            </button>
+          )}
+        </div>
+      )}
+      {/* Due date — its own line above the ID. Date is more scannable
+          when it gets its own row instead of mixing with the mono ID
+          and the blocked icon. Skipped entirely when the task has no
+          due date so cards without one stay compact. */}
+      {task.due_date && (
+        <div className="mt-2 flex items-center">
+          <DueDateBadge date={task.due_date} />
+        </div>
+      )}
+      {/* Bottom meta row — always renders because the identifier always
+          exists. Left cluster: ID + Blocked icon. Right cluster:
+          Priority + Avatar (status of this task right now). Priority
+          sits immediately to the avatar's left so the two move together
+          as the "who/how urgent" pair. */}
+      <div
+        className={`${task.due_date ? "mt-1" : "mt-2"} flex items-center justify-between gap-2`}
+      >
+        <div className="flex items-center gap-1.5 min-w-0">
+          <span className="font-mono text-[10px] text-slate-400 dark:text-slate-500 tracking-wide">
+            {task.identifier}
+          </span>
+          {isBlocked && <BlockedBadge />}
+        </div>
+        <div className="flex items-center gap-1.5 shrink-0">
+          <PriorityBadge priority={task.priority} />
           {interactive ? (
             <AssigneePicker
               taskId={task.id}
@@ -320,7 +422,7 @@ function CardBody({
             />
           ) : null}
         </div>
-      )}
+      </div>
     </>
   );
 }
@@ -353,7 +455,7 @@ function SortableCard({
         transition,
         opacity: isDragging ? 0.3 : 1,
       }}
-      className="rounded border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-2.5 cursor-grab active:cursor-grabbing hover:border-slate-300 hover:shadow-sm select-none transition-shadow"
+      className="group/card rounded-md border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-2.5 cursor-grab active:cursor-grabbing shadow-sm hover:shadow-md hover:-translate-y-0.5 hover:border-slate-300 dark:hover:border-slate-700 select-none transition-all duration-150"
       {...attributes}
       {...listeners}
       onClick={() => {
@@ -630,7 +732,7 @@ export default function Board() {
         </div>
         <DragOverlay dropAnimation={null}>
           {activeTask ? (
-            <div className="rounded border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 p-2.5 shadow-xl cursor-grabbing rotate-1">
+            <div className="rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 p-2.5 shadow-2xl cursor-grabbing rotate-1">
               <CardBody
                 task={activeTask}
                 assignee={
