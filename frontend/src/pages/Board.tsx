@@ -293,7 +293,7 @@ function CardBody({
   // while Latin chars rendered serif — same card, two fonts, looked
   // unintentional.
   const titleClass =
-    "text-[15px] font-medium tracking-tight text-slate-600 dark:text-slate-300 leading-snug";
+    "text-[16px] font-medium tracking-tight text-slate-600 dark:text-slate-300 leading-snug";
 
   return (
     <>

@@ -20,7 +20,7 @@ type Props = {
 export function InlineTaskCreator({
   projectId,
   status,
-  triggerLabel = "+ Add task",
+  triggerLabel = "+ Add",
   triggerClassName,
   placeholder = "Task title…",
 }: Props) {
@@ -87,21 +87,24 @@ export function InlineTaskCreator({
         maxLength={200}
         className="w-full bg-transparent outline-none text-sm placeholder:text-slate-400"
       />
-      <div className="flex items-center gap-2">
+      <div className="flex items-center justify-end gap-2">
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={cancel}
+          className="rounded-full"
+        >
+          Cancel
+        </Button>
         <Button
           type="submit"
           size="sm"
           disabled={!title.trim() || create.isPending}
+          className="rounded-full"
         >
           {create.isPending ? "Adding…" : "Add"}
         </Button>
-        <button
-          type="button"
-          onClick={cancel}
-          className="text-xs text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100"
-        >
-          Cancel
-        </button>
       </div>
     </form>
   );
