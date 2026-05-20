@@ -287,8 +287,9 @@ export default function Landing() {
               </span>
             </h1>
             <p className="mt-5 text-lg leading-relaxed text-slate-500 dark:text-slate-400 max-w-xl">
-              A fast, opinionated tracker for teams that move quickly. Sprints,
-              boards, and real-time activity.
+              An opinionated task tracker. Start with a flat list of tasks —
+              turn on sprints, goals, and dependencies only when your team
+              needs them.
             </p>
             <div className="mt-7 flex flex-wrap items-center gap-3">
               <Button
@@ -341,8 +342,8 @@ export default function Landing() {
             }
           />
           <FeatureCard
-            title="Sprints + velocity built in"
-            body="Plan a sprint, watch it complete itself. Roll-overs and progress bars handled — no spreadsheets."
+            title="Sprints, when you want them"
+            body="Turn on sprints per workspace. Burndown, velocity, and roll-overs — there when you need them, hidden when you don't."
             icon={
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} className="w-5 h-5">
                 <path d="M3 12a9 9 0 1 1 18 0" />
@@ -362,11 +363,13 @@ export default function Landing() {
             }
           />
           <FeatureCard
-            title="Filter, sort, slice"
-            body="Linear-style filter chips on every list view. Sort by anything; remember it next time."
+            title="Goals, when you need rollup"
+            body='An optional "why" layer above tasks. Recursive hierarchy, OKR-style. Off by default; turn it on per workspace when your team thinks in objectives.'
             icon={
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} className="w-5 h-5">
-                <path d="M4 6h16M7 12h10M10 18h4" strokeLinecap="round" />
+                <circle cx="12" cy="12" r="9" />
+                <circle cx="12" cy="12" r="5" />
+                <circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none" />
               </svg>
             }
           />
@@ -401,7 +404,7 @@ export default function Landing() {
               Start tracking in a minute.
             </h3>
             <p className="mt-1.5 text-slate-500 dark:text-slate-400">
-              Create a workspace, drop in your first sprint, and ship.
+              Create a workspace, add your first task, and ship.
             </p>
           </div>
           <Button
