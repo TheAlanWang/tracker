@@ -183,6 +183,80 @@ function FeatureCard({
   );
 }
 
+// ---- Feature list (data) ----
+// Defined as a module-level constant so the marquee track can render it twice
+// (for a seamless infinite loop) without duplicating six JSX blocks inline.
+
+const FEATURES: Array<{
+  title: string;
+  body: string;
+  icon: React.ReactNode;
+}> = [
+  {
+    title: "Kanban that feels instant",
+    body: "Drag, drop, and reassign without a page reload. Realtime updates so the team sees every move.",
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} className="w-5 h-5">
+        <rect x="3" y="4" width="6" height="16" rx="1.2" />
+        <rect x="11" y="4" width="6" height="10" rx="1.2" />
+        <rect x="19" y="4" width="2" height="6" rx="0.8" />
+      </svg>
+    ),
+  },
+  {
+    title: "Sprints, when you want them",
+    body: "Turn on sprints per workspace. Burndown, velocity, and roll-overs — there when you need them, hidden when you don't.",
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} className="w-5 h-5">
+        <path d="M3 12a9 9 0 1 1 18 0" />
+        <path d="M12 12l4-2" strokeLinecap="round" />
+        <circle cx="12" cy="12" r="1.2" fill="currentColor" stroke="none" />
+      </svg>
+    ),
+  },
+  {
+    title: "Goals, when you need rollup",
+    body: 'An optional "why" layer above tasks. Recursive hierarchy, OKR-style. Off by default; turn it on per workspace when your team thinks in objectives.',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} className="w-5 h-5">
+        <circle cx="12" cy="12" r="9" />
+        <circle cx="12" cy="12" r="5" />
+        <circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none" />
+      </svg>
+    ),
+  },
+  {
+    title: "A dashboard that knows you",
+    body: "Today's focus, overdue alerts, your activity feed — surfaced the moment you log in.",
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} className="w-5 h-5">
+        <path d="M4 19V9l8-5 8 5v10" />
+        <path d="M9 19v-6h6v6" />
+      </svg>
+    ),
+  },
+  {
+    title: "Inbox, not email",
+    body: "A real notification center. See who assigned what, who commented, who changed your due date.",
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} className="w-5 h-5">
+        <path d="M6 8a6 6 0 1 1 12 0v5l1.5 3H4.5L6 13z" />
+        <path d="M10 18a2 2 0 0 0 4 0" />
+      </svg>
+    ),
+  },
+  {
+    title: "Keyboard-first",
+    body: "Built so you almost never need the mouse. Quick switcher, slash commands, jump-to-task.",
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} className="w-5 h-5">
+        <rect x="2.5" y="6" width="19" height="12" rx="1.5" />
+        <path d="M7 10h.01M11 10h.01M15 10h.01M7 14h10" strokeLinecap="round" />
+      </svg>
+    ),
+  },
+];
+
 // ---- Theme toggle (light ↔ dark) ----
 
 function ThemeToggle() {
@@ -329,70 +403,22 @@ export default function Landing() {
             Everything to plan a week, nothing to slow it down.
           </h2>
         </div>
-        <div className="mt-10 grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          <FeatureCard
-            title="Kanban that feels instant"
-            body="Drag, drop, and reassign without a page reload. Realtime updates so the team sees every move."
-            icon={
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} className="w-5 h-5">
-                <rect x="3" y="4" width="6" height="16" rx="1.2" />
-                <rect x="11" y="4" width="6" height="10" rx="1.2" />
-                <rect x="19" y="4" width="2" height="6" rx="0.8" />
-              </svg>
-            }
-          />
-          <FeatureCard
-            title="Sprints, when you want them"
-            body="Turn on sprints per workspace. Burndown, velocity, and roll-overs — there when you need them, hidden when you don't."
-            icon={
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} className="w-5 h-5">
-                <path d="M3 12a9 9 0 1 1 18 0" />
-                <path d="M12 12l4-2" strokeLinecap="round" />
-                <circle cx="12" cy="12" r="1.2" fill="currentColor" stroke="none" />
-              </svg>
-            }
-          />
-          <FeatureCard
-            title="A dashboard that knows you"
-            body="Today's focus, overdue alerts, your activity feed — surfaced the moment you log in."
-            icon={
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} className="w-5 h-5">
-                <path d="M4 19V9l8-5 8 5v10" />
-                <path d="M9 19v-6h6v6" />
-              </svg>
-            }
-          />
-          <FeatureCard
-            title="Goals, when you need rollup"
-            body='An optional "why" layer above tasks. Recursive hierarchy, OKR-style. Off by default; turn it on per workspace when your team thinks in objectives.'
-            icon={
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} className="w-5 h-5">
-                <circle cx="12" cy="12" r="9" />
-                <circle cx="12" cy="12" r="5" />
-                <circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none" />
-              </svg>
-            }
-          />
-          <FeatureCard
-            title="Inbox, not email"
-            body="A real notification center. See who assigned what, who commented, who changed your due date."
-            icon={
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} className="w-5 h-5">
-                <path d="M6 8a6 6 0 1 1 12 0v5l1.5 3H4.5L6 13z" />
-                <path d="M10 18a2 2 0 0 0 4 0" />
-              </svg>
-            }
-          />
-          <FeatureCard
-            title="Keyboard-first"
-            body="Built so you almost never need the mouse. Quick switcher, slash commands, jump-to-task."
-            icon={
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} className="w-5 h-5">
-                <rect x="2.5" y="6" width="19" height="12" rx="1.5" />
-                <path d="M7 10h.01M11 10h.01M15 10h.01M7 14h10" strokeLinecap="round" />
-              </svg>
-            }
-          />
+        {/* Auto-scrolling feature row (marquee). Track renders FEATURES
+            twice and animates -50% for a seamless loop. Pauses on hover;
+            respects prefers-reduced-motion (motion-safe: prefix). */}
+        <div
+          className="mt-10 relative overflow-hidden group"
+          aria-label="Feature highlights"
+        >
+          <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-16 bg-gradient-to-r from-white dark:from-slate-900 to-transparent" />
+          <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-16 bg-gradient-to-l from-white dark:from-slate-900 to-transparent" />
+          <div className="flex w-max gap-4 motion-safe:animate-marquee group-hover:[animation-play-state:paused]">
+            {[...FEATURES, ...FEATURES].map((f, i) => (
+              <div key={i} className="w-80 shrink-0" aria-hidden={i >= FEATURES.length}>
+                <FeatureCard title={f.title} body={f.body} icon={f.icon} />
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
