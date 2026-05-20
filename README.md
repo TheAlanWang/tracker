@@ -77,6 +77,7 @@ backend/
   app/schemas/        Pydantic models
   tests/              pytest suite
 supabase/migrations/  Versioned SQL migrations
+trackly-mcp/          MCP server (in development) — see below
 ```
 
 ## Architecture notes
@@ -87,6 +88,18 @@ supabase/migrations/  Versioned SQL migrations
 - **Activity history**: triggers in `supabase/migrations/` capture field-level diffs into `task_activity`; one row per saved field.
 - **Dependencies**: BFS over the directed dep graph at save-time to reject cycles.
 - **JWKS-cached auth**: backend caches one `PyJWKClient` per issuer URL (`core/security.py`) — first JWT verify hits Supabase JWKS, subsequent ones reuse the cached key for 10 minutes. Avoids a per-request TLS round-trip on every authenticated call.
+
+## MCP server (in development)
+
+`trackly-mcp/` exposes the Trackly REST API as a [Model Context Protocol](https://modelcontextprotocol.io) server so Claude Code / Claude Desktop / Cursor can drive the tracker directly from chat — "create a task in TRAC titled 'Fix login bug'", "what's on my plate this week?", "mark TRAC-7 done".
+
+Stack: Python + the official `mcp[cli]` SDK, `httpx` for the API client, `PyJWT` for HS256 user-token minting (same shape as a Supabase session, signed with the shared backend secret).
+
+V1 ships 8 tools — `list_workspaces`, `list_projects`, `list_my_tasks`, `get_task`, `search`, `create_task`, `update_task_status`, `add_comment` — over the stdio transport. Auth is a single-user dev model: the JWT secret lives on the user's machine in `~/.claude.json`, so the server speaks to the backend as the configured user.
+
+V2 (planned): switch to HTTP/SSE transport, add an OAuth 2.1 flow so anyone can connect their own Trackly account without sharing secrets, and deploy the MCP server alongside the backend.
+
+See `trackly-mcp/README.md` for setup + Claude Code / Cursor / Desktop registration JSON.
 
 ## Deployment
 
