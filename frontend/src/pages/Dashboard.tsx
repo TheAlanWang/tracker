@@ -36,7 +36,7 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/EmptyState";
-import { useWorkspaces } from "@/features/workspaces/api";
+import { isSprintsEnabled, useWorkspaces } from "@/features/workspaces/api";
 
 const FIELD_LABEL: Record<string, string> = {
   title: "title",
@@ -1028,6 +1028,7 @@ export default function Dashboard() {
   const { wsSlug } = useParams();
   const { data: workspaces = [] } = useWorkspaces();
   const currentWs = workspaces.find((w) => w.slug === wsSlug);
+  const sprintsEnabled = isSprintsEnabled(currentWs);
   const { data: me } = useCurrentUser();
   const { data, isLoading } = useDashboard(currentWs?.id);
   const [openTaskId, setOpenTaskId] = useState<string | null>(null);
@@ -1134,42 +1135,44 @@ export default function Dashboard() {
             )}
           </SectionCard>
 
-          <SectionCard title="Active sprints" count={activeSprints.length}>
-            {activeSprints.length === 0 ? (
-              <EmptyState
-                size="compact"
-                title="No active sprint"
-                description="Start a sprint from the Sprints view to see live progress here."
-                icon={
-                  <svg
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth={1.6}
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="w-5 h-5"
-                  >
-                    <path d="M13 2 4 14h7l-1 8 9-12h-7l1-8z" />
-                  </svg>
-                }
-              />
-            ) : (
-              <div className="space-y-0.5">
-                {activeSprints.map((s) => (
-                  <SprintRow
-                    key={s.id}
-                    sprint={s}
-                    onClick={() =>
-                      navigate(
-                        `/w/${s.workspace_slug}/p/${s.project_key}/sprints/${s.id}`,
-                      )
-                    }
-                  />
-                ))}
-              </div>
-            )}
-          </SectionCard>
+          {sprintsEnabled && (
+            <SectionCard title="Active sprints" count={activeSprints.length}>
+              {activeSprints.length === 0 ? (
+                <EmptyState
+                  size="compact"
+                  title="No active sprint"
+                  description="Start a sprint from the Sprints view to see live progress here."
+                  icon={
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth={1.6}
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="w-5 h-5"
+                    >
+                      <path d="M13 2 4 14h7l-1 8 9-12h-7l1-8z" />
+                    </svg>
+                  }
+                />
+              ) : (
+                <div className="space-y-0.5">
+                  {activeSprints.map((s) => (
+                    <SprintRow
+                      key={s.id}
+                      sprint={s}
+                      onClick={() =>
+                        navigate(
+                          `/w/${s.workspace_slug}/p/${s.project_key}/sprints/${s.id}`,
+                        )
+                      }
+                    />
+                  ))}
+                </div>
+              )}
+            </SectionCard>
+          )}
         </div>
 
         <div className="min-w-0">

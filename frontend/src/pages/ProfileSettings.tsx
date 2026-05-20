@@ -546,15 +546,17 @@ function SignInMethodsSection() {
                 : "Not set. Add a password to sign in without Google."
             }
           >
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() =>
-                setPasswordModal(emailIdentity ? "change" : "set")
-              }
-            >
-              {emailIdentity ? "Change password" : "Set password"}
-            </Button>
+            <div className="flex justify-end">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() =>
+                  setPasswordModal(emailIdentity ? "change" : "set")
+                }
+              >
+                {emailIdentity ? "Change password" : "Set password"}
+              </Button>
+            </div>
           </SettingRow>
           <SettingRow
             label="Google"
@@ -567,31 +569,33 @@ function SignInMethodsSection() {
                 : "Not linked. Connect Google for one-click sign-in."
             }
           >
-            {googleIdentity ? (
-              // Hide Unlink entirely when it would lock the user out —
-              // an action they can't perform is just noise. The "Add a
-              // password to enable unlinking" hint in the description
-              // tells them how to get there.
-              wouldLockOut ? null : (
+            <div className="flex justify-end">
+              {googleIdentity ? (
+                // Hide Unlink entirely when it would lock the user out —
+                // an action they can't perform is just noise. The "Add a
+                // password to enable unlinking" hint in the description
+                // tells them how to get there.
+                wouldLockOut ? null : (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={unlinking}
+                    onClick={handleUnlinkGoogle}
+                  >
+                    {unlinking ? "Unlinking…" : "Unlink"}
+                  </Button>
+                )
+              ) : (
                 <Button
                   type="button"
                   variant="outline"
-                  disabled={unlinking}
-                  onClick={handleUnlinkGoogle}
+                  disabled={linking}
+                  onClick={handleLinkGoogle}
                 >
-                  {unlinking ? "Unlinking…" : "Unlink"}
+                  {linking ? "Redirecting…" : "Link Google account"}
                 </Button>
-              )
-            ) : (
-              <Button
-                type="button"
-                variant="outline"
-                disabled={linking}
-                onClick={handleLinkGoogle}
-              >
-                {linking ? "Redirecting…" : "Link Google account"}
-              </Button>
-            )}
+              )}
+            </div>
           </SettingRow>
         </div>
       </section>

@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useCreateTask } from "@/features/tasks/api";
 import { useProjects } from "@/features/projects/api";
-import { useWorkspaces } from "@/features/workspaces/api";
+import { isSprintsEnabled, useWorkspaces } from "@/features/workspaces/api";
 
 const TABS = [
   { to: "board", label: "Board", Icon: Kanban },
@@ -23,6 +23,8 @@ export function ProjectLayout() {
 
   const { data: workspaces = [] } = useWorkspaces();
   const currentWs = workspaces.find((w) => w.slug === wsSlug);
+  const sprintsEnabled = isSprintsEnabled(currentWs);
+  const tabs = TABS.filter((t) => t.to !== "sprints" || sprintsEnabled);
   const { data: projects = [], isLoading } = useProjects(currentWs?.id ?? "");
   const currentProject = projects.find((p) => p.key === pKey);
 
@@ -108,7 +110,7 @@ export function ProjectLayout() {
         </Button>
       </div>
       <nav className="mt-2 flex items-center gap-1 border-b border-slate-200 dark:border-slate-800">
-        {TABS.map((t) => (
+        {tabs.map((t) => (
           <NavLink
             key={t.to}
             to={`/w/${wsSlug}/p/${pKey}/${t.to}`}

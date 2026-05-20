@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { Folder, LayoutGrid, User } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -80,7 +81,8 @@ export function SettingsLayout({ children }: Props) {
             overflowing. */}
         <aside className="space-y-6 sticky top-0 self-start max-h-[calc(100vh-3.5rem)] overflow-y-auto pb-4">
           <section className="space-y-1">
-            <p className="text-[11px] uppercase tracking-wide text-slate-400 dark:text-slate-500 font-semibold px-2 pb-1">
+            <p className="flex items-center gap-1.5 text-[11px] uppercase tracking-wide text-slate-400 dark:text-slate-500 font-semibold border-l-2 border-transparent px-2 pb-1">
+              <User className="w-3.5 h-3.5" strokeWidth={1.7} />
               Account
             </p>
             <button
@@ -88,16 +90,18 @@ export function SettingsLayout({ children }: Props) {
               onClick={() => navigate(`/w/${wsSlug}/profile`)}
               className={
                 onProfileSettings
-                  ? "block w-full text-left rounded px-2 py-1.5 text-sm bg-slate-100 dark:bg-slate-800 font-medium text-slate-900 dark:text-slate-100"
-                  : "block w-full text-left rounded px-2 py-1.5 text-sm text-slate-700 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                  ? "flex items-center gap-1.5 w-full text-left rounded border-l-2 border-blue-500 dark:border-blue-400 px-2 py-1.5 text-sm bg-slate-100 dark:bg-slate-800 font-medium text-slate-900 dark:text-slate-100"
+                  : "flex items-center gap-1.5 w-full text-left rounded border-l-2 border-transparent px-2 py-1.5 text-sm text-slate-700 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50"
               }
             >
+              <span className="w-3.5 h-3.5 shrink-0" aria-hidden />
               Profile
             </button>
           </section>
 
           <section className="space-y-1">
-            <p className="text-[11px] uppercase tracking-wide text-slate-400 dark:text-slate-500 font-semibold px-2 pb-1">
+            <p className="flex items-center gap-1.5 text-[11px] uppercase tracking-wide text-slate-400 dark:text-slate-500 font-semibold border-l-2 border-transparent px-2 pb-1">
+              <LayoutGrid className="w-3.5 h-3.5" strokeWidth={1.7} />
               Workspaces
             </p>
             {workspaces.map((w) => {
@@ -110,27 +114,29 @@ export function SettingsLayout({ children }: Props) {
                   onClick={() => navigate(`/w/${w.slug}/settings`)}
                   className={
                     active
-                      ? "block w-full text-left rounded px-2 py-1.5 text-sm bg-slate-100 dark:bg-slate-800 font-medium text-slate-900 dark:text-slate-100"
-                      : "block w-full text-left rounded px-2 py-1.5 text-sm text-slate-700 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                      ? "flex items-center gap-1.5 w-full text-left rounded border-l-2 border-blue-500 dark:border-blue-400 px-2 py-1.5 text-sm bg-slate-100 dark:bg-slate-800 font-medium text-slate-900 dark:text-slate-100"
+                      : "flex items-center gap-1.5 w-full text-left rounded border-l-2 border-transparent px-2 py-1.5 text-sm text-slate-700 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50"
                   }
                 >
-                  {w.name}
+                  <span className="w-3.5 h-3.5 shrink-0" aria-hidden />
+                  <span className="truncate">{w.name}</span>
                 </button>
               );
             })}
             <button
               type="button"
               onClick={() => setNewWsOpen(true)}
-              className="w-full text-left rounded px-2 py-1.5 text-sm text-slate-500 dark:text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-slate-200 inline-flex items-center gap-1.5"
+              className="flex items-center gap-1.5 w-full text-left rounded border-l-2 border-transparent px-2 py-1.5 text-sm text-slate-500 dark:text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-slate-200"
             >
-              <span className="text-base leading-none">+</span>
+              <span className="w-3.5 h-3.5 flex items-center justify-center shrink-0 text-base leading-none">+</span>
               <span>New Workspace</span>
             </button>
           </section>
 
           {currentWs && (
             <section className="space-y-1">
-              <p className="text-[11px] uppercase tracking-wide text-slate-400 dark:text-slate-500 font-semibold px-2 pb-1">
+              <p className="flex items-center gap-1.5 text-[11px] uppercase tracking-wide text-slate-400 dark:text-slate-500 font-semibold border-l-2 border-transparent px-2 pb-1">
+                <Folder className="w-3.5 h-3.5" strokeWidth={1.7} />
                 Projects in {currentWs.name}
               </p>
               {projects.length === 0 ? (
@@ -149,19 +155,21 @@ export function SettingsLayout({ children }: Props) {
                       }
                       className={
                         active
-                          ? "flex items-center gap-2 w-full text-left rounded px-2 py-1.5 text-sm bg-slate-100 dark:bg-slate-800 font-medium text-slate-900 dark:text-slate-100"
-                          : "flex items-center gap-2 w-full text-left rounded px-2 py-1.5 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                          ? "flex items-center gap-1.5 w-full text-left rounded border-l-2 border-blue-500 dark:border-blue-400 px-2 py-1.5 text-sm bg-slate-100 dark:bg-slate-800 font-medium text-slate-900 dark:text-slate-100"
+                          : "flex items-center gap-1.5 w-full text-left rounded border-l-2 border-transparent px-2 py-1.5 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50"
                       }
                     >
-                      <span
-                        className="w-1.5 h-1.5 rounded-full shrink-0"
-                        style={{
-                          backgroundColor: projectDotColor({
-                            key: p.key,
-                            color: p.color,
-                          }),
-                        }}
-                      />
+                      <span className="w-3.5 h-3.5 flex items-center justify-center shrink-0">
+                        <span
+                          className="w-2 h-2 rounded-full"
+                          style={{
+                            backgroundColor: projectDotColor({
+                              key: p.key,
+                              color: p.color,
+                            }),
+                          }}
+                        />
+                      </span>
                       <span className="truncate">{p.name}</span>
                     </button>
                   );

@@ -3,11 +3,20 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/api/client";
 
 // Known feature-flag keys. Stored as a sparse map in `workspaces.features`
-// (jsonb) — a missing key means "off". Owners flip these in Workspace
-// Settings to opt their team into in-progress / experimental UI.
+// (jsonb). Default polarity is per-key:
+//   - goals:   missing → OFF (new/experimental layer; owners opt IN)
+//   - sprints: missing → ON  (mature feature; owners opt OUT only)
+// Read `sprints` through `isSprintsEnabled()` rather than `!!features?.sprints`
+// so the default-ON polarity is respected everywhere.
 export type WorkspaceFeatures = {
   goals?: boolean;
+  sprints?: boolean;
 };
+
+export function isSprintsEnabled(ws: Workspace | undefined | null): boolean {
+  // undefined → true; only explicit false hides.
+  return ws?.features?.sprints !== false;
+}
 
 export type Workspace = {
   id: string;

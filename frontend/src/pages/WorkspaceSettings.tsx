@@ -27,6 +27,7 @@ import {
   useWorkspaceInvitations,
 } from "@/features/invitations/api";
 import {
+  isSprintsEnabled,
   useDeleteWorkspace,
   useUpdateWorkspace,
   useWorkspaces,
@@ -390,14 +391,14 @@ export default function WorkspaceSettings() {
 
         <section className="space-y-4">
           <h2 className="text-xl font-medium text-slate-900 dark:text-slate-100 dark:text-slate-100">Features</h2>
-          <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 divide-y divide-slate-100 dark:divide-slate-800 dark:divide-slate-800">
+          <div className="rounded-lg border border-blue-100 dark:border-blue-900/40 bg-blue-50/40 dark:bg-blue-950/15 divide-y divide-blue-100/70 dark:divide-blue-900/30">
             {/* Each feature row: title + Beta pill + multi-line description
                 on the left (flexes to fill), Toggle switch on the right.
                 List-of-rows pattern matching Linear/Stripe — when we add a
                 second feature, just append another <FeatureRow>. */}
             <FeatureRow
               title="Goals"
-              description="Strategic objectives — a workspace-scoped recursive tree. Tasks attach to a goal to show which intent they serve."
+              description="Strategic objectives in a workspace-scoped tree. Tasks link to a goal."
               checked={!!currentWs?.features?.goals}
               disabled={!isOwner || updateWsMutation.isPending}
               onChange={(next) => {
@@ -405,6 +406,25 @@ export default function WorkspaceSettings() {
                 updateWsMutation.mutate({
                   wsId: currentWs.id,
                   payload: { features: { goals: next } },
+                });
+              }}
+              note={
+                !isOwner
+                  ? "Only the workspace owner can toggle features."
+                  : undefined
+              }
+            />
+            <FeatureRow
+              title="Sprints"
+              pill={null}
+              description="Time-boxed iterations attached to a project. Tasks roll up into a sprint to track progress and velocity. Disable to hide the Sprints tab, the sprint picker on tasks, and the sprint column on lists."
+              checked={isSprintsEnabled(currentWs)}
+              disabled={!isOwner || updateWsMutation.isPending}
+              onChange={(next) => {
+                if (!currentWs) return;
+                updateWsMutation.mutate({
+                  wsId: currentWs.id,
+                  payload: { features: { sprints: next } },
                 });
               }}
               note={
@@ -493,6 +513,7 @@ function FeatureRow({
   disabled,
   onChange,
   note,
+  pill = "Beta",
 }: {
   title: string;
   description: string;
@@ -500,6 +521,9 @@ function FeatureRow({
   disabled?: boolean;
   onChange: (next: boolean) => void;
   note?: string;
+  // Small uppercase badge next to the title. Defaults to "Beta" so existing
+  // call sites stay unchanged; pass `null` for mature features (Sprint).
+  pill?: "Beta" | null;
 }) {
   return (
     <div className="p-5">
@@ -507,9 +531,11 @@ function FeatureRow({
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             <h3 className="font-medium text-slate-900 dark:text-slate-100">{title}</h3>
-            <span className="text-[10px] font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400 border border-slate-300 dark:border-slate-700 rounded-full px-1.5 py-0.5">
-              Beta
-            </span>
+            {pill !== null && (
+              <span className="text-[10px] font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400 border border-slate-300 dark:border-slate-700 rounded-full px-1.5 py-0.5">
+                {pill}
+              </span>
+            )}
           </div>
           <p className="mt-1 text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
             {description}

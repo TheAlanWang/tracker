@@ -24,7 +24,7 @@ import {
 import { EmptyState } from "@/components/EmptyState";
 import { PriorityPill } from "@/components/StatusPill";
 import { TaskTableCard, TaskTableHead } from "@/components/TaskTableCard";
-import { useWorkspaces } from "@/features/workspaces/api";
+import { isSprintsEnabled, useWorkspaces } from "@/features/workspaces/api";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 
 type ColKey = "id" | "title" | "priority" | "assignee" | "due" | "created";
@@ -186,6 +186,7 @@ function BacklogContent() {
 
   const { data: workspaces = [] } = useWorkspaces();
   const currentWs = workspaces.find((w) => w.slug === wsSlug);
+  const sprintsEnabled = isSprintsEnabled(currentWs);
   const { data: projects = [] } = useProjects(currentWs?.id ?? "");
   const currentProject = projects.find((p) => p.key === pKey);
   useProjectTasksRealtime(currentProject?.id);
@@ -247,8 +248,12 @@ function BacklogContent() {
     <div className="space-y-4">
       <p className="text-sm text-muted-foreground">
         Ideas and unscheduled work. Set priority and a due date, then move to{" "}
-        <span className="font-medium text-slate-700 dark:text-slate-300">To Do</span> or pull into a
-        sprint when you're ready to start.
+        <span className="font-medium text-slate-700 dark:text-slate-300">To Do</span>
+        {sprintsEnabled ? (
+          <> or pull into a sprint when you're ready to start.</>
+        ) : (
+          <> when you're ready to start.</>
+        )}
       </p>
 
       <FilterBar

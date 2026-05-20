@@ -21,7 +21,7 @@ import {
 } from "@/features/tasks/filters";
 import { useProjects } from "@/features/projects/api";
 import { useProjectTasksRealtime } from "@/features/realtime/useProjectTasksRealtime";
-import { useWorkspaces } from "@/features/workspaces/api";
+import { isSprintsEnabled, useWorkspaces } from "@/features/workspaces/api";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 
 import { EmptyState } from "@/components/EmptyState";
@@ -97,9 +97,14 @@ function ColumnsIcon() {
 }
 
 function ColumnVisibilityMenu({
+  columns,
   hidden,
   onToggle,
 }: {
+  // Caller-provided column list — typically a feature-flag-filtered subset
+  // of the module-scope COLUMNS so e.g. Sprint disappears here when the
+  // workspace has Sprints disabled.
+  columns: { key: ColKey; label: string }[];
   hidden: Set<ColKey>;
   onToggle: (key: ColKey) => void;
 }) {
@@ -134,7 +139,7 @@ function ColumnVisibilityMenu({
       </button>
       {open && (
         <div className="absolute right-0 mt-1 w-48 bg-white dark:bg-slate-900 rounded-md border border-slate-200 dark:border-slate-800 shadow-lg z-10 py-1">
-          {COLUMNS.map((c) => (
+          {columns.map((c) => (
             <label
               key={c.key}
               className="flex items-center gap-2 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.08em] text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer select-none"
@@ -202,6 +207,7 @@ function TaskListContent() {
 
   const { data: workspaces = [] } = useWorkspaces();
   const currentWs = workspaces.find((w) => w.slug === wsSlug);
+  const sprintsEnabled = isSprintsEnabled(currentWs);
   const { data: projects = [] } = useProjects(currentWs?.id ?? "");
   const currentProject = projects.find((p) => p.key === pKey);
   useProjectTasksRealtime(currentProject?.id);
@@ -240,6 +246,14 @@ function TaskListContent() {
     [sprints],
   );
 
+  // Strip the Sprint column when the workspace has Sprints disabled. The
+  // task.sprint_id is preserved on the row; we just stop offering it as a
+  // visible / hideable column.
+  const columns = useMemo(
+    () => COLUMNS.filter((c) => c.key !== "sprint" || sprintsEnabled),
+    [sprintsEnabled],
+  );
+
   const [hiddenColumns, setHiddenColumns] = useHiddenColumns(
     currentProject?.id ?? "",
   );
@@ -249,7 +263,17 @@ function TaskListContent() {
     else next.add(key);
     setHiddenColumns(next);
   };
-  const show = (key: ColKey) => !hiddenColumns.has(key);
+  // A column renders only if (a) it's in the filtered `columns` list (i.e.
+  // not stripped by a workspace feature flag) and (b) the user hasn't
+  // toggled it off via ColumnVisibilityMenu. Without the columns-set check
+  // here, body <td>s would still render for flag-stripped columns and the
+  // table would misalign.
+  const visibleColumnKeys = useMemo(
+    () => new Set(columns.map((c) => c.key)),
+    [columns],
+  );
+  const show = (key: ColKey) =>
+    visibleColumnKeys.has(key) && !hiddenColumns.has(key);
 
   const displayedTasks = useMemo(() => {
     const filtered = applyFilters(tasks, filters);
@@ -274,10 +298,11 @@ function TaskListContent() {
               <ExportTasksButton
                 tasks={displayedTasks}
                 members={members}
-                sprints={sprints}
+                sprints={sprintsEnabled ? sprints : []}
                 filename={`${currentProject.name} tasks`}
               />
               <ColumnVisibilityMenu
+                columns={columns}
                 hidden={hiddenColumns}
                 onToggle={toggleColumn}
               />
@@ -301,7 +326,7 @@ function TaskListContent() {
         <TaskTableCard>
           <TaskTableHead>
             <tr className="text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400">
-              {COLUMNS.map((c) => {
+              {columns.map((c) => {
                 if (!show(c.key)) return null;
                 const sortField = COL_SORT_FIELD[c.key];
                 const widthCls =

@@ -46,7 +46,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { GoalPicker } from "@/components/GoalPicker";
 import { useChecklist } from "@/features/checklist/api";
 import { useGoals } from "@/features/goals/api";
-import { useWorkspaces } from "@/features/workspaces/api";
+import { isSprintsEnabled, useWorkspaces } from "@/features/workspaces/api";
 import { type Activity, useTaskActivity } from "@/features/activity/api";
 import {
   useComments,
@@ -356,8 +356,12 @@ export function TaskDetailContent({
   // suppress the Goal picker in the aside entirely — otherwise users
   // would see (and could pick) goals that have no surface elsewhere.
   const { data: workspaces = [] } = useWorkspaces();
-  const goalsEnabled = !!workspaces.find((w) => w.id === task?.workspace_id)
-    ?.features?.goals;
+  const taskWorkspace = workspaces.find((w) => w.id === task?.workspace_id);
+  const goalsEnabled = !!taskWorkspace?.features?.goals;
+  // Sprints defaults ON (undefined → true) — only explicit false hides the
+  // inline sprint picker in the right rail. The sprint_id on the task is
+  // preserved either way; we just stop showing the editor.
+  const sprintsEnabled = isSprintsEnabled(taskWorkspace);
   const { data: checklistItems = [] } = useChecklist(task?.id ?? "");
   const uncheckedCount = checklistItems.filter((i) => !i.done).length;
   // Bridge state for the empty → first-item flow: clicking "+ Add
@@ -1076,8 +1080,11 @@ export function TaskDetailContent({
           </div>
         )}
 
-        {/* Sprint — hide in view mode when the task is in backlog (no sprint). */}
-        {(isEditing || sprintDraft) && (
+        {/* Sprint — hide in view mode when the task is in backlog (no sprint).
+            Also hide entirely when the workspace has Sprints disabled. The
+            sprint_id on the task is still preserved on save (sprintDraft is
+            wired into the dirty-check / payload regardless). */}
+        {sprintsEnabled && (isEditing || sprintDraft) && (
           <div className="space-y-1">
             <p className="text-sm font-normal uppercase tracking-wide text-muted-foreground">
               Sprint
