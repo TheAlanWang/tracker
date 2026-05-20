@@ -759,53 +759,68 @@ export function TaskDetailContent({
           </div>
           {isEditing ? (
             <input
-              className="w-full bg-transparent text-2xl font-bold text-slate-900 dark:text-slate-100 outline-none hover:bg-slate-100/50 dark:hover:bg-slate-800/40 focus:bg-slate-100/80 dark:focus:bg-slate-800/60 rounded px-1.5 py-0.5 transition-colors"
+              className="w-full bg-transparent text-2xl font-normal tracking-tight text-slate-800 dark:text-slate-100 outline-none hover:bg-slate-100/50 dark:hover:bg-slate-800/40 focus:bg-slate-100/80 dark:focus:bg-slate-800/60 rounded px-1.5 py-0.5 transition-colors"
               value={titleDraft}
               onChange={(e) => setTitleDraft(e.target.value)}
               placeholder="Title"
             />
           ) : (
-            <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 px-1.5 py-0.5 break-words">
+            <h1 className="text-2xl font-normal tracking-tight text-slate-800 dark:text-slate-100 px-1.5 py-0.5 break-words">
               {titleDraft}
             </h1>
           )}
         </div>
 
-        {/* Hide the whole Description block in view mode when empty —
-            in edit mode keep showing it so the textarea is reachable. */}
-        <div className="space-y-1">
-          <h2 className="flex items-center gap-1.5 text-sm font-normal uppercase tracking-wide text-muted-foreground pb-2 border-b border-slate-200 dark:border-slate-800">
+        {/* Description as a collapsible <details>, mirroring Checklist /
+            Comments / Activity. Default open so users see the body
+            content immediately on open; can fold away when reviewing
+            the side rail / activity. Less top padding than the others
+            because Description sits right under the title — no need
+            for a full cross-section gap there. */}
+        <details open className="pt-1 group">
+          <summary className="cursor-pointer list-none flex items-center gap-1.5 text-sm font-normal uppercase tracking-wide text-muted-foreground hover:text-slate-700 dark:hover:text-slate-300 group-open:pb-2 group-open:border-b border-slate-200 dark:border-slate-800">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 20 20"
+              fill="currentColor"
+              className="w-3 h-3 transition-transform group-open:rotate-90"
+            >
+              <path
+                fillRule="evenodd"
+                d="M7.21 14.77a.75.75 0 0 1 .02-1.06L11.168 10 7.23 6.29a.75.75 0 1 1 1.04-1.08l4.5 4.25a.75.75 0 0 1 0 1.08l-4.5 4.25a.75.75 0 0 1-1.06-.02Z"
+                clipRule="evenodd"
+              />
+            </svg>
             <AlignLeft className="w-3.5 h-3.5" aria-hidden />
             <span>Description</span>
-          </h2>
-          {isEditing ? (
-            <textarea
-              className="w-full rounded border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-2 text-sm"
-              rows={6}
-              value={descDraft}
-              onChange={(e) => setDescDraft(e.target.value)}
-              placeholder="Add a description…"
-            />
-          ) : descDraft.trim() ? (
-            // Tweaks vs. raw @tailwindcss/typography: fenced <pre>
-            // blocks get a light slate bg + dark text (the default
-            // near-black dominates a mostly-prose description); inline
-            // <code> becomes a subtle pill with the plugin's auto
-            // backtick pseudo-elements suppressed.
-            <div className="prose prose-sm max-w-none text-slate-700 dark:text-slate-300 prose-pre:bg-slate-100 dark:prose-pre:bg-slate-800/60 prose-pre:text-slate-800 dark:prose-pre:text-slate-200 prose-pre:rounded-md prose-pre:p-3 prose-pre:text-[13px] prose-code:bg-slate-100 dark:prose-code:bg-slate-800/60 prose-code:text-slate-800 dark:prose-code:text-slate-200 prose-code:rounded prose-code:px-1 prose-code:py-0.5 prose-code:text-[0.85em] prose-code:font-normal prose-code:before:hidden prose-code:after:hidden">
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                {descDraft}
-              </ReactMarkdown>
-            </div>
-          ) : (
-            // Empty + view mode: muted hint instead of hiding the section.
-            // Keeps the layout consistent across tasks regardless of whether
-            // a description has been written yet.
-            <p className="text-sm italic text-slate-400 dark:text-slate-500">
-              No description.
-            </p>
-          )}
-        </div>
+          </summary>
+          <div className="mt-3">
+            {isEditing ? (
+              <textarea
+                className="w-full rounded border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-2 text-sm"
+                rows={6}
+                value={descDraft}
+                onChange={(e) => setDescDraft(e.target.value)}
+                placeholder="Add a description…"
+              />
+            ) : descDraft.trim() ? (
+              // Tweaks vs. raw @tailwindcss/typography: fenced <pre>
+              // blocks get a light slate bg + dark text (the default
+              // near-black dominates a mostly-prose description); inline
+              // <code> becomes a subtle pill with the plugin's auto
+              // backtick pseudo-elements suppressed.
+              <div className="prose prose-sm max-w-none text-slate-700 dark:text-slate-300 prose-pre:bg-slate-100 dark:prose-pre:bg-slate-800/60 prose-pre:text-slate-800 dark:prose-pre:text-slate-200 prose-pre:rounded-md prose-pre:p-3 prose-pre:text-[13px] prose-code:bg-slate-100 dark:prose-code:bg-slate-800/60 prose-code:text-slate-800 dark:prose-code:text-slate-200 prose-code:rounded prose-code:px-1 prose-code:py-0.5 prose-code:text-[0.85em] prose-code:font-normal prose-code:before:hidden prose-code:after:hidden">
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                  {descDraft}
+                </ReactMarkdown>
+              </div>
+            ) : (
+              <p className="text-sm italic text-slate-400 dark:text-slate-500">
+                No description.
+              </p>
+            )}
+          </div>
+        </details>
 
         {/* Checklist items persist immediately via their own mutations,
             so we don't gate edits behind the task-level Edit / Save flow.
