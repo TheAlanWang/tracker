@@ -1,6 +1,6 @@
-# Tracker
+# Trackly
 
-A modern, Linear / Jira-style task tracker for small teams.
+An opinionated task tracker, built around one principle: **flat tasks by default, methodology-specific features as opt-in flags.**
 
 **Live demo:** [tracker.thealanwang.xyz](https://tracker.thealanwang.xyz) — sign up with email or Google.
 
@@ -8,19 +8,40 @@ A modern, Linear / Jira-style task tracker for small teams.
 
 Built local-first with a clean path to cloud deployment. Vite + React + TypeScript on the front, FastAPI on the back, Supabase (Postgres + Auth + Storage + Realtime) for data.
 
+## Why
+
+Most task trackers force a methodology on you the moment you sign up. Some assume you're running sprints. Others assume you're nesting issues inside projects inside cycles. Either way, the full feature surface appears to every new user — including the parts you don't need.
+
+Trackly takes the opposite approach. The core experience is a flat list of tasks — atomic units of work with an identifier (FE-12), a status, an assignee, and a due date. That's it. No nesting, no Epics, no required ceremony.
+
+Around that core, optional layers expand the model for teams that need them:
+
+- **Goals** — a recursive "why" layer above tasks, for OKR-style rollup.
+- **Sprints** — time-boxed planning, for teams running agile cadences.
+- **Dependencies** — directed "blocks" relationships between tasks, for multi-step coordination.
+
+These layers are designed to be gated per-workspace via a JSONB feature flag on `workspaces.features`, so new workspaces start minimal and workspaces that need more turn on what fits their methodology. Goals is the first feature actually gated today; Sprints and Dependencies are on the same pattern.
+
+The bet: onboarding friction matters more than feature completeness, and opinionated defaults serve users better than infinite configuration.
+
 ## Features
 
-- **Workspaces, projects, sprints** — multi-tenant from the start; per-project boards, lists, and sprint cycles.
+### Core
+
 - **Tasks** with status, priority, assignee, due date, labels, watchers, mentions.
-- **Dependencies** between tasks with BFS cycle detection (so you can't create A→B→C→A).
-- **Hierarchical Goals** — Miller Columns + mind-map view (replaces the muddier "sub-tasks" model with explicit OKR-style hierarchy).
+- **Workspaces & projects** — multi-tenant from the start; per-project boards and lists.
 - **Lightweight checklists** on each task (decoupled from task status, soft reminder if you close a task with unchecked items).
-- **Sprints** with Burndown + Velocity charts.
 - **Realtime updates**, in-app notifications, workspace invitations.
 - **Activity history** per task — field-level diffs, one entry per save.
 - **CSV export** on every list view.
 - **Dark mode** end-to-end (theme toggle in avatar dropdown; respects system pref by default).
 - **Command palette**, document titles, 404 page, error boundary — the usual polish.
+
+### Opt-in (per-workspace feature flag)
+
+- **Hierarchical Goals** — Miller Columns + mind-map view, for OKR-style rollup. Replaces the muddier "sub-tasks" model with explicit hierarchy.
+- **Sprints** with Burndown + Velocity charts — time-boxed planning for teams running agile cadences.
+- **Dependencies** between tasks with BFS cycle detection (so you can't create A→B→C→A), for multi-step coordination.
 
 ## Tech stack
 
