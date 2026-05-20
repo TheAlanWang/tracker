@@ -18,6 +18,7 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
+import { PageSpinner } from "@/components/PageSpinner";
 import { Button } from "@/components/ui/button";
 import {
   useAcceptInvitation,
@@ -138,11 +139,7 @@ export default function Home() {
   }
 
   if (isLoading || !me) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p className="text-muted-foreground">Loading…</p>
-      </div>
-    );
+    return <PageSpinner />;
   }
 
   const acceptPending = acceptMutation.isPending;
