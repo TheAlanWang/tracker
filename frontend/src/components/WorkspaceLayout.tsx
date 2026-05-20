@@ -830,7 +830,7 @@ export function WorkspaceLayout() {
             >
               <img
                 src="/logo.svg"
-                alt="Tracker"
+                alt="Trackly"
                 className="w-7 h-7 dark:invert dark:hue-rotate-180"
               />
             </button>

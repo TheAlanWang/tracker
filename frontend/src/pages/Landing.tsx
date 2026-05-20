@@ -80,7 +80,7 @@ function BoardMock() {
           <span className="w-2.5 h-2.5 rounded-full bg-amber-300/80" />
           <span className="w-2.5 h-2.5 rounded-full bg-emerald-300/80" />
           <span className="ml-3 text-[11px] text-slate-400 dark:text-slate-500">
-            tracker.app / engineering / backend / board
+            trackly.app / engineering / backend / board
           </span>
         </div>
         <div className="relative p-4 grid grid-cols-3 gap-3 bg-slate-50/40 dark:bg-slate-950/40">
@@ -208,10 +208,10 @@ function Logo({ className = "" }: { className?: string }) {
     <span className={`inline-flex items-center gap-2 font-semibold tracking-tight ${className}`}>
       <img
         src="/logo.svg"
-        alt="Tracker logo"
+        alt="Trackly logo"
         className="w-6 h-6 dark:invert dark:hue-rotate-180"
       />
-      <span className="text-slate-900 dark:text-slate-100">tracker</span>
+      <span className="text-slate-900 dark:text-slate-100">trackly</span>
     </span>
   );
 }
@@ -418,7 +418,7 @@ export default function Landing() {
       <footer className="border-t border-slate-100 dark:border-slate-800">
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between text-xs text-slate-400 dark:text-slate-500">
           <Logo className="text-slate-500 dark:text-slate-400" />
-          <span>© {new Date().getFullYear()} tracker</span>
+          <span>© {new Date().getFullYear()} Trackly</span>
         </div>
       </footer>
 
