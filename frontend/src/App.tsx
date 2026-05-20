@@ -1,4 +1,5 @@
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/react";
 
 import { ProjectLayout } from "@/components/ProjectLayout";
@@ -46,6 +47,10 @@ export default function App() {
           UI; just a beacon. Renders once at the root so it covers all
           routes incl. SPA navigations. */}
       <SpeedInsights />
+      {/* Vercel Web Analytics — privacy-friendly page views / visitors /
+          referrers. Same root-level mount so SPA route changes get
+          tracked. Dashboard → Analytics tab. */}
+      <Analytics />
       <Routes>
         {/* Legacy /login URL — keep functional but redirect to landing with
             the modal auto-open. */}
