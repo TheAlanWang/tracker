@@ -56,6 +56,18 @@ function BoardMock() {
 
   return (
     <div className="relative">
+      {/* Drag-drop demo keyframes — a ghost card slides from the Todo
+          column into the highlighted In progress column on loop, hinting
+          at the real product's drag-and-drop without needing JS. */}
+      <style>{`
+        @keyframes landingDragGhost {
+          0%, 8% { transform: translate(0, 0) rotate(-2deg) scale(1); opacity: 0; }
+          14%, 24% { transform: translate(0, 0) rotate(-2deg) scale(1.02); opacity: 1; }
+          55%, 68% { transform: translate(calc(100% + 12px), 14px) rotate(3deg) scale(1.05); opacity: 1; }
+          80% { transform: translate(calc(100% + 12px), 14px) rotate(0deg) scale(1); opacity: 0.95; }
+          92%, 100% { transform: translate(calc(100% + 12px), 14px) rotate(0deg) scale(1); opacity: 0; }
+        }
+      `}</style>
       {/* Soft gradient blob behind the mock */}
       <div
         aria-hidden
@@ -71,7 +83,38 @@ function BoardMock() {
             tracker.app / engineering / backend / board
           </span>
         </div>
-        <div className="p-4 grid grid-cols-3 gap-3 bg-slate-50/40 dark:bg-slate-950/40">
+        <div className="relative p-4 grid grid-cols-3 gap-3 bg-slate-50/40 dark:bg-slate-950/40">
+          {/* Ghost card — absolutely positioned over the Todo column at
+              roughly the second-row position, then translates one column
+              + gap to land in the highlighted In progress column. */}
+          <div
+            aria-hidden
+            className="absolute pointer-events-none z-10 rounded-md border border-sky-300 dark:border-sky-700 bg-white dark:bg-slate-900 shadow-xl"
+            style={{
+              top: "100px",
+              left: "16px",
+              width: "calc((100% - 56px) / 3)",
+              padding: "8px",
+              animation: "landingDragGhost 5s ease-in-out infinite",
+            }}
+          >
+            <p className="text-[11px] leading-tight text-slate-800 dark:text-slate-200">
+              Drag cards across columns
+            </p>
+            <div className="mt-1.5 flex items-center justify-between">
+              <span className="inline-flex items-center gap-1 text-[9px] font-semibold uppercase px-1.5 py-0.5 rounded bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300">
+                {/* Pulsing red dot — Twitch / YouTube-style "this is
+                    happening in realtime" cue. The outer ping ring
+                    animates outward + fades; the inner dot stays solid. */}
+                <span className="relative inline-flex w-1.5 h-1.5">
+                  <span className="absolute inset-0 rounded-full bg-red-500 animate-ping opacity-75" />
+                  <span className="relative inline-block w-1.5 h-1.5 rounded-full bg-red-500" />
+                </span>
+                URGENT
+              </span>
+              <div className="w-4 h-4 rounded-full bg-sky-500" />
+            </div>
+          </div>
           {cols.map((col) => (
             <div
               key={col.label}
