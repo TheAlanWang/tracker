@@ -74,6 +74,7 @@ import {
 } from "@/features/watchers/api";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
+import { PriorityIcon } from "@/components/PriorityIcon";
 import { PriorityPill, StatusPill } from "@/components/StatusPill";
 import {
   PRIORITY,
@@ -1429,10 +1430,18 @@ export function TaskDetailContent({
                 value={priorityDraft}
                 onChange={(v) => setPriorityDraft(v as TaskPriority)}
                 options={PRIORITIES}
-                renderOption={(o) => <PriorityPill priority={o.value as TaskPriority} />}
+                renderOption={(o) => (
+                  <span className="inline-flex items-center gap-2">
+                    <PriorityIcon priority={o.value as TaskPriority} />
+                    <PriorityPill priority={o.value as TaskPriority} />
+                  </span>
+                )}
               />
             ) : (
-              <PriorityPill priority={priorityDraft} />
+              <span className="inline-flex items-center gap-2">
+                <PriorityIcon priority={priorityDraft} />
+                <PriorityPill priority={priorityDraft} />
+              </span>
             )}
           </div>
         )}

@@ -25,8 +25,9 @@ import { useParams } from "react-router-dom";
 import { AssigneePicker } from "@/components/AssigneePicker";
 import { Avatar } from "@/components/Avatar";
 import { InlineTaskCreator } from "@/components/InlineTaskCreator";
+import { PriorityIcon } from "@/components/PriorityIcon";
 import { TaskDetailModal } from "@/components/TaskDetailModal";
-import { PriorityPill } from "@/components/StatusPill";
+import { parseDueDate } from "@/lib/date";
 import { STATUS, STATUS_ORDER } from "@/features/tasks/labels";
 import { useBlockedTaskIds } from "@/features/dependencies/api";
 import { type Member, useMembers } from "@/features/members/api";
@@ -69,9 +70,7 @@ const collisionStrategy: CollisionDetection = (args) => {
 };
 
 function PriorityBadge({ priority }: { priority: TaskPriority }) {
-  // Board cards are dense — hide quiet priorities to reduce visual noise.
-  if (priority === "no_priority" || priority === "low") return null;
-  return <PriorityPill priority={priority} size="sm" />;
+  return <PriorityIcon priority={priority} hideNoPriority />;
 }
 
 function CalendarIcon() {
@@ -192,7 +191,7 @@ function ColumnVisibilityMenu({
 }
 
 function DueDateBadge({ date }: { date: string }) {
-  const due = new Date(date);
+  const due = parseDueDate(date);
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const overdue = due.getTime() < today.getTime();
