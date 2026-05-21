@@ -519,7 +519,7 @@ function Column({
             items={items.map((i) => i.id)}
             strategy={verticalListSortingStrategy}
           >
-            <div className="space-y-2 min-h-[40px] flex-1">
+            <div className="space-y-2 min-h-[40px]">
               {items.map((task) => (
                 <SortableCard
                   key={task.id}
