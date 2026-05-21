@@ -1008,7 +1008,7 @@ export function TaskDetailContent({
               <p className="text-xs text-slate-400 dark:text-slate-500">No activity yet.</p>
             ) : (
               <ol className="space-y-1.5">
-                {[...activity].reverse().map((a) => (
+                {activity.map((a) => (
                   <li
                     key={a.id}
                     className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed"
