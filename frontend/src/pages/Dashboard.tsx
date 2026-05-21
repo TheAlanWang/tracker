@@ -18,11 +18,13 @@
 // Project chips inside rows navigate to that project's Board on click;
 // stopPropagation prevents the row's onClick (open task detail) from firing.
 
+import { CircleAlert } from "lucide-react";
 import { Fragment, useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
 import { Avatar } from "@/components/Avatar";
 import { TaskDetailModal } from "@/components/TaskDetailModal";
+import { isOverdueDate, isTodayDate, parseDueDate } from "@/lib/date";
 import {
   type DashboardActivity,
   type DashboardSprint,
@@ -86,14 +88,6 @@ function timeBucket(iso: string): "today" | "yesterday" | "week" | "earlier" {
   if (diffDays === 1) return "yesterday";
   if (diffDays < 7) return "week";
   return "earlier";
-}
-
-function isToday(iso: string): boolean {
-  const d = new Date(iso);
-  d.setHours(0, 0, 0, 0);
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  return d.getTime() === today.getTime();
 }
 
 // ---- Hero ----
@@ -296,9 +290,7 @@ function RiskTile({
           </p>
         </div>
         <div className="w-9 h-9 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
-          <svg viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
-            <path d="M10 2 2 17h16L10 2Zm0 4 5.3 10H4.7L10 6Zm-.75 3v3.5h1.5V9h-1.5Zm0 4.5V15h1.5v-1.5h-1.5Z" />
-          </svg>
+          <CircleAlert className="w-4 h-4" strokeWidth={2.25} />
         </div>
       </div>
     </button>
@@ -492,8 +484,8 @@ function pickFocus(
   const picks: { task: DashboardTask; reason: FocusReason }[] = [];
 
   const sortedOverdue = [...overdue].sort((a, b) => {
-    const ad = a.due_date ? new Date(a.due_date).getTime() : Infinity;
-    const bd = b.due_date ? new Date(b.due_date).getTime() : Infinity;
+    const ad = a.due_date ? parseDueDate(a.due_date).getTime() : Infinity;
+    const bd = b.due_date ? parseDueDate(b.due_date).getTime() : Infinity;
     return ad - bd; // most overdue first
   });
   for (const t of sortedOverdue) {
@@ -503,7 +495,7 @@ function pickFocus(
     seen.add(t.id);
   }
 
-  const dueToday = dueThisWeek.filter((t) => t.due_date && isToday(t.due_date));
+  const dueToday = dueThisWeek.filter((t) => t.due_date && isTodayDate(t.due_date));
   for (const t of dueToday) {
     if (picks.length >= 3) break;
     if (seen.has(t.id)) continue;
@@ -564,15 +556,13 @@ function FocusCard({
         <tbody>
           {picks.map(({ task, reason }, i) => {
             const dueLabel = task.due_date
-              ? new Date(task.due_date).toLocaleDateString(undefined, {
+              ? parseDueDate(task.due_date).toLocaleDateString(undefined, {
                   month: "short",
                   day: "numeric",
                 })
               : null;
             const isOverdue =
-              !!task.due_date &&
-              new Date(task.due_date).getTime() <
-                new Date().setHours(0, 0, 0, 0);
+              !!task.due_date && isOverdueDate(task.due_date);
 
             return (
               <tr
@@ -762,14 +752,12 @@ function TaskRow({
   onClick: () => void;
 }) {
   const dueLabel = task.due_date
-    ? new Date(task.due_date).toLocaleDateString(undefined, {
+    ? parseDueDate(task.due_date).toLocaleDateString(undefined, {
         month: "short",
         day: "numeric",
       })
     : null;
-  const isOverdue =
-    !!task.due_date &&
-    new Date(task.due_date).getTime() < new Date().setHours(0, 0, 0, 0);
+  const isOverdue = !!task.due_date && isOverdueDate(task.due_date);
   const delay = Math.min(index, 8) * 25;
   return (
     <tr
@@ -1077,7 +1065,7 @@ export default function Dashboard() {
   const recentActivity = data?.recent_activity ?? [];
 
   const dueTodayCount = dueThisWeek.filter(
-    (t) => t.due_date && isToday(t.due_date),
+    (t) => t.due_date && isTodayDate(t.due_date),
   ).length;
 
   const focusPicks = pickFocus(overdue, dueThisWeek, assigned);

@@ -58,7 +58,11 @@ def _parse_date(s: str | None) -> date | None:
 
 
 async def compute_burndown(
-    supabase: AsyncClient, *, user_id: str, sprint_id: str
+    supabase: AsyncClient,
+    *,
+    user_id: str,
+    sprint_id: str,
+    today: str | None = None,
 ) -> BurndownResponse:
     sprint = (
         await supabase.table("sprints")
@@ -122,8 +126,15 @@ async def compute_burndown(
             if t["status"] == "done" and t["id"] not in done_dates:
                 done_dates[t["id"]] = start
 
-    today = datetime.now(timezone.utc).date()
-    last_day = min(end, today) if today > start else end
+    # Use the viewer's local "today" when supplied so the burndown's
+    # cursor lines up with the user's wall-clock day; fall back to the
+    # server's UTC date for old clients.
+    today_date = (
+        date.fromisoformat(today)
+        if today
+        else datetime.now(timezone.utc).date()
+    )
+    last_day = min(end, today_date) if today_date > start else end
 
     span_days = max((end - start).days, 1)
     points: list[BurndownPoint] = []

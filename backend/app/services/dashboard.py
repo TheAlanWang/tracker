@@ -47,6 +47,7 @@ async def get_dashboard(
     *,
     user_id: str,
     workspace_id: str | None = None,
+    today: str | None = None,
 ) -> DashboardResponse:
     member_rows = (
         await supabase.table("workspace_members")
@@ -86,8 +87,10 @@ async def get_dashboard(
     proj_ws_map: dict[str, str] = {r["id"]: r["workspace_id"] for r in proj_rows}
     proj_ids = list(proj_key_map.keys())
 
-    today = date.today()
-    week_end = today + timedelta(days=7)
+    # Anchor "today" to the viewer's local calendar when supplied; fall
+    # back to the server's UTC date for old clients / direct curl.
+    today_date = date.fromisoformat(today) if today else date.today()
+    week_end = today_date + timedelta(days=7)
     week_ago_dt = datetime.now(timezone.utc) - timedelta(days=7)
 
     # Stage 2: the rest of the fan-out. 8 unconditional queries (4 task
@@ -110,7 +113,7 @@ async def get_dashboard(
         .eq("assignee_id", user_id)
         .in_("workspace_id", ws_ids)
         .not_.in_("status", ["done", "cancelled"])
-        .gte("due_date", today.isoformat())
+        .gte("due_date", today_date.isoformat())
         .lte("due_date", week_end.isoformat())
         .order("due_date", desc=False)
         .limit(20)
@@ -122,7 +125,7 @@ async def get_dashboard(
         .eq("assignee_id", user_id)
         .in_("workspace_id", ws_ids)
         .not_.in_("status", ["done", "cancelled"])
-        .lt("due_date", today.isoformat())
+        .lt("due_date", today_date.isoformat())
         .order("due_date", desc=False)
         .limit(20)
         .execute()
@@ -161,7 +164,7 @@ async def get_dashboard(
         .eq("assignee_id", user_id)
         .in_("workspace_id", ws_ids)
         .not_.in_("status", ["done", "cancelled"])
-        .lt("due_date", today.isoformat())
+        .lt("due_date", today_date.isoformat())
         .execute()
     )
     in_review_count_co = (

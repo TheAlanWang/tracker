@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 
 import { apiClient } from "@/api/client";
+import { todayLocalString } from "@/lib/date";
 
 export type DashboardTask = {
   id: string;
@@ -58,13 +59,19 @@ export type Dashboard = {
 };
 
 export function useDashboard(workspaceId?: string) {
+  // Compute once per render so React Query's queryKey changes when the
+  // user crosses local midnight while the tab is open — the data they
+  // see (overdue / due_this_week) is "today"-relative and would otherwise
+  // be stale until they manually refetch.
+  const today = todayLocalString();
   return useQuery({
-    queryKey: ["me", "dashboard", workspaceId ?? "all"],
+    queryKey: ["me", "dashboard", workspaceId ?? "all", today],
     queryFn: async () => {
-      const qs = workspaceId
-        ? `?workspace_id=${encodeURIComponent(workspaceId)}`
-        : "";
-      const { data } = await apiClient.get<Dashboard>(`/me/dashboard${qs}`);
+      const params = new URLSearchParams({ today });
+      if (workspaceId) params.set("workspace_id", workspaceId);
+      const { data } = await apiClient.get<Dashboard>(
+        `/me/dashboard?${params.toString()}`,
+      );
       return data;
     },
     enabled: workspaceId === undefined || !!workspaceId,

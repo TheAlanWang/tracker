@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 
 import { apiClient } from "@/api/client";
+import { todayLocalString } from "@/lib/date";
 
 export type BurndownPoint = {
   day: string; // ISO date
@@ -30,11 +31,14 @@ export type Velocity = {
 };
 
 export function useBurndown(sprintId: string) {
+  // Burndown's "today" cursor must match the viewer's calendar — see
+  // useDashboard for the same pattern.
+  const today = todayLocalString();
   return useQuery<Burndown>({
-    queryKey: ["sprints", sprintId, "burndown"],
+    queryKey: ["sprints", sprintId, "burndown", today],
     queryFn: async () => {
       const { data } = await apiClient.get<Burndown>(
-        `/sprints/${sprintId}/burndown`,
+        `/sprints/${sprintId}/burndown?today=${encodeURIComponent(today)}`,
       );
       return data;
     },

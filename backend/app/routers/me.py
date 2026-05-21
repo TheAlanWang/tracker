@@ -168,7 +168,14 @@ async def delete_me(
 @router.get("/me/dashboard", response_model=DashboardResponse)
 async def get_dashboard_endpoint(
     workspace_id: str | None = None,
+    today: str | None = None,
     user_id: str = Depends(get_current_user_id),
     supabase: AsyncClient = Depends(get_supabase_admin),
 ) -> DashboardResponse:
-    return await get_dashboard(supabase, user_id=user_id, workspace_id=workspace_id)
+    # `today` is the viewer's local YYYY-MM-DD calendar date — the
+    # browser sends it so "overdue / due_this_week / done_this_week"
+    # reflect the user's wall clock instead of the server's UTC day.
+    # Falls back to server today for backward compat with old clients.
+    return await get_dashboard(
+        supabase, user_id=user_id, workspace_id=workspace_id, today=today
+    )

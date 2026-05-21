@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 
 import { Avatar } from "@/components/Avatar";
+import { parseDueDate } from "@/lib/date";
 import { ExportTasksButton } from "@/components/ExportTasksButton";
 import { FilterBar } from "@/components/FilterBar";
 import { SortableHeader } from "@/components/SortableHeader";
@@ -161,7 +162,7 @@ function ColumnVisibilityMenu({
 }
 
 function DueDateCell({ date }: { date: string }) {
-  const due = new Date(date);
+  const due = parseDueDate(date);
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const overdue = due.getTime() < today.getTime();

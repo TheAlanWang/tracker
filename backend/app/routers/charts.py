@@ -20,11 +20,14 @@ router = APIRouter(tags=["charts"])
 )
 async def burndown(
     s_id: str,
+    today: str | None = None,
     user_id: str = Depends(get_current_user_id),
     supabase: AsyncClient = Depends(get_supabase_admin),
 ):
     try:
-        return await compute_burndown(supabase, user_id=user_id, sprint_id=s_id)
+        return await compute_burndown(
+            supabase, user_id=user_id, sprint_id=s_id, today=today
+        )
     except ChartPermissionError as exc:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN) from exc
     except SprintNotFoundError as exc:
