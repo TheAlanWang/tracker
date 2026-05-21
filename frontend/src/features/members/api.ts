@@ -16,6 +16,8 @@ export type Member = {
   created_at: string;
   email: string | null;
   display_name: string | null;
+  avatar_url: string | null;
+  avatar_color: string | null;
 };
 
 export function useMembers(wsId: string) {

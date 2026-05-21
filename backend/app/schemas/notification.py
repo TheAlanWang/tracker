@@ -23,6 +23,8 @@ class NotificationResponse(BaseModel):
     actor_id: str | None
     actor_email: str | None = None
     actor_display_name: str | None = None
+    actor_avatar_url: str | None = None
+    actor_avatar_color: str | None = None
     payload: dict
     read_at: datetime | None
     created_at: datetime

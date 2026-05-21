@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 
+import { Avatar } from "@/components/Avatar";
 import { ExportTasksButton } from "@/components/ExportTasksButton";
 import { FilterBar } from "@/components/FilterBar";
 import { SortableHeader } from "@/components/SortableHeader";
 import { TaskDetailModal } from "@/components/TaskDetailModal";
-import { useMembers } from "@/features/members/api";
+import { type Member, useMembers } from "@/features/members/api";
 import { useSprints } from "@/features/sprints/api";
 import { useTasks } from "@/features/tasks/api";
 import {
@@ -159,21 +160,6 @@ function ColumnVisibilityMenu({
   );
 }
 
-function Avatar({ email }: { email: string }) {
-  const initial = (email[0] ?? "?").toUpperCase();
-  const hue =
-    Array.from(email).reduce((a, c) => a + c.charCodeAt(0), 0) % 360;
-  return (
-    <div
-      title={email}
-      style={{ backgroundColor: `hsl(${hue} 55% 50%)` }}
-      className="w-5 h-5 rounded-full flex items-center justify-center text-white text-[10px] font-semibold shrink-0"
-    >
-      {initial}
-    </div>
-  );
-}
-
 function DueDateCell({ date }: { date: string }) {
   const due = new Date(date);
   const today = new Date();
@@ -236,8 +222,8 @@ function TaskListContent() {
   const { data: sprints = [] } = useSprints(currentProject?.id ?? "");
 
   const memberByUser = useMemo(() => {
-    const m = new Map<string, string>();
-    for (const mb of members) if (mb.email) m.set(mb.user_id, mb.email);
+    const m = new Map<string, Member>();
+    for (const mb of members) m.set(mb.user_id, mb);
     return m;
   }, [members]);
 
@@ -369,9 +355,11 @@ function TaskListContent() {
           </TaskTableHead>
           <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
             {displayedTasks.map((t) => {
-              const assigneeEmail = t.assignee_id
+              const assignee = t.assignee_id
                 ? memberByUser.get(t.assignee_id)
                 : undefined;
+              const assigneeLabel =
+                assignee?.display_name || assignee?.email || null;
               const sprintName = t.sprint_id
                 ? sprintById.get(t.sprint_id)
                 : undefined;
@@ -403,11 +391,16 @@ function TaskListContent() {
                   )}
                   {show("assignee") && (
                     <td className="px-3 py-2.5">
-                      {assigneeEmail ? (
+                      {assignee ? (
                         <div className="flex items-center gap-1.5 min-w-0">
-                          <Avatar email={assigneeEmail} />
+                          <Avatar
+                            displayName={assignee.display_name}
+                            email={assignee.email}
+                            avatarUrl={assignee.avatar_url}
+                            color={assignee.avatar_color}
+                          />
                           <span className="text-xs text-slate-700 dark:text-slate-300 truncate">
-                            {assigneeEmail}
+                            {assigneeLabel}
                           </span>
                         </div>
                       ) : (

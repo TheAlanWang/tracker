@@ -406,6 +406,8 @@ function CardBody({
                     <Avatar
                       displayName={assignee.display_name}
                       email={assignee.email}
+                      avatarUrl={assignee.avatar_url}
+                      color={assignee.avatar_color}
                       size={22}
                     />
                   ) : (
@@ -418,6 +420,8 @@ function CardBody({
             <Avatar
               displayName={assignee.display_name}
               email={assignee.email}
+              avatarUrl={assignee.avatar_url}
+              color={assignee.avatar_color}
               size={22}
             />
           ) : null}

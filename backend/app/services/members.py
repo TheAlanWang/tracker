@@ -13,6 +13,7 @@ Permissions enforced at the service layer (workspace_members.role check):
 from supabase import AsyncClient
 
 from app.schemas.member import MemberResponse
+from app.services._user_profiles import user_profile_from_auth
 
 
 class MemberError(Exception):
@@ -65,7 +66,7 @@ async def _lookup_user_emails(supabase: AsyncClient, user_ids: list[str]) -> dic
 async def _lookup_user_profiles(
     supabase: AsyncClient, user_ids: list[str]
 ) -> dict[str, dict[str, str | None]]:
-    """Return user_id -> {email, display_name} for the given ids."""
+    """Return user_id -> {email, display_name, avatar_url, avatar_color}."""
     if not user_ids:
         return {}
     result: dict[str, dict[str, str | None]] = {}
@@ -73,11 +74,7 @@ async def _lookup_user_profiles(
         users = await supabase.auth.admin.list_users()
         for u in users:
             if u.id in user_ids:
-                meta = u.user_metadata or {}
-                result[u.id] = {
-                    "email": u.email,
-                    "display_name": meta.get("display_name"),
-                }
+                result[u.id] = user_profile_from_auth(u)
     except Exception:
         pass
     return result
@@ -104,7 +101,7 @@ async def list_members(
         .execute()
     ).data
 
-    # Look up email + display_name for all members
+    # Look up profile fields (email / display_name / avatar_url / avatar_color)
     all_user_ids = [r["user_id"] for r in rows]
     profile_map = await _lookup_user_profiles(supabase, all_user_ids)
 
@@ -113,6 +110,8 @@ async def list_members(
             **r,
             email=profile_map.get(r["user_id"], {}).get("email"),
             display_name=profile_map.get(r["user_id"], {}).get("display_name"),
+            avatar_url=profile_map.get(r["user_id"], {}).get("avatar_url"),
+            avatar_color=profile_map.get(r["user_id"], {}).get("avatar_color"),
         )
         for r in rows
     ]

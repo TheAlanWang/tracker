@@ -909,6 +909,8 @@ export function TaskDetailContent({
                     <Avatar
                       displayName={author?.display_name ?? null}
                       email={author?.email ?? null}
+                      avatarUrl={author?.avatar_url ?? null}
+                      color={author?.avatar_color ?? null}
                       size={20}
                       className="shrink-0"
                     />
@@ -1197,6 +1199,8 @@ export function TaskDetailContent({
                   <Avatar
                     displayName={m?.display_name ?? null}
                     email={m?.email ?? null}
+                    avatarUrl={m?.avatar_url ?? null}
+                    color={m?.avatar_color ?? null}
                     size={22}
                     className="ring-0"
                   />

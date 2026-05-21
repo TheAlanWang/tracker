@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 from supabase import AsyncClient
 
 from app.schemas.notification import NotificationResponse
+from app.services._user_profiles import user_profile_from_auth
 
 
 class NotificationError(Exception):
@@ -35,8 +36,9 @@ async def list_my_notifications(
         query = query.is_("read_at", "null")
     rows = (await query.limit(50).execute()).data
 
-    # Enrich with actor email + display_name from auth.users (so the UI can
-    # show "Assigned by Alan" / "by alan@gmail.com" instead of a UUID).
+    # Enrich with actor profile from auth.users (so the UI can show
+    # "Assigned by Alan" / "by alan@gmail.com" instead of a UUID, and
+    # render the actor's picked avatar background color).
     actor_ids = list({r["actor_id"] for r in rows if r.get("actor_id")})
     actor_info: dict[str, dict[str, str | None]] = {}
     if actor_ids:
@@ -44,11 +46,7 @@ async def list_my_notifications(
             users = await supabase.auth.admin.list_users()
             for u in users:
                 if u.id in actor_ids:
-                    meta = u.user_metadata or {}
-                    actor_info[u.id] = {
-                        "email": u.email,
-                        "display_name": meta.get("display_name"),
-                    }
+                    actor_info[u.id] = user_profile_from_auth(u)
         except Exception:
             pass  # graceful: row falls back to UUID display
 
@@ -60,6 +58,8 @@ async def list_my_notifications(
                 **r,
                 actor_email=info.get("email"),
                 actor_display_name=info.get("display_name"),
+                actor_avatar_url=info.get("avatar_url"),
+                actor_avatar_color=info.get("avatar_color"),
             )
         )
     return enriched

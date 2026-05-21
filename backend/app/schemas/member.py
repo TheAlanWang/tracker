@@ -23,3 +23,5 @@ class MemberResponse(BaseModel):
     created_at: datetime
     email: str | None = None
     display_name: str | None = None
+    avatar_url: str | None = None
+    avatar_color: str | None = None

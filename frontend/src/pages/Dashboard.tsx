@@ -883,6 +883,8 @@ function ActivityRow({
       <Avatar
         displayName={a.actor_display_name}
         email={a.actor_email}
+        avatarUrl={a.actor_avatar_url}
+        color={a.actor_avatar_color}
         size={22}
         className="ring-0"
       />

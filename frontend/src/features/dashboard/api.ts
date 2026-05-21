@@ -40,6 +40,8 @@ export type DashboardActivity = {
   actor_id: string | null;
   actor_email: string | null;
   actor_display_name: string | null;
+  actor_avatar_url: string | null;
+  actor_avatar_color: string | null;
   action: string;
   payload: Record<string, unknown>;
   created_at: string;

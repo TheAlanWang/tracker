@@ -138,6 +138,8 @@ export function AssigneePicker({
                   <Avatar
                     displayName={m.display_name}
                     email={m.email}
+                    avatarUrl={m.avatar_url}
+                    color={m.avatar_color}
                     size={24}
                   />
                   <div className="min-w-0 flex-1">

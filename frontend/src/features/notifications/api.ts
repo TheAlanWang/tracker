@@ -20,6 +20,8 @@ export type Notification = {
   actor_id: string | null;
   actor_email: string | null;
   actor_display_name: string | null;
+  actor_avatar_url: string | null;
+  actor_avatar_color: string | null;
   payload: Record<string, unknown>;
   read_at: string | null;
   created_at: string;

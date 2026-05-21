@@ -40,6 +40,8 @@ class DashboardActivity(BaseModel):
     actor_id: str | None
     actor_email: str | None
     actor_display_name: str | None
+    actor_avatar_url: str | None = None
+    actor_avatar_color: str | None = None
     action: str
     payload: dict
     created_at: datetime

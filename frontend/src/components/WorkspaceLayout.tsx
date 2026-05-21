@@ -468,6 +468,8 @@ function InboxPopover({
             <Avatar
               displayName={n.actor_display_name}
               email={n.actor_email}
+              avatarUrl={n.actor_avatar_url}
+              color={n.actor_avatar_color}
               size={28}
             />
             <span className="absolute -bottom-0.5 -right-0.5">

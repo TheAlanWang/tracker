@@ -27,6 +27,7 @@ from app.schemas.dashboard import (
     DashboardStats,
     DashboardTask,
 )
+from app.services._user_profiles import user_profile_from_auth
 
 
 def _empty_response() -> DashboardResponse:
@@ -215,8 +216,7 @@ async def get_dashboard(
     # Stage 3: activity_log depends on the task ids we just fetched.
     activity_rows: list[dict] = []
     activity_task_map: dict[str, dict] = {t["id"]: t for t in recent_task_rows}
-    actor_email_map: dict[str, str] = {}
-    actor_display_name_map: dict[str, str] = {}
+    actor_profile_map: dict[str, dict[str, str | None]] = {}
     if activity_task_map:
         activity_rows = (
             await supabase.table("activity_log")
@@ -238,12 +238,7 @@ async def get_dashboard(
                 users = await supabase.auth.admin.list_users()
                 for u in users:
                     if u.id in actor_ids:
-                        if u.email:
-                            actor_email_map[u.id] = u.email
-                        meta = u.user_metadata or {}
-                        dn = meta.get("display_name")
-                        if dn:
-                            actor_display_name_map[u.id] = dn
+                        actor_profile_map[u.id] = user_profile_from_auth(u)
             except Exception:
                 pass  # graceful: activity feed shows "Someone" if lookup fails
 
@@ -281,6 +276,7 @@ async def get_dashboard(
         pid = task["project_id"]
         wid = proj_ws_map.get(pid, "")
         aid = row.get("actor_id")
+        profile = actor_profile_map.get(aid) if aid else None
         return DashboardActivity(
             id=row["id"],
             task_id=row["task_id"],
@@ -289,8 +285,10 @@ async def get_dashboard(
             workspace_slug=ws_slug_map.get(wid, ""),
             project_key=proj_key_map.get(pid, ""),
             actor_id=aid,
-            actor_email=actor_email_map.get(aid) if aid else None,
-            actor_display_name=actor_display_name_map.get(aid) if aid else None,
+            actor_email=profile.get("email") if profile else None,
+            actor_display_name=profile.get("display_name") if profile else None,
+            actor_avatar_url=profile.get("avatar_url") if profile else None,
+            actor_avatar_color=profile.get("avatar_color") if profile else None,
             action=row["action"],
             payload=row.get("payload") or {},
             created_at=row["created_at"],
