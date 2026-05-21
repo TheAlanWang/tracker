@@ -17,13 +17,14 @@
 //   3. Workspace invitations — pending invites for the current user, with
 //      accept/decline. Renders only when there are pending invitations.
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { Camera } from "lucide-react";
+import { Camera, Pencil, Trash2 } from "lucide-react";
 
 import { Avatar } from "@/components/Avatar";
 import { isUploadedAvatar } from "@/lib/avatar";
+import { AVATAR_COLORS } from "@/lib/avatarColors";
 import { SettingsLayout } from "@/components/SettingsLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -77,18 +78,56 @@ function ProfileSettingsContent({
 }) {
   const updateMutation = useUpdateProfile();
   const [displayName, setDisplayName] = useState(me.display_name ?? "");
+  const [avatarColor, setAvatarColor] = useState<string | null>(me.avatar_color);
   const [uploading, setUploading] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const editPopoverRef = useRef<HTMLDivElement>(null);
 
-  const dirty = (me.display_name ?? "") !== displayName;
+  // Close popover on click outside or Escape — same pattern as the profile
+  // dropdown in WorkspaceLayout.
+  useEffect(() => {
+    if (!editOpen) return;
+    const onClick = (e: MouseEvent) => {
+      if (
+        editPopoverRef.current &&
+        !editPopoverRef.current.contains(e.target as Node)
+      ) {
+        setEditOpen(false);
+      }
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setEditOpen(false);
+    };
+    document.addEventListener("mousedown", onClick);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onClick);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [editOpen]);
+
+  const dirty =
+    (me.display_name ?? "") !== displayName || me.avatar_color !== avatarColor;
 
   async function onSave(e: React.FormEvent) {
     e.preventDefault();
     if (!dirty) return;
     try {
-      await updateMutation.mutateAsync({
-        display_name: displayName || undefined,
-      });
+      // For string fields, the backend convention is: empty string clears,
+      // undefined leaves untouched. We only send fields that actually changed.
+      const payload: {
+        display_name?: string;
+        avatar_color?: string;
+      } = {};
+      if ((me.display_name ?? "") !== displayName) {
+        payload.display_name = displayName || undefined;
+      }
+      if (me.avatar_color !== avatarColor) {
+        // null → "" clears the stored color; non-null → set.
+        payload.avatar_color = avatarColor ?? "";
+      }
+      await updateMutation.mutateAsync(payload);
       toast.success("Profile updated");
     } catch (err) {
       const detail =
@@ -153,9 +192,16 @@ function ProfileSettingsContent({
           <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 divide-y divide-slate-200 dark:divide-slate-800">
             <SettingRow
               label="Avatar"
-              description="PNG / JPEG / WebP / GIF, up to 2 MB."
+              description={
+                <>
+                  Upload an image or pick a background color.
+                  <br />
+                  PNG / JPEG / WebP / GIF, up to 2 MB.
+                </>
+              }
             >
-              <div className="flex items-center gap-4">
+              <div className="flex justify-start">
+                <div ref={editPopoverRef} className="relative">
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -168,25 +214,100 @@ function ProfileSettingsContent({
                 />
                 <button
                   type="button"
-                  onClick={() => fileInputRef.current?.click()}
+                  onClick={() => setEditOpen((v) => !v)}
                   disabled={uploading || updateMutation.isPending}
-                  aria-label={isUploadedAvatar(me.avatar_url) ? "Change avatar" : "Upload avatar"}
+                  aria-label="Edit avatar"
+                  aria-expanded={editOpen}
                   className="group relative h-14 w-14 rounded-full overflow-hidden ring-1 ring-slate-200 dark:ring-slate-700 shadow-sm disabled:opacity-60 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                 >
                   <Avatar
                     displayName={me.display_name}
                     email={me.email}
                     avatarUrl={me.avatar_url}
+                    color={avatarColor}
                     size={56}
                   />
                   <div className="absolute inset-0 bg-black/45 opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity flex items-center justify-center">
                     {uploading ? (
                       <span className="text-white text-[10px] font-medium">Uploading…</span>
                     ) : (
-                      <Camera className="h-4 w-4 text-white" strokeWidth={2} />
+                      <Pencil className="h-4 w-4 text-white" strokeWidth={2} />
                     )}
                   </div>
                 </button>
+
+                {editOpen && (
+                  <div className="absolute left-0 top-full mt-2 w-60 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-lg z-20 overflow-hidden">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        fileInputRef.current?.click();
+                        setEditOpen(false);
+                      }}
+                      disabled={uploading}
+                      className="flex w-full items-center gap-2 px-3 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50 disabled:opacity-60"
+                    >
+                      <Camera className="h-4 w-4" strokeWidth={1.7} />
+                      {isUploadedAvatar(me.avatar_url) ? "Change photo" : "Upload new photo"}
+                    </button>
+                    {isUploadedAvatar(me.avatar_url) && (
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          try {
+                            await updateMutation.mutateAsync({ avatar_url: "" });
+                            toast.success("Photo removed");
+                            setEditOpen(false);
+                          } catch {
+                            toast.error("Failed to remove photo");
+                          }
+                        }}
+                        disabled={updateMutation.isPending}
+                        className="flex w-full items-center gap-2 px-3 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50 disabled:opacity-60"
+                      >
+                        <Trash2 className="h-4 w-4" strokeWidth={1.7} />
+                        Remove photo
+                      </button>
+                    )}
+                    {!isUploadedAvatar(me.avatar_url) && (
+                      <>
+                        <div className="border-t border-slate-100 dark:border-slate-800" />
+                        <div className="px-3 py-2.5">
+                          <p className="text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400 font-semibold mb-2">
+                            Background color
+                          </p>
+                          <div className="flex flex-wrap items-center gap-2">
+                            {AVATAR_COLORS.map((c) => (
+                              <button
+                                key={c.value}
+                                type="button"
+                                onClick={() => setAvatarColor(c.value)}
+                                aria-label={`Use ${c.name} background`}
+                                title={c.name}
+                                className={`h-5 w-5 rounded-full ring-2 transition-shadow ${
+                                  avatarColor === c.value
+                                    ? "ring-slate-900 dark:ring-slate-100"
+                                    : "ring-transparent hover:ring-slate-300 dark:hover:ring-slate-600"
+                                }`}
+                                style={{ backgroundColor: c.value }}
+                              />
+                            ))}
+                          </div>
+                          {avatarColor !== null && (
+                            <button
+                              type="button"
+                              onClick={() => setAvatarColor(null)}
+                              className="mt-2 text-xs text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100"
+                            >
+                              Reset to default
+                            </button>
+                          )}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
               </div>
             </SettingRow>
             <SettingRow
@@ -735,7 +856,7 @@ function SettingRow({
   children,
 }: {
   label: string;
-  description?: string;
+  description?: React.ReactNode;
   children: React.ReactNode;
 }) {
   return (

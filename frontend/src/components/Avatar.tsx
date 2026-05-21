@@ -9,6 +9,10 @@ type Props = {
   // back to the colored-initial bubble below if absent or if the image
   // fails to load.
   avatarUrl?: string | null;
+  // Optional explicit background color for the initial-letter bubble (e.g.
+  // "#3b82f6"). When omitted, a hue is derived from the email hash so the
+  // same person renders the same color in views that don't supply one.
+  color?: string | null;
   size?: number;
   className?: string;
 };
@@ -32,11 +36,15 @@ export function Avatar({
   displayName,
   email,
   avatarUrl,
+  color,
   size = 24,
   className = "",
 }: Props) {
   const initial = pickInitial(displayName, email);
-  const hue = hueFor(email ?? displayName ?? "?");
+  // User-picked color wins over the deterministic hash. Hash is the fallback
+  // so views that don't supply a color (other users' avatars in members /
+  // assignees lists) still show a stable, person-specific hue.
+  const background = color ?? `hsl(${hueFor(email ?? displayName ?? "?")} 55% 50%)`;
   const title = displayName || email || "";
   // Ring matches whatever surface the avatar overlaps — white in light
   // mode, the dark chrome color in dark mode. Without the dark variant
@@ -69,7 +77,7 @@ export function Avatar({
       style={{
         width: size,
         height: size,
-        backgroundColor: `hsl(${hue} 55% 50%)`,
+        backgroundColor: background,
         fontSize: Math.max(10, Math.floor(size * 0.42)),
       }}
       className={baseClass}

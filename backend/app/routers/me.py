@@ -32,6 +32,7 @@ async def get_me(
     email: str | None = None
     display_name: str | None = None
     avatar_url: str | None = None
+    avatar_color: str | None = None
     if creds is not None:
         try:
             payload = verify_and_decode_supabase_jwt(
@@ -41,6 +42,7 @@ async def get_me(
             user_meta = payload.get("user_metadata") or {}
             display_name = user_meta.get("display_name")
             avatar_url = user_meta.get("avatar_url")
+            avatar_color = user_meta.get("avatar_color")
         except InvalidTokenError:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
@@ -56,6 +58,7 @@ async def get_me(
         email=email,
         display_name=display_name,
         avatar_url=avatar_url,
+        avatar_color=avatar_color,
         workspaces=workspace_summaries,
     )
 
@@ -75,10 +78,13 @@ async def update_profile(
         # Empty string clears the avatar — converted to None so the metadata
         # field disappears instead of holding "".
         updates["avatar_url"] = body.avatar_url or None
+    if body.avatar_color is not None:
+        # Same convention as avatar_url: empty string means "clear".
+        updates["avatar_color"] = body.avatar_color or None
 
     if updates:
         try:
-            supabase.auth.admin.update_user_by_id(
+            await supabase.auth.admin.update_user_by_id(
                 user_id, {"user_metadata": updates}
             )
         except Exception as exc:
@@ -92,6 +98,7 @@ async def update_profile(
     email: str | None = None
     display_name: str | None = None
     avatar_url: str | None = None
+    avatar_color: str | None = None
     if creds is not None:
         try:
             payload = verify_and_decode_supabase_jwt(
@@ -109,6 +116,7 @@ async def update_profile(
             meta = user_obj.user.user_metadata or {}
             display_name = meta.get("display_name")
             avatar_url = meta.get("avatar_url")
+            avatar_color = meta.get("avatar_color")
     except Exception:
         pass
 
@@ -122,6 +130,7 @@ async def update_profile(
         email=email,
         display_name=display_name,
         avatar_url=avatar_url,
+        avatar_color=avatar_color,
         workspaces=workspace_summaries,
     )
 

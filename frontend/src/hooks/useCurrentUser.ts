@@ -7,6 +7,7 @@ export type Me = {
   email: string | null;
   display_name: string | null;
   avatar_url: string | null;
+  avatar_color: string | null;
   workspaces: { id: string; slug: string; name: string }[];
 };
 
@@ -21,14 +22,15 @@ export function useCurrentUser() {
   });
 }
 
-// avatar_url: pass a non-empty URL to set, "" to clear, undefined to leave
-// untouched. display_name follows the same convention.
+// avatar_url / avatar_color: pass a non-empty string to set, "" to clear,
+// undefined to leave untouched. display_name follows the same convention.
 export function useUpdateProfile() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (payload: {
       display_name?: string;
       avatar_url?: string;
+      avatar_color?: string;
     }) => {
       const { data } = await apiClient.patch<Me>("/me/profile", payload);
       return data;

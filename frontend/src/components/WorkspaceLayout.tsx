@@ -997,6 +997,7 @@ export function WorkspaceLayout() {
                   displayName={me?.display_name ?? null}
                   email={me?.email ?? null}
                   avatarUrl={me?.avatar_url ?? null}
+                  color={me?.avatar_color ?? null}
                   size={32}
                   className="ring-0"
                 />
@@ -1011,6 +1012,7 @@ export function WorkspaceLayout() {
                       displayName={me?.display_name ?? null}
                       email={me?.email ?? null}
                       avatarUrl={me?.avatar_url ?? null}
+                      color={me?.avatar_color ?? null}
                       size={36}
                       className="ring-0"
                     />
