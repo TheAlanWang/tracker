@@ -182,25 +182,25 @@ export default function WorkspaceSettings() {
       <div className="space-y-10 min-w-0">
         <section className="space-y-4">
           <h2 className="text-xl font-medium text-slate-900 dark:text-slate-100 dark:text-slate-100">
-            General settings
+            General Settings
           </h2>
           <form onSubmit={onRenameWorkspace}>
             <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
               <SettingRow
-                label="Workspace name"
+                label="Workspace Name"
                 description="Displayed throughout the app."
               >
-                <div className="flex items-center gap-3 w-full">
+                <div className="flex items-center justify-end gap-3 w-full">
                   <Input
                     value={wsName}
                     onChange={(e) => setWsName(e.target.value)}
                     maxLength={100}
                     disabled={!isOwner}
-                    className="max-w-xs flex-1"
+                    className="w-64"
                   />
                   <Button
                     type="submit"
-                    className="ml-auto shrink-0"
+                    className="shrink-0 min-w-28"
                     disabled={
                       !isOwner ||
                       updateWsMutation.isPending ||
@@ -208,7 +208,7 @@ export default function WorkspaceSettings() {
                       wsName === currentWs?.name
                     }
                   >
-                    {updateWsMutation.isPending ? "Saving…" : "Save changes"}
+                    {updateWsMutation.isPending ? "Saving…" : "Save"}
                   </Button>
                 </div>
                 {!isOwner && (
@@ -233,7 +233,7 @@ export default function WorkspaceSettings() {
               <div className="flex items-center justify-between gap-4">
                 <div className="min-w-0">
                   <h3 className="text-base font-medium text-slate-900 dark:text-slate-100">
-                    Workspace members
+                    Workspace Members
                   </h3>
                   <p className="mt-0.5 text-sm text-slate-500 dark:text-slate-400">
                     {members.length === 1
@@ -252,11 +252,11 @@ export default function WorkspaceSettings() {
                       value={inviteEmail}
                       onChange={(e) => setInviteEmail(e.target.value)}
                       required
-                      className="w-52"
+                      className="w-64"
                     />
                     <Button
                       type="submit"
-                      variant="outline"
+                      className="min-w-28"
                       disabled={
                         inviteMutation.isPending || !inviteEmail.trim()
                       }
@@ -437,7 +437,7 @@ export default function WorkspaceSettings() {
         </section>
 
         <section className="space-y-4">
-          <h2 className="text-xl font-medium text-red-700 dark:text-red-400">Danger zone</h2>
+          <h2 className="text-xl font-medium text-red-700 dark:text-red-400">Danger Zone</h2>
           {/* Stacked block (same shape as Profile Settings' Danger zone):
               title → full-width prose → action button at bottom-right.
               Avoids the cramped SettingRow grid where the description gets
@@ -447,7 +447,7 @@ export default function WorkspaceSettings() {
               having to read the heading. */}
           <div className="rounded-lg border border-red-200 dark:border-red-900/40 bg-red-50/50 dark:bg-red-950/20 p-5 space-y-4">
             <div className="space-y-2">
-              <h3 className="font-medium text-red-900 dark:text-red-300">Delete workspace</h3>
+              <h3 className="font-medium text-red-900 dark:text-red-300">Delete Workspace</h3>
               <p className="text-sm text-red-900/70 dark:text-red-300/70 leading-relaxed">
                 Permanently delete this workspace and everything in it — every
                 project, task, sprint, comment, invitation, and watcher
@@ -465,7 +465,7 @@ export default function WorkspaceSettings() {
                 >
                   {deleteWsMutation.isPending
                     ? "Deleting…"
-                    : "Delete workspace"}
+                    : "Delete Workspace"}
                 </Button>
               </div>
             ) : (

@@ -168,12 +168,12 @@ function ProjectSettingsContent({
       <div className="space-y-10 min-w-0">
         <section className="space-y-4">
           <h2 className="text-xl font-medium text-slate-900 dark:text-slate-100">
-            General settings
+            General Settings
           </h2>
           <form onSubmit={onSave}>
             <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 divide-y divide-slate-100 dark:divide-slate-800">
               <SettingRow
-                label="Project name"
+                label="Project Name"
                 description="Shown in the sidebar and project header."
               >
                 <Input
@@ -230,7 +230,7 @@ function ProjectSettingsContent({
                 </div>
               </SettingRow>
               <SettingRow
-                label="Project key"
+                label="Project Key"
                 description="Used as the prefix on every task ID."
               >
                 {/* Input on its own row so it has the same visual weight
@@ -309,12 +309,12 @@ function ProjectSettingsContent({
 
         <section className="space-y-4">
           <h2 className="text-xl font-medium text-red-700 dark:text-red-400">
-            Danger zone
+            Danger Zone
           </h2>
           <div className="rounded-lg border border-red-200 dark:border-red-900/40 bg-red-50/50 dark:bg-red-950/20 p-5 space-y-4">
             <div className="space-y-2">
               <h3 className="font-medium text-red-900 dark:text-red-300">
-                Delete project
+                Delete Project
               </h3>
               <p className="text-sm text-red-900/70 dark:text-red-300/70 leading-relaxed">
                 Permanently delete this project and everything inside it —
@@ -329,7 +329,7 @@ function ProjectSettingsContent({
                 disabled={deleteMutation.isPending}
                 className="bg-red-600 hover:bg-red-700 text-white"
               >
-                {deleteMutation.isPending ? "Deleting…" : "Delete project"}
+                {deleteMutation.isPending ? "Deleting…" : "Delete Project"}
               </Button>
             </div>
           </div>

@@ -187,7 +187,7 @@ function ProfileSettingsContent({
         </header>
 
       <section className="space-y-4">
-        <h2 className="text-xl font-medium text-slate-900 dark:text-slate-100 dark:text-slate-100">General settings</h2>
+        <h2 className="text-xl font-medium text-slate-900 dark:text-slate-100 dark:text-slate-100">General Settings</h2>
         <form onSubmit={onSave}>
           <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 divide-y divide-slate-200 dark:divide-slate-800">
             <SettingRow
@@ -311,7 +311,7 @@ function ProfileSettingsContent({
               </div>
             </SettingRow>
             <SettingRow
-              label="Display name"
+              label="Display Name"
               description="Shown in the header and on tasks you create."
             >
               <Input
@@ -334,9 +334,10 @@ function ProfileSettingsContent({
             <div className="flex justify-end p-4">
               <Button
                 type="submit"
+                className="min-w-[9.5rem]"
                 disabled={!dirty || updateMutation.isPending}
               >
-                {updateMutation.isPending ? "Saving…" : "Save changes"}
+                {updateMutation.isPending ? "Saving…" : "Save"}
               </Button>
             </div>
           </div>
@@ -384,14 +385,14 @@ function DangerZoneSection({ me }: { me: Me }) {
   return (
     <>
       <section className="space-y-4">
-        <h2 className="text-xl font-medium text-red-700 dark:text-red-400">Danger zone</h2>
+        <h2 className="text-xl font-medium text-red-700 dark:text-red-400">Danger Zone</h2>
         {/* Stacked block, not a SettingRow: the description is long enough
             that splitting it into a narrow label column made it wrap badly.
             Title up top, full-width prose, then the destructive button at
             the bottom-right where it doesn't compete with the text. */}
         <div className="rounded-lg border border-red-200 dark:border-red-900/40 bg-red-50/50 dark:bg-red-950/20 p-5 space-y-4">
           <div className="space-y-2">
-            <h3 className="font-medium text-red-900 dark:text-red-300">Delete account</h3>
+            <h3 className="font-medium text-red-900 dark:text-red-300">Delete Account</h3>
             <p className="text-sm text-red-900/70 dark:text-red-300/70 leading-relaxed">
               Permanently delete your account, every workspace you own (with
               all its projects, tasks, and sprints), and your membership in
@@ -409,7 +410,7 @@ function DangerZoneSection({ me }: { me: Me }) {
               }}
               className="bg-red-600 hover:bg-red-700 text-white"
             >
-              Delete account
+              Delete Account
             </Button>
           </div>
         </div>
@@ -597,7 +598,7 @@ function SignInMethodsSection() {
     return (
       <section className="space-y-4">
         <h2 className="text-xl font-medium text-slate-900 dark:text-slate-100">
-          Sign-in methods
+          Sign-In Methods
         </h2>
         <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 text-sm text-slate-500 dark:text-slate-400">
           Loading…
@@ -649,7 +650,7 @@ function SignInMethodsSection() {
     <>
       <section className="space-y-4">
         <h2 className="text-xl font-medium text-slate-900 dark:text-slate-100">
-          Sign-in methods
+          Sign-In Methods
         </h2>
         {/* Section-level meta hint: states the "at least one method"
             rule once instead of repeating it across rows. Lets each row's
@@ -670,12 +671,12 @@ function SignInMethodsSection() {
             <div className="flex justify-end">
               <Button
                 type="button"
-                variant="outline"
+                className="min-w-[9.5rem]"
                 onClick={() =>
                   setPasswordModal(emailIdentity ? "change" : "set")
                 }
               >
-                {emailIdentity ? "Change password" : "Set password"}
+                {emailIdentity ? "Change Password" : "Set Password"}
               </Button>
             </div>
           </SettingRow>
@@ -699,7 +700,7 @@ function SignInMethodsSection() {
                 wouldLockOut ? null : (
                   <Button
                     type="button"
-                    variant="outline"
+                    className="min-w-[9.5rem]"
                     disabled={unlinking}
                     onClick={handleUnlinkGoogle}
                   >
@@ -709,11 +710,11 @@ function SignInMethodsSection() {
               ) : (
                 <Button
                   type="button"
-                  variant="outline"
+                  className="min-w-[9.5rem]"
                   disabled={linking}
                   onClick={handleLinkGoogle}
                 >
-                  {linking ? "Redirecting…" : "Link Google account"}
+                  {linking ? "Redirecting…" : "Link Google Account"}
                 </Button>
               )}
             </div>
