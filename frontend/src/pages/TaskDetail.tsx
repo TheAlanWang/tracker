@@ -21,6 +21,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
+import rehypeHighlight from "rehype-highlight";
 import remarkGfm from "remark-gfm";
 import { toast } from "sonner";
 import { Activity as ActivityIcon, AlignLeft, MessageSquare, Trash2 } from "lucide-react";
@@ -814,7 +815,10 @@ export function TaskDetailContent({
               // <code> becomes a subtle pill with the plugin's auto
               // backtick pseudo-elements suppressed.
               <div className="prose prose-sm max-w-none text-slate-700 dark:text-slate-300 prose-pre:bg-slate-100 dark:prose-pre:bg-slate-800/60 prose-pre:text-slate-800 dark:prose-pre:text-slate-200 prose-pre:rounded-md prose-pre:p-3 prose-pre:text-[13px] prose-code:bg-slate-100 dark:prose-code:bg-slate-800/60 prose-code:text-slate-800 dark:prose-code:text-slate-200 prose-code:rounded prose-code:px-1 prose-code:py-0.5 prose-code:text-[0.85em] prose-code:font-normal prose-code:before:hidden prose-code:after:hidden">
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                <ReactMarkdown
+                  remarkPlugins={[remarkGfm]}
+                  rehypePlugins={[rehypeHighlight]}
+                >
                   {descDraft}
                 </ReactMarkdown>
               </div>

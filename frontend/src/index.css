@@ -1,9 +1,53 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 @import "@fontsource-variable/geist";
+/* highlight.js GitHub theme. Provides token colors for fenced code blocks
+   rendered through rehype-highlight in TaskDetail and CommentBody. The
+   .dark overrides below swap in github-dark colors so code reads well on
+   our slate-800 prose-pre background. */
+@import "highlight.js/styles/github.css";
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Let prose-pre control the background; hljs only handles token colors. */
+.hljs {
+  background: transparent;
+  padding: 0;
+}
+
+/* Dark-mode token overrides (mirrors highlight.js/styles/github-dark.css
+   but scoped under .dark so it cohabitates with the light theme above). */
+.dark .hljs { color: #e6edf3; }
+.dark .hljs-keyword,
+.dark .hljs-built_in,
+.dark .hljs-tag .hljs-name,
+.dark .hljs-attribute { color: #ff7b72; }
+.dark .hljs-string,
+.dark .hljs-doctag,
+.dark .hljs-template-tag,
+.dark .hljs-template-variable,
+.dark .hljs-attr { color: #a5d6ff; }
+.dark .hljs-comment,
+.dark .hljs-quote,
+.dark .hljs-deletion { color: #8b949e; }
+.dark .hljs-literal,
+.dark .hljs-variable,
+.dark .hljs-number,
+.dark .hljs-symbol,
+.dark .hljs-link { color: #79c0ff; }
+.dark .hljs-section,
+.dark .hljs-selector-id,
+.dark .hljs-selector-class,
+.dark .hljs-name { color: #7ee787; }
+.dark .hljs-title,
+.dark .hljs-title.class_,
+.dark .hljs-title.function_,
+.dark .hljs-selector-tag { color: #d2a8ff; }
+.dark .hljs-type,
+.dark .hljs-meta,
+.dark .hljs-params { color: #ffa657; }
+.dark .hljs-addition { color: #aff5b4; background: #033a16; }
 
 @layer base {
   .theme {
