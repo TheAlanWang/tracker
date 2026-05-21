@@ -5,6 +5,7 @@ import { Avatar } from "@/components/Avatar";
 import { parseDueDate } from "@/lib/date";
 import { ExportTasksButton } from "@/components/ExportTasksButton";
 import { FilterBar } from "@/components/FilterBar";
+import { InlineSpinner } from "@/components/PageSpinner";
 import { SortableHeader } from "@/components/SortableHeader";
 import { TaskDetailModal } from "@/components/TaskDetailModal";
 import { type Member, useMembers } from "@/features/members/api";
@@ -298,7 +299,7 @@ function TaskListContent() {
         />
       </div>
 
-      {isLoading && <p>Loading tasks…</p>}
+      {isLoading && <InlineSpinner />}
       {!isLoading && displayedTasks.length === 0 && (
         <EmptyState
           title={filters.length > 0 ? "No tasks match" : "No tasks yet"}

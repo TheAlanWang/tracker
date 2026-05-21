@@ -5,6 +5,7 @@ import { Avatar } from "@/components/Avatar";
 import { parseDueDate } from "@/lib/date";
 import { ExportTasksButton } from "@/components/ExportTasksButton";
 import { FilterBar } from "@/components/FilterBar";
+import { InlineSpinner } from "@/components/PageSpinner";
 import { InlineTaskCreator } from "@/components/InlineTaskCreator";
 import { SortableHeader } from "@/components/SortableHeader";
 import { TaskDetailModal } from "@/components/TaskDetailModal";
@@ -260,7 +261,7 @@ function BacklogContent() {
         }
       />
 
-      {isLoading && <p>Loading…</p>}
+      {isLoading && <InlineSpinner />}
 
       {!isLoading && displayedTasks.length === 0 && (
         <EmptyState

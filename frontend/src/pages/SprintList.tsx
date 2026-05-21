@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 
+import { InlineSpinner } from "@/components/PageSpinner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -506,9 +507,7 @@ export default function SprintList() {
           <Button onClick={() => setNewOpen(true)}>+ New sprint</Button>
         </div>
 
-        {isLoading && (
-          <p className="text-sm text-muted-foreground">Loading sprints…</p>
-        )}
+        {isLoading && <InlineSpinner />}
 
         {!isLoading && active.length === 0 && (
           <div className="rounded-xl border border-dashed border-slate-200 dark:border-slate-800 bg-slate-50/50 p-6 text-center">

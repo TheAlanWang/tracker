@@ -3,6 +3,7 @@ import { useParams } from "react-router-dom";
 
 import { ExportTasksButton } from "@/components/ExportTasksButton";
 import { FilterBar } from "@/components/FilterBar";
+import { InlineSpinner } from "@/components/PageSpinner";
 import { useMembers } from "@/features/members/api";
 import { projectDotColor } from "@/lib/projectColor";
 import { SortableHeader } from "@/components/SortableHeader";
@@ -330,7 +331,7 @@ function MyIssuesContent() {
         }
       />
 
-      {isLoading && <p className="text-muted-foreground">Loading…</p>}
+      {isLoading && <InlineSpinner />}
 
       {!isLoading && issues.length === 0 && (
         <EmptyState

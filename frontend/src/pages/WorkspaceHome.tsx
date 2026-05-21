@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
+import { PageSpinner } from "@/components/PageSpinner";
 import { useProjects } from "@/features/projects/api";
 import { useWorkspaces } from "@/features/workspaces/api";
 
@@ -21,7 +22,7 @@ export default function WorkspaceHome() {
   if (!currentWs) return null;
 
   if (isLoading) {
-    return <p className="text-muted-foreground">Loading…</p>;
+    return <PageSpinner />;
   }
 
   if (projects.length === 0) {

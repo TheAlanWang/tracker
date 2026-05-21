@@ -27,6 +27,7 @@ import { toast } from "sonner";
 import { Activity as ActivityIcon, AlignLeft, ChevronRight, MessageSquare, Trash2 } from "lucide-react";
 
 import { Avatar } from "@/components/Avatar";
+import { PageSpinner } from "@/components/PageSpinner";
 import {
   DependenciesSection,
   type PendingDepAdd,
@@ -1729,7 +1730,7 @@ export default function TaskDetail() {
     );
   }
   if (resolving || !resolved) {
-    return <p className="text-muted-foreground">Loading…</p>;
+    return <PageSpinner />;
   }
 
   return (

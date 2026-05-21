@@ -25,6 +25,7 @@ import { Camera, Pencil, Trash2 } from "lucide-react";
 import { Avatar } from "@/components/Avatar";
 import { isUploadedAvatar } from "@/lib/avatar";
 import { AVATAR_COLORS } from "@/lib/avatarColors";
+import { InlineSpinner } from "@/components/PageSpinner";
 import { SettingsLayout } from "@/components/SettingsLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -56,7 +57,7 @@ export default function ProfileSettings() {
   if (!me) {
     return (
       <SettingsLayout>
-        <p className="text-muted-foreground py-10">Loading…</p>
+        <InlineSpinner />
       </SettingsLayout>
     );
   }
@@ -600,8 +601,8 @@ function SignInMethodsSection() {
         <h2 className="text-xl font-medium text-slate-900 dark:text-slate-100">
           Sign-In Methods
         </h2>
-        <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 text-sm text-slate-500 dark:text-slate-400">
-          Loading…
+        <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
+          <InlineSpinner />
         </div>
       </section>
     );

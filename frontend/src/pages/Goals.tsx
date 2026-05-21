@@ -18,6 +18,7 @@ import { useState } from "react";
 import { useParams } from "react-router-dom";
 
 import { GoalMindMap } from "@/components/GoalMindMap";
+import { PageSpinner } from "@/components/PageSpinner";
 import { MillerColumns } from "@/components/MillerColumns";
 import { TaskDetailModal } from "@/components/TaskDetailModal";
 import { useWorkspaces } from "@/features/workspaces/api";
@@ -34,7 +35,7 @@ export default function Goals() {
   const [view, setView] = useState<View>("map");
 
   if (!currentWs) {
-    return <p className="text-muted-foreground">Loading…</p>;
+    return <PageSpinner />;
   }
 
   return (

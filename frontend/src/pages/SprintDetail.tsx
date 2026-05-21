@@ -14,6 +14,7 @@ import { useNavigate, useParams } from "react-router-dom";
 
 import { BurndownChart } from "@/components/BurndownChart";
 import { EmptyState } from "@/components/EmptyState";
+import { PageSpinner } from "@/components/PageSpinner";
 import { ExportTasksButton } from "@/components/ExportTasksButton";
 import { TaskDetailModal } from "@/components/TaskDetailModal";
 import { StatusPill } from "@/components/StatusPill";
@@ -59,7 +60,7 @@ export default function SprintDetail() {
   const { data: sprint } = useSprint(sprintId ?? "");
 
   if (!sprint) {
-    return <p className="text-muted-foreground">Loading…</p>;
+    return <PageSpinner />;
   }
   return <SprintDetailContent key={sprint.id} sprint={sprint} />;
 }

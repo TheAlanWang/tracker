@@ -12,6 +12,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 
+import { InlineSpinner } from "@/components/PageSpinner";
 import { SettingsLayout } from "@/components/SettingsLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -277,7 +278,7 @@ export default function WorkspaceSettings() {
             </div>
 
             {isLoading ? (
-              <p className="px-5 py-4 text-sm text-slate-500 dark:text-slate-400">Loading…</p>
+              <InlineSpinner />
             ) : (
               <div className="divide-y divide-slate-100 dark:divide-slate-800 dark:divide-slate-800">
                 {members.map((m) => {
