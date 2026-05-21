@@ -18,13 +18,13 @@
 //     field-specific "default" labels ("Unassigned", "No due date", etc.)
 //     so reading "from X to Y" history is meaningful.
 
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
 import rehypeHighlight from "rehype-highlight";
 import remarkGfm from "remark-gfm";
 import { toast } from "sonner";
-import { Activity as ActivityIcon, AlignLeft, MessageSquare, Trash2 } from "lucide-react";
+import { Activity as ActivityIcon, AlignLeft, ChevronRight, MessageSquare, Trash2 } from "lucide-react";
 
 import { Avatar } from "@/components/Avatar";
 import {
@@ -178,6 +178,23 @@ const FIELD_LABEL: Record<string, string> = {
   due_date: "due date",
 };
 
+// Free-text fields whose old → new values are too long to inline in an
+// activity sentence (a 60-char title diff dominates the row + wraps badly).
+// For these we just say "edited TITLE" — current value is visible at the
+// top of the task, no one needs the char-by-char history mid-feed.
+const FREE_TEXT_FIELDS = new Set(["title", "description"]);
+
+// Renders activity-log field names (status / assignee / etc.) as small
+// uppercase tokens — same tracking-wide style as the section headers, so
+// changed fields read like tags inside the sentence rather than prose.
+function FieldLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="uppercase tracking-wide text-[11px] font-medium text-slate-600 dark:text-slate-400">
+      {children}
+    </span>
+  );
+}
+
 function formatRelativeTime(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
   const sec = Math.floor(diff / 1000);
@@ -235,7 +252,7 @@ function renderActivityLine(
       body = <>created this task</>;
       break;
     case "commented":
-      body = <>posted a comment</>;
+      body = <>commented</>;
       break;
     case "updated": {
       const fields = Object.keys(p);
@@ -245,12 +262,12 @@ function renderActivityLine(
         const f = fields[0];
         const label = FIELD_LABEL[f] ?? f;
         const c = p[f];
-        if (c.updated) {
-          body = <>edited the {label}</>;
+        if (c.updated || FREE_TEXT_FIELDS.has(f)) {
+          body = <>edited <FieldLabel>{label}</FieldLabel></>;
         } else {
           body = (
             <span className="inline-flex items-center flex-wrap gap-x-1">
-              changed {label}
+              changed <FieldLabel>{label}</FieldLabel>
               {ctx.renderValue(f, c.from)}
               <FromToArrow />
               {ctx.renderValue(f, c.to)}
@@ -258,8 +275,17 @@ function renderActivityLine(
           );
         }
       } else {
-        const names = fields.map((k) => FIELD_LABEL[k] ?? k).join(", ");
-        body = <>updated {names}</>;
+        body = (
+          <>
+            updated{" "}
+            {fields.map((k, i) => (
+              <Fragment key={k}>
+                {i > 0 && ", "}
+                <FieldLabel>{FIELD_LABEL[k] ?? k}</FieldLabel>
+              </Fragment>
+            ))}
+          </>
+        );
       }
       break;
     }
@@ -272,6 +298,71 @@ function renderActivityLine(
       <span className="font-medium text-slate-900 dark:text-slate-100">{actor}</span> {body}{" "}
       <span className="text-slate-400 dark:text-slate-500">· {time}</span>
     </>
+  );
+}
+
+// Free-text single-field updates are the only rows we let users expand —
+// their old / new values are too long to inline (60-char title diff wraps
+// the row) but the user still occasionally wants to recover the previous
+// value. Multi-field updates and the "updated" sentinel (no payload) stay
+// non-expandable; everything else (status / priority pills / dates) already
+// fits inline.
+function isExpandable(a: Activity): boolean {
+  if (a.action !== "updated") return false;
+  const p = a.payload as Record<string, { updated?: boolean } | undefined>;
+  const fields = Object.keys(p);
+  if (fields.length !== 1) return false;
+  const f = fields[0];
+  if (!FREE_TEXT_FIELDS.has(f)) return false;
+  const c = p[f];
+  return !!c && !c.updated;
+}
+
+function ActivityItem({ a, ctx }: { a: Activity; ctx: ActivityContext }) {
+  const [expanded, setExpanded] = useState(false);
+  const expandable = isExpandable(a);
+  const fieldKey = expandable ? Object.keys(a.payload)[0] : null;
+  const change = fieldKey
+    ? (a.payload as Record<string, { from?: unknown; to?: unknown }>)[fieldKey]
+    : null;
+
+  return (
+    <li className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
+      <div
+        className={
+          expandable
+            ? "cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/40 -mx-2 px-2 py-0.5 rounded flex items-start gap-1 group"
+            : ""
+        }
+        onClick={expandable ? () => setExpanded((v) => !v) : undefined}
+      >
+        <div className="flex-1 min-w-0">{renderActivityLine(a, ctx)}</div>
+        {expandable && (
+          <ChevronRight
+            className={`w-3 h-3 mt-0.5 text-slate-400 dark:text-slate-500 transition-transform shrink-0 ${
+              expanded ? "rotate-90" : ""
+            }`}
+            aria-hidden
+          />
+        )}
+      </div>
+      {expanded && change && fieldKey && (
+        <div className="mt-1.5 ml-1 pl-3 border-l-2 border-slate-200 dark:border-slate-700 space-y-1">
+          <div>
+            <FieldLabel>From</FieldLabel>{" "}
+            <span className="break-words">
+              {ctx.renderValue(fieldKey, change.from)}
+            </span>
+          </div>
+          <div>
+            <FieldLabel>To</FieldLabel>{" "}
+            <span className="break-words">
+              {ctx.renderValue(fieldKey, change.to)}
+            </span>
+          </div>
+        </div>
+      )}
+    </li>
   );
 }
 
@@ -1009,15 +1100,14 @@ export function TaskDetailContent({
             ) : (
               <ol className="space-y-1.5">
                 {activity.map((a) => (
-                  <li
+                  <ActivityItem
                     key={a.id}
-                    className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed"
-                  >
-                    {renderActivityLine(a, {
+                    a={a}
+                    ctx={{
                       resolveActor,
                       renderValue: renderActivityValue,
-                    })}
-                  </li>
+                    }}
+                  />
                 ))}
               </ol>
             )}

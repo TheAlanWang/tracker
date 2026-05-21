@@ -18,7 +18,7 @@
 // Project chips inside rows navigate to that project's Board on click;
 // stopPropagation prevents the row's onClick (open task detail) from firing.
 
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
 import { Avatar } from "@/components/Avatar";
@@ -47,6 +47,16 @@ const FIELD_LABEL: Record<string, string> = {
   sprint_id: "sprint",
   due_date: "due date",
 };
+
+// Renders activity-log field names (status / assignee / etc.) as small
+// uppercase tokens so changed fields read like tags inside the sentence.
+function FieldLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="uppercase tracking-wide text-[10.5px] font-medium text-slate-600 dark:text-slate-400">
+      {children}
+    </span>
+  );
+}
 
 function formatRelative(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
@@ -854,10 +864,21 @@ function formatActivityAction(a: DashboardActivity): React.ReactNode {
         const f = fields[0];
         const label = FIELD_LABEL[f] ?? f;
         const c = p[f];
-        if (c.updated) return <>updated {label} of</>;
-        return <>changed {label} of</>;
+        if (c.updated) return <>updated <FieldLabel>{label}</FieldLabel> of</>;
+        return <>changed <FieldLabel>{label}</FieldLabel> of</>;
       }
-      return <>updated {fields.map((f) => FIELD_LABEL[f] ?? f).join(", ")} of</>;
+      return (
+        <>
+          updated{" "}
+          {fields.map((f, i) => (
+            <Fragment key={f}>
+              {i > 0 && ", "}
+              <FieldLabel>{FIELD_LABEL[f] ?? f}</FieldLabel>
+            </Fragment>
+          ))}{" "}
+          of
+        </>
+      );
     }
     default:
       return <>{a.action.replace(/_/g, " ")}</>;
