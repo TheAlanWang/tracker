@@ -26,6 +26,7 @@ build/
 # Supabase
 supabase/.branches/
 supabase/.temp/
+supabase/snippets/
 
 # Logs
 *.log
