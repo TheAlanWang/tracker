@@ -15,7 +15,9 @@ import ReactMarkdown from "react-markdown";
 import rehypeHighlight from "rehype-highlight";
 import remarkGfm from "remark-gfm";
 
+import { TaskImage } from "@/components/TaskImage";
 import type { Member } from "@/features/members/api";
+import { markdownUrlTransform } from "@/lib/resolveTaskImageUrl";
 
 const MENTION_RE = /@([A-Za-z0-9._-]+)/g;
 
@@ -50,9 +52,14 @@ function highlightText(text: string, handles: Set<string>) {
 export function CommentBody({
   body,
   members,
+  onImageClick,
 }: {
   body: string;
   members: Member[];
+  // Optional: lets the parent open a lightbox when an embedded image is
+  // clicked. CommentBody renders the img with `cursor-zoom-in` only when
+  // this is provided so the affordance matches the behavior.
+  onImageClick?: (url: string) => void;
 }) {
   const handles = new Set(
     members.map(handleFor).filter((h): h is string => !!h),
@@ -63,6 +70,7 @@ export function CommentBody({
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         rehypePlugins={[rehypeHighlight]}
+        urlTransform={markdownUrlTransform}
         components={{
           // Only transform plain text inside paragraphs. Other nodes
           // (links, code, list items) fall through to react-markdown's
@@ -85,6 +93,20 @@ export function CommentBody({
               </p>
             );
           },
+          img: ({ src, alt }) => (
+            <TaskImage
+              src={typeof src === "string" ? src : undefined}
+              alt={typeof alt === "string" ? alt : undefined}
+              onClick={
+                onImageClick
+                  ? (resolvedUrl) => onImageClick(resolvedUrl)
+                  : undefined
+              }
+              // Cap rendered size so a 4K screenshot doesn't dominate the
+              // comment thread; aspect ratio preserved via w-auto.
+              className={`max-h-96 w-auto rounded ${onImageClick ? "cursor-zoom-in" : ""}`}
+            />
+          ),
         }}
       >
         {body}

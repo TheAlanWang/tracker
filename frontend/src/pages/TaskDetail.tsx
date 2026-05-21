@@ -18,7 +18,7 @@
 //     field-specific "default" labels ("Unassigned", "No due date", etc.)
 //     so reading "from X to Y" history is meaningful.
 
-import { Fragment, useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
 import rehypeHighlight from "rehype-highlight";
@@ -41,6 +41,9 @@ import { LabelsEditor } from "@/components/LabelsEditor";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
 import { CommentBody } from "@/components/CommentBody";
+import { TaskImage } from "@/components/TaskImage";
+import { markdownUrlTransform } from "@/lib/resolveTaskImageUrl";
+import { uploadTaskImage } from "@/lib/uploadTaskImage";
 import { MentionTextarea } from "@/components/MentionTextarea";
 import { ChecklistSection } from "@/components/ChecklistSection";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -183,6 +186,83 @@ const FIELD_LABEL: Record<string, string> = {
 // For these we just say "edited TITLE" — current value is visible at the
 // top of the task, no one needs the char-by-char history mid-feed.
 const FREE_TEXT_FIELDS = new Set(["title", "description"]);
+
+// Markdown image regex used by the description editor's thumbnail strip.
+// Matches what our paste/drop handler inserts (predictable `![alt](url)`)
+// plus the common hand-typed form. We don't try to skip code fences —
+// spurious thumbnails inside ``` blocks are an acceptable trade for not
+// pulling in a full markdown AST walker just for this.
+const IMAGE_RE = /!\[([^\]]*)\]\(([^)\s]+)\)/g;
+
+type DescriptionImageHit = {
+  alt: string;
+  url: string;
+  start: number;
+  length: number;
+};
+
+function parseDescriptionImages(md: string): DescriptionImageHit[] {
+  const hits: DescriptionImageHit[] = [];
+  for (const m of md.matchAll(IMAGE_RE)) {
+    hits.push({
+      alt: m[1] ?? "",
+      url: m[2] ?? "",
+      start: m.index ?? 0,
+      length: m[0].length,
+    });
+  }
+  return hits;
+}
+
+// Thumbnail strip rendered below the description textarea when editing.
+// Clicking a thumbnail focuses the textarea and selects the `![](url)` span
+// in the underlying markdown — useful for jumping to / replacing an image
+// without manually scanning the source.
+function DescriptionThumbnails({
+  draft,
+  textareaRef,
+}: {
+  draft: string;
+  textareaRef: React.RefObject<HTMLTextAreaElement | null>;
+}) {
+  const hits = useMemo(() => parseDescriptionImages(draft), [draft]);
+  if (hits.length === 0) return null;
+
+  function jumpTo(hit: DescriptionImageHit) {
+    const ta = textareaRef.current;
+    if (!ta) return;
+    ta.focus();
+    ta.setSelectionRange(hit.start, hit.start + hit.length);
+    // setSelectionRange usually auto-scrolls but isn't guaranteed on long
+    // textareas; compute the line and nudge scrollTop as a backup.
+    // line-height ~20px for our text-sm font.
+    const linesBefore = draft.slice(0, hit.start).split("\n").length - 1;
+    ta.scrollTop = Math.max(0, linesBefore * 20 - 40);
+  }
+
+  return (
+    <div className="mt-2 flex flex-wrap gap-2">
+      {hits.map((hit, i) => (
+        <button
+          key={`${hit.start}-${i}`}
+          type="button"
+          onClick={() => jumpTo(hit)}
+          title={hit.alt || hit.url}
+          className="group relative h-16 w-16 rounded border border-slate-200 dark:border-slate-700 overflow-hidden hover:ring-2 hover:ring-blue-300 transition-shadow bg-slate-100 dark:bg-slate-800/40"
+        >
+          <TaskImage
+            src={hit.url}
+            alt={hit.alt}
+            className="h-full w-full object-cover"
+          />
+          <span className="absolute inset-x-0 bottom-0 truncate bg-black/50 px-1 py-0.5 text-[9px] text-white opacity-0 group-hover:opacity-100">
+            {hit.alt || "image"}
+          </span>
+        </button>
+      ))}
+    </div>
+  );
+}
 
 // Renders activity-log field names (status / assignee / etc.) as small
 // uppercase tokens — same tracking-wide style as the section headers, so
@@ -493,7 +573,20 @@ export function TaskDetailContent({
 
   // --- Draft state: changes pending until user clicks Save ---
   const [titleDraft, setTitleDraft] = useState("");
+  // Title editor: ref used by the auto-grow effect that lets the textarea
+  // wrap long titles onto multiple lines without showing a scrollbar.
+  const titleTextareaRef = useRef<HTMLTextAreaElement>(null);
   const [descDraft, setDescDraft] = useState("");
+  // Description editor: ref for cursor-position insertion (image paste/drop)
+  // + a drag-over flag to show the "Drop image to upload" overlay + a tab
+  // mode that swaps the textarea for a rendered preview while still editing.
+  const descTextareaRef = useRef<HTMLTextAreaElement>(null);
+  const [draggingImage, setDraggingImage] = useState(false);
+  const [descEditMode, setDescEditMode] = useState<"edit" | "preview">("edit");
+  // Lightbox: URL of the image to display full-screen, or null. Wired into
+  // every ReactMarkdown render on this page (description view, description
+  // preview, comments) via a shared `img` component override.
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
   const [statusDraft, setStatusDraft] = useState<TaskStatus>("backlog");
   const [priorityDraft, setPriorityDraft] =
     useState<TaskPriority>("no_priority");
@@ -534,6 +627,56 @@ export function TaskDetailContent({
     }
   }, [task]);
   /* eslint-enable react-hooks/set-state-in-effect */
+
+  // Auto-grow the title textarea so a long title wraps onto multiple lines
+  // without showing a scrollbar. Runs on every titleDraft change and on
+  // entering edit mode (the textarea isn't mounted until isEditing flips).
+  useEffect(() => {
+    const ta = titleTextareaRef.current;
+    if (!ta || !isEditing) return;
+    ta.style.height = "auto";
+    ta.style.height = `${ta.scrollHeight}px`;
+  }, [titleDraft, isEditing]);
+
+  // Esc closes the lightbox. Registered in the capture phase so we run
+  // before TaskDetailModal's own window-level Esc handler (otherwise the
+  // outer modal would close first, dragging the page down with it).
+  // stopImmediatePropagation halts both this listener's siblings AND the
+  // bubble-phase listener TaskDetailModal registered on window.
+  useEffect(() => {
+    if (!lightboxUrl) return;
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        e.stopImmediatePropagation();
+        setLightboxUrl(null);
+      }
+    }
+    window.addEventListener("keydown", onKey, { capture: true });
+    return () =>
+      window.removeEventListener("keydown", onKey, { capture: true });
+  }, [lightboxUrl]);
+
+  // Markdown component overrides: clickable images. Passed to every
+  // ReactMarkdown on this page so any image (description / preview /
+  // comment) opens the lightbox on click. Memoized to avoid recreating
+  // the function on every render (which would invalidate ReactMarkdown's
+  // internal caching).
+  const markdownComponents = useMemo(
+    () => ({
+      img: ({ src, alt }: React.ImgHTMLAttributes<HTMLImageElement>) => (
+        <TaskImage
+          src={typeof src === "string" ? src : undefined}
+          alt={typeof alt === "string" ? alt : undefined}
+          onClick={(resolvedUrl) => setLightboxUrl(resolvedUrl)}
+          // Cap rendered size so a 4K screenshot doesn't dominate the
+          // description; aspect ratio preserved via w-auto. Click →
+          // lightbox shows the original full-size (already resolved).
+          className="cursor-zoom-in rounded max-h-96 w-auto"
+        />
+      ),
+    }),
+    [],
+  );
 
   const dirty =
     !!task &&
@@ -666,6 +809,7 @@ export function TaskDetailContent({
       setPendingDepRemoveIds(new Set());
       toast.success("Saved");
       setIsEditing(false);
+      setDescEditMode("edit");
       // Soft reminder: if the user just marked this task as done but the
       // checklist still has unchecked items, surface that as a non-blocking
       // toast. Checklist state and task status are decoupled by design —
@@ -721,6 +865,70 @@ export function TaskDetailContent({
     setPendingDepAdds([]);
     setPendingDepRemoveIds(new Set());
     setIsEditing(false);
+    setDescEditMode("edit");
+  }
+
+  // --- Description image upload (paste + drag-drop) ---
+
+  // Insert text at the textarea's caret (or append if the ref is gone).
+  // Used by handleImageFile to drop in the markdown image snippet.
+  function insertIntoDescription(snippet: string) {
+    const ta = descTextareaRef.current;
+    if (!ta) {
+      setDescDraft((d) => d + snippet);
+      return;
+    }
+    const start = ta.selectionStart ?? descDraft.length;
+    const end = ta.selectionEnd ?? descDraft.length;
+    setDescDraft(
+      (d) => d.slice(0, start) + snippet + d.slice(end),
+    );
+    requestAnimationFrame(() => {
+      ta.focus();
+      const pos = start + snippet.length;
+      ta.setSelectionRange(pos, pos);
+    });
+  }
+
+  async function handleDescriptionImageFile(file: File) {
+    if (!me || !task) return;
+    // Optimistic placeholder so multi-paste in quick succession doesn't
+    // race; we swap it for the real URL when upload finishes, or drop it
+    // entirely on error.
+    const placeholder = `![uploading ${file.name}…]()`;
+    insertIntoDescription(placeholder + "\n");
+    try {
+      const url = await uploadTaskImage(file, task.workspace_id, me.id);
+      setDescDraft((d) =>
+        d.replace(placeholder, `![${file.name}](${url})`),
+      );
+    } catch (err) {
+      const msg =
+        err instanceof Error ? err.message : "Failed to upload image";
+      toast.error(msg);
+      setDescDraft((d) => d.replace(placeholder + "\n", ""));
+    }
+  }
+
+  function onDescriptionPaste(
+    e: React.ClipboardEvent<HTMLTextAreaElement>,
+  ) {
+    const files = Array.from(e.clipboardData.files).filter((f) =>
+      f.type.startsWith("image/"),
+    );
+    if (files.length === 0) return; // text / non-image paste falls through
+    e.preventDefault();
+    files.forEach((f) => void handleDescriptionImageFile(f));
+  }
+
+  function onDescriptionDrop(e: React.DragEvent<HTMLTextAreaElement>) {
+    const files = Array.from(e.dataTransfer.files).filter((f) =>
+      f.type.startsWith("image/"),
+    );
+    setDraggingImage(false);
+    if (files.length === 0) return;
+    e.preventDefault();
+    files.forEach((f) => void handleDescriptionImageFile(f));
   }
 
   async function onPostComment(e: React.FormEvent) {
@@ -854,10 +1062,19 @@ export function TaskDetailContent({
             </div>
           </div>
           {isEditing ? (
-            <input
-              className="w-full bg-transparent text-2xl font-normal tracking-tight text-slate-800 dark:text-slate-100 outline-none hover:bg-slate-100/50 dark:hover:bg-slate-800/40 focus:bg-slate-100/80 dark:focus:bg-slate-800/60 rounded px-1.5 py-0.5 transition-colors"
+            <textarea
+              ref={titleTextareaRef}
+              className="w-full bg-transparent text-2xl font-normal tracking-tight text-slate-800 dark:text-slate-100 outline-none hover:bg-slate-100/50 dark:hover:bg-slate-800/40 focus:bg-slate-100/80 dark:focus:bg-slate-800/60 rounded px-1.5 py-0.5 transition-colors resize-none overflow-hidden leading-tight break-words"
+              rows={1}
               value={titleDraft}
               onChange={(e) => setTitleDraft(e.target.value)}
+              onKeyDown={(e) => {
+                // Title is semantically single-line; block Enter from
+                // inserting a newline but let visual wrap happen on
+                // overflow. Shift-Enter blocked too — no use case for
+                // hard breaks in a title.
+                if (e.key === "Enter") e.preventDefault();
+              }}
               placeholder="Title"
             />
           ) : (
@@ -889,16 +1106,79 @@ export function TaskDetailContent({
             </svg>
             <AlignLeft className="w-3.5 h-3.5" aria-hidden />
             <span>Description</span>
+            {isEditing && (
+              // Inline Edit / Preview tabs anchored to the right of the
+              // section header to save vertical space. Each button calls
+              // preventDefault so the click doesn't bubble into <summary>
+              // and toggle the <details> collapse.
+              <div className="ml-auto flex gap-1 normal-case tracking-normal">
+                {(["edit", "preview"] as const).map((m) => (
+                  <button
+                    key={m}
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setDescEditMode(m);
+                    }}
+                    className={`px-2 py-0.5 text-xs rounded transition-colors ${
+                      descEditMode === m
+                        ? "bg-slate-200 dark:bg-slate-700 text-slate-900 dark:text-slate-100"
+                        : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+                    }`}
+                  >
+                    {m === "edit" ? "Edit" : "Preview"}
+                  </button>
+                ))}
+              </div>
+            )}
           </summary>
           <div className="mt-3">
             {isEditing ? (
-              <textarea
-                className="w-full rounded border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-2 text-sm"
-                rows={6}
-                value={descDraft}
-                onChange={(e) => setDescDraft(e.target.value)}
-                placeholder="Add a description…"
-              />
+              <>
+                {descEditMode === "edit" ? (
+                  <>
+                    <div className="relative">
+                      <textarea
+                        ref={descTextareaRef}
+                        className="w-full rounded border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-2 text-sm"
+                        rows={6}
+                        value={descDraft}
+                        onChange={(e) => setDescDraft(e.target.value)}
+                        onPaste={onDescriptionPaste}
+                        onDragOver={(e) => {
+                          if (e.dataTransfer.types.includes("Files")) {
+                            e.preventDefault();
+                            setDraggingImage(true);
+                          }
+                        }}
+                        onDragLeave={() => setDraggingImage(false)}
+                        onDrop={onDescriptionDrop}
+                        placeholder="Add a description… (paste or drop an image to upload)"
+                      />
+                      {draggingImage && (
+                        <div className="pointer-events-none absolute inset-0 rounded border-2 border-dashed border-blue-400 bg-blue-50/80 dark:bg-blue-950/40 flex items-center justify-center text-sm font-medium text-blue-700 dark:text-blue-300">
+                          Drop image to upload
+                        </div>
+                      )}
+                    </div>
+                    <DescriptionThumbnails
+                      draft={descDraft}
+                      textareaRef={descTextareaRef}
+                    />
+                  </>
+                ) : (
+                  <div className="prose prose-sm max-w-none text-slate-700 dark:text-slate-300 prose-pre:bg-slate-100 dark:prose-pre:bg-slate-800/60 prose-pre:text-slate-800 dark:prose-pre:text-slate-200 prose-pre:rounded-md prose-pre:p-3 prose-pre:text-[13px] prose-code:bg-slate-100 dark:prose-code:bg-slate-800/60 prose-code:text-slate-800 dark:prose-code:text-slate-200 prose-code:rounded prose-code:px-1 prose-code:py-0.5 prose-code:text-[0.85em] prose-code:font-normal prose-code:before:hidden prose-code:after:hidden rounded border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3 min-h-[10rem]">
+                    <ReactMarkdown
+                      remarkPlugins={[remarkGfm]}
+                      rehypePlugins={[rehypeHighlight]}
+                      components={markdownComponents}
+                      urlTransform={markdownUrlTransform}
+                    >
+                      {descDraft.trim() || "_Nothing to preview yet._"}
+                    </ReactMarkdown>
+                  </div>
+                )}
+              </>
             ) : descDraft.trim() ? (
               // Tweaks vs. raw @tailwindcss/typography: fenced <pre>
               // blocks get a light slate bg + dark text (the default
@@ -909,6 +1189,8 @@ export function TaskDetailContent({
                 <ReactMarkdown
                   remarkPlugins={[remarkGfm]}
                   rehypePlugins={[rehypeHighlight]}
+                  components={markdownComponents}
+                  urlTransform={markdownUrlTransform}
                 >
                   {descDraft}
                 </ReactMarkdown>
@@ -995,7 +1277,11 @@ export function TaskDetailContent({
                 >
                   {/* Body first — that's what people scan; author/time
                       below as a subordinate footer. */}
-                  <CommentBody body={c.body} members={members} />
+                  <CommentBody
+                    body={c.body}
+                    members={members}
+                    onImageClick={setLightboxUrl}
+                  />
                   <div className="mt-3 pt-2 border-t border-slate-100 dark:border-slate-800/60 flex items-center gap-2">
                     <Avatar
                       displayName={author?.display_name ?? null}
@@ -1373,6 +1659,25 @@ export function TaskDetailContent({
           </p>
         </div>
       </aside>
+      {lightboxUrl && (
+        // Fullscreen image viewer. Clicking the backdrop closes; clicking
+        // the image itself doesn't (so a user can drag to save / right-click
+        // → Save As without accidentally dismissing). Esc also closes via
+        // the keydown effect above.
+        <div
+          className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4 cursor-zoom-out"
+          onClick={() => setLightboxUrl(null)}
+          role="dialog"
+          aria-modal="true"
+        >
+          <img
+            src={lightboxUrl}
+            alt=""
+            className="max-h-full max-w-full object-contain cursor-default"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
     </div>
   );
 }
