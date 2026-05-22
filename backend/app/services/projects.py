@@ -155,7 +155,10 @@ async def update_project(
     # Fetch first to discover workspace_id and check membership
     current = await get_project(supabase, user_id=user_id, project_id=project_id)
 
-    updates = payload.model_dump(exclude_unset=True)
+    # mode='json' serializes HttpUrl → string + datetime → iso, which is
+    # what PostgREST's JSON body expects. environments is the new field
+    # that needs it; other fields (str/Optional[str]) round-trip the same.
+    updates = payload.model_dump(mode="json", exclude_unset=True)
     if not updates:
         return current
 

@@ -60,7 +60,6 @@ function ProjectSettingsContent({
   const deleteMutation = useDeleteProject(wsId);
 
   const [name, setName] = useState(currentProject.name);
-  const [description, setDescription] = useState(currentProject.description ?? "");
   // Drafts for the key. The Input keeps the user's raw typing; we uppercase
   // + strip on submit so the round-trip to the backend always sends a value
   // matching `^[A-Z][A-Z0-9]*$`.
@@ -82,7 +81,6 @@ function ProjectSettingsContent({
 
   const dirty =
     name !== currentProject.name ||
-    description !== (currentProject.description ?? "") ||
     keyChanged ||
     colorDraft !== currentProject.color;
 
@@ -113,7 +111,6 @@ function ProjectSettingsContent({
         projectId: currentProject.id,
         payload: {
           name,
-          description: description || null,
           ...(keyChanged ? { key: normalisedKey } : {}),
           // Always send color when it differs — empty string clears the
           // override on the backend (falls back to hash-derived hue).
@@ -185,50 +182,6 @@ function ProjectSettingsContent({
                   className="max-w-md"
                 />
               </SettingRow>
-              <SettingRow label="Color">
-                <div className="flex items-center gap-2.5 flex-wrap">
-                  {PROJECT_COLOR_PALETTE.map((c) => {
-                    const active = colorDraft === c;
-                    return (
-                      <button
-                        key={c}
-                        type="button"
-                        onClick={() => setColorDraft(c)}
-                        aria-label={c}
-                        title={c}
-                        className={`relative w-6 h-6 rounded-full transition-transform hover:scale-110 focus:outline-none ${
-                          active
-                            ? "ring-2 ring-offset-2 ring-slate-900 dark:ring-slate-100 dark:ring-offset-slate-900"
-                            : ""
-                        }`}
-                        style={{ backgroundColor: c }}
-                      >
-                        {active && (
-                          <Check
-                            className="absolute inset-0 m-auto w-3.5 h-3.5 text-white"
-                            strokeWidth={3}
-                          />
-                        )}
-                      </button>
-                    );
-                  })}
-                  {/* "Default" — reset to no custom color. Same circular
-                      footprint as the swatches, dashed border to signal
-                      "no fill / auto-derived". Never shows a ring: when
-                      no color is set, the picker reads as "nothing
-                      selected" (the source of truth is the absence of a
-                      ring on any swatch). */}
-                  <button
-                    type="button"
-                    onClick={() => setColorDraft(null)}
-                    aria-label="Use default color"
-                    title="Use default (auto-pick from project key)"
-                    className="relative w-6 h-6 rounded-full border border-dashed border-slate-300 dark:border-slate-600 flex items-center justify-center text-[10px] leading-none font-semibold text-slate-400 dark:text-slate-500 transition-transform hover:scale-110 hover:text-slate-600 dark:hover:text-slate-300 focus:outline-none"
-                  >
-                    A
-                  </button>
-                </div>
-              </SettingRow>
               <SettingRow
                 label="Project Key"
                 description="Used as the prefix on every task ID."
@@ -276,18 +229,49 @@ function ProjectSettingsContent({
                   )}
                 </div>
               </SettingRow>
-              <SettingRow
-                label="Description"
-                description="Optional. Shown on project cards."
-              >
-                <textarea
-                  className="w-full max-w-md rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300 focus:border-blue-400 placeholder:text-slate-400 dark:placeholder:text-slate-500"
-                  rows={4}
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  maxLength={1000}
-                  placeholder="What is this project for? Who uses it?"
-                />
+              <SettingRow label="Color">
+                <div className="flex items-center gap-2.5 flex-wrap">
+                  {PROJECT_COLOR_PALETTE.map((c) => {
+                    const active = colorDraft === c;
+                    return (
+                      <button
+                        key={c}
+                        type="button"
+                        onClick={() => setColorDraft(c)}
+                        aria-label={c}
+                        title={c}
+                        className={`relative w-6 h-6 rounded-full transition-transform hover:scale-110 focus:outline-none ${
+                          active
+                            ? "ring-2 ring-offset-2 ring-slate-900 dark:ring-slate-100 dark:ring-offset-slate-900"
+                            : ""
+                        }`}
+                        style={{ backgroundColor: c }}
+                      >
+                        {active && (
+                          <Check
+                            className="absolute inset-0 m-auto w-3.5 h-3.5 text-white"
+                            strokeWidth={3}
+                          />
+                        )}
+                      </button>
+                    );
+                  })}
+                  {/* "Default" — reset to no custom color. Same circular
+                      footprint as the swatches, dashed border to signal
+                      "no fill / auto-derived". Never shows a ring: when
+                      no color is set, the picker reads as "nothing
+                      selected" (the source of truth is the absence of a
+                      ring on any swatch). */}
+                  <button
+                    type="button"
+                    onClick={() => setColorDraft(null)}
+                    aria-label="Use default color"
+                    title="Use default (auto-pick from project key)"
+                    className="relative w-6 h-6 rounded-full border border-dashed border-slate-300 dark:border-slate-600 flex items-center justify-center text-[10px] leading-none font-semibold text-slate-400 dark:text-slate-500 transition-transform hover:scale-110 hover:text-slate-600 dark:hover:text-slate-300 focus:outline-none"
+                  >
+                    A
+                  </button>
+                </div>
               </SettingRow>
               {/* Footer bar — bg-slate-50 dark:bg-slate-800/40 to read as a "form footer"
                   separate from data rows. The Save button only enables

@@ -1,8 +1,9 @@
 import { NavLink, Outlet, useNavigate, useParams } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Inbox, Kanban, List as ListIcon, Zap } from "lucide-react";
 import { toast } from "sonner";
 
+import { ProjectDetailPopover } from "@/components/ProjectDetailPopover";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -32,6 +33,8 @@ export function ProjectLayout() {
   const [newTaskOpen, setNewTaskOpen] = useState(false);
   const [taskTitle, setTaskTitle] = useState("");
   const [taskDesc, setTaskDesc] = useState("");
+  const [projectDetailOpen, setProjectDetailOpen] = useState(false);
+  const projectNameRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     if (!isLoading && currentWs && !currentProject) {
@@ -88,14 +91,22 @@ export function ProjectLayout() {
               {currentWs.name}
             </p>
           )}
-          <h1 className="text-xl font-semibold text-slate-800 dark:text-slate-100">
+          <button
+            ref={projectNameRef}
+            type="button"
+            onClick={() => setProjectDetailOpen(true)}
+            className="text-xl font-semibold text-slate-800 dark:text-slate-100 cursor-pointer text-left rounded -mx-2 px-2 py-0.5 hover:bg-slate-100 dark:hover:bg-slate-800/40 transition-colors"
+          >
             {currentProject.name}
-          </h1>
-          {currentProject.description && (
-            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400 max-w-2xl">
-              {currentProject.description}
-            </p>
-          )}
+          </button>
+          {/* Description / environments live in the popover now —
+              keeps the header tight and centralizes project context. */}
+          <ProjectDetailPopover
+            open={projectDetailOpen}
+            onClose={() => setProjectDetailOpen(false)}
+            project={currentProject}
+            anchorRef={projectNameRef}
+          />
         </div>
         <Button
           type="button"

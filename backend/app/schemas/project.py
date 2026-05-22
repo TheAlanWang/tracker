@@ -1,6 +1,27 @@
 from datetime import datetime
+from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, HttpUrl
+
+
+EnvironmentType = Literal[
+    "production", "staging", "dev",
+    "repo", "docs", "design", "other",
+]
+
+
+class ProjectEnvironment(BaseModel):
+    """A named link associated with the project — a production URL, staging
+    URL, GitHub repo, design doc, etc. Stored alongside `description` so
+    AI agents can fetch the full project context via a single get_project()
+    call and pick the URL they need by `type`, without parsing prose."""
+
+    # Name is an optional human label (e.g. "Marketing site" when you have
+    # two production URLs). Empty string is fine — the type pill + URL
+    # carry enough identity on their own.
+    name: str = Field(default="", max_length=80)
+    url: HttpUrl
+    type: EnvironmentType
 
 
 class ProjectCreate(BaseModel):
@@ -23,6 +44,11 @@ class ProjectUpdate(BaseModel):
     # Optional hex color for the sidebar dot. Empty string clears the
     # override, falling back to the deterministic hash on the frontend.
     color: str | None = Field(default=None, pattern=r"^(#[0-9A-Fa-f]{6})?$")
+    # Replace the full environments array. None = don't touch; [] = clear.
+    # Cap at 20 to keep individual project rows lean and prevent abuse.
+    environments: list[ProjectEnvironment] | None = Field(
+        default=None, max_length=20
+    )
 
 
 class ProjectResponse(BaseModel):
@@ -33,5 +59,6 @@ class ProjectResponse(BaseModel):
     next_task_number: int
     description: str | None
     color: str | None = None
+    environments: list[ProjectEnvironment] = Field(default_factory=list)
     created_at: datetime
     updated_at: datetime

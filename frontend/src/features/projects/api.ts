@@ -2,6 +2,21 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { apiClient } from "@/api/client";
 
+export type ProjectEnvironmentType =
+  | "production"
+  | "staging"
+  | "dev"
+  | "repo"
+  | "docs"
+  | "design"
+  | "other";
+
+export type ProjectEnvironment = {
+  name: string;
+  url: string;
+  type: ProjectEnvironmentType;
+};
+
 export type Project = {
   id: string;
   workspace_id: string;
@@ -13,6 +28,10 @@ export type Project = {
   // back to a hash-derived hue from the key so existing projects keep
   // their identity without a backfill.
   color: string | null;
+  // Structured environment links (production / staging URLs, repos,
+  // docs). Stored as JSONB on the backend so future AI / MCP consumers
+  // can filter by type without parsing markdown.
+  environments: ProjectEnvironment[];
   created_at: string;
   updated_at: string;
 };
@@ -45,6 +64,9 @@ export type ProjectUpdate = {
   key?: string;
   // Hex color for the sidebar dot. "" clears the override.
   color?: string;
+  // Full replacement of the environments array. Omit = leave untouched;
+  // [] = clear all.
+  environments?: ProjectEnvironment[];
 };
 
 export function useCreateProject(wsId: string) {
