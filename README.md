@@ -4,7 +4,7 @@ An opinionated task tracker, built around one principle: **flat tasks by default
 
 **Live demo:** [tracker.thealanwang.xyz](https://tracker.thealanwang.xyz) — sign up with email or Google.
 
-![License](https://img.shields.io/badge/license-MIT-blue) ![Vite](https://img.shields.io/badge/Vite-7-646CFF?logo=vite&logoColor=white) ![React](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=white) ![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white) ![FastAPI](https://img.shields.io/badge/FastAPI-0.110+-009688?logo=fastapi&logoColor=white) ![Supabase](https://img.shields.io/badge/Supabase-Postgres+Auth-3ECF8E?logo=supabase&logoColor=white) ![Fly.io](https://img.shields.io/badge/Fly.io-backend-8B5CF6?logo=fly.io&logoColor=white) ![Vercel](https://img.shields.io/badge/Vercel-frontend-000000?logo=vercel&logoColor=white)
+![License](https://img.shields.io/badge/license-PolyForm%20Noncommercial-blue) ![Vite](https://img.shields.io/badge/Vite-7-646CFF?logo=vite&logoColor=white) ![React](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=white) ![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white) ![FastAPI](https://img.shields.io/badge/FastAPI-0.110+-009688?logo=fastapi&logoColor=white) ![Supabase](https://img.shields.io/badge/Supabase-Postgres+Auth-3ECF8E?logo=supabase&logoColor=white) ![Fly.io](https://img.shields.io/badge/Fly.io-backend-8B5CF6?logo=fly.io&logoColor=white) ![Vercel](https://img.shields.io/badge/Vercel-frontend-000000?logo=vercel&logoColor=white)
 
 Built local-first with a clean path to cloud deployment. Vite + React + TypeScript on the front, FastAPI on the back, Supabase (Postgres + Auth + Storage + Realtime) for data.
 
@@ -135,4 +135,12 @@ Env vars are managed per platform (Render env tab, `fly secrets`, Supabase Dashb
 
 ## License
 
-[MIT](./LICENSE)
+Trackly is source-available under the
+[PolyForm Noncommercial License 1.0.0](https://polyformproject.org/licenses/noncommercial/1.0.0/) — see [`LICENSE`](./LICENSE).
+
+You may use, modify, and share Trackly for **noncommercial purposes** —
+personal projects, research, education, hobby, internal team use at
+noncommercial organizations. For **commercial use** (embedding in a
+revenue-generating product, offering as SaaS, internal use at a
+for-profit company), please contact **wang.h5@northeastern.edu** for
+a commercial license.
