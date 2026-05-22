@@ -7,7 +7,7 @@
 // (full markdown editor experience there). The popover treats description as
 // read-only — it's the at-a-glance project context surface, not a full editor.
 
-import { AlignLeft, Link2, Plus, SquarePen, Trash2, X } from "lucide-react";
+import { AlignLeft, ChevronDown, ChevronUp, Link2, Plus, SquarePen, Trash2, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import ReactMarkdown from "react-markdown";
@@ -155,6 +155,16 @@ export function ProjectDetailPopover({
 
   function removeRow(i: number) {
     setDraft((rows) => rows.filter((_, idx) => idx !== i));
+  }
+
+  function moveRow(i: number, dir: -1 | 1) {
+    setDraft((rows) => {
+      const target = i + dir;
+      if (target < 0 || target >= rows.length) return rows;
+      const next = [...rows];
+      [next[i], next[target]] = [next[target], next[i]];
+      return next;
+    });
   }
 
   async function save() {
@@ -354,15 +364,42 @@ export function ProjectDetailPopover({
                         className="bg-transparent outline-none text-xs text-blue-600 dark:text-blue-400 placeholder:text-slate-400"
                       />
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => removeRow(i)}
-                      title="Remove"
-                      aria-label="Remove environment"
-                      className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0 text-slate-400 hover:text-red-600 mt-1"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
+                    {/* Row actions — [↑] [↓] [🗑] horizontal cluster,
+                        hidden until row hover. First row's ↑ and last
+                        row's ↓ are disabled (visually dimmed) so the
+                        cluster always renders the same shape and the
+                        buttons don't shift around as you reorder. */}
+                    <div className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0 flex items-center gap-0.5 mt-1">
+                      <button
+                        type="button"
+                        onClick={() => moveRow(i, -1)}
+                        disabled={i === 0}
+                        title="Move up"
+                        aria-label="Move up"
+                        className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 disabled:opacity-30 disabled:hover:text-slate-400 dark:disabled:hover:text-slate-500"
+                      >
+                        <ChevronUp className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => moveRow(i, 1)}
+                        disabled={i === draft.length - 1}
+                        title="Move down"
+                        aria-label="Move down"
+                        className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 disabled:opacity-30 disabled:hover:text-slate-400 dark:disabled:hover:text-slate-500"
+                      >
+                        <ChevronDown className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => removeRow(i)}
+                        title="Remove"
+                        aria-label="Remove environment"
+                        className="text-slate-400 hover:text-red-600"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
