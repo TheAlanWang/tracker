@@ -49,7 +49,7 @@ function fmtFull(iso: string | null): string {
 }
 
 const STATUS_STYLE: Record<string, string> = {
-  planned: "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300",
+  planned: "bg-slate-100 dark:bg-neutral-800 text-slate-700 dark:text-neutral-300",
   active: "bg-blue-100 text-blue-700",
   completed: "bg-green-100 text-green-700",
 };
@@ -156,7 +156,7 @@ if (!confirm(`Delete ${sprint.name}?`)) return;
       <button
         type="button"
         onClick={() => navigate(`/w/${wsSlug}/p/${pKey}/sprints`)}
-        className="inline-flex items-center gap-1.5 text-sm text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100"
+        className="inline-flex items-center gap-1.5 text-sm text-slate-500 dark:text-neutral-400 hover:text-slate-900 dark:hover:text-neutral-100"
       >
         ← Back to sprints
       </button>
@@ -165,14 +165,14 @@ if (!confirm(`Delete ${sprint.name}?`)) return;
         <div className="flex items-center gap-2">
           <span
             className={`inline-flex items-center rounded px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
-              STATUS_STYLE[sprint.status] ?? "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300"
+              STATUS_STYLE[sprint.status] ?? "bg-slate-100 dark:bg-neutral-800 text-slate-700 dark:text-neutral-300"
             }`}
           >
             {sprint.status}
           </span>
         </div>
         <input
-          className="w-full bg-transparent text-2xl font-bold text-slate-900 dark:text-slate-100 outline-none focus:bg-slate-100 rounded px-1 py-0.5 -mx-1"
+          className="w-full bg-transparent text-2xl font-bold text-slate-900 dark:text-neutral-200 outline-none focus:bg-slate-100 rounded px-1 py-0.5 -mx-1"
           value={nameDraft}
           onChange={(e) => setNameDraft(e.target.value)}
           onBlur={() => {
@@ -183,7 +183,7 @@ if (!confirm(`Delete ${sprint.name}?`)) return;
         />
       </div>
 
-      <div className="grid grid-cols-3 gap-4 rounded border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4">
+      <div className="grid grid-cols-3 gap-4 rounded border border-slate-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 p-4">
         <div className="space-y-1">
           <Label htmlFor="sprint-start" className="text-xs uppercase text-muted-foreground">
             Start date
@@ -194,7 +194,7 @@ if (!confirm(`Delete ${sprint.name}?`)) return;
             value={startDraft}
             onChange={(e) => setStartDraft(e.target.value)}
             onBlur={() => saveDate("start_at", startDraft)}
-            className="w-full rounded border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2 py-1.5 text-sm"
+            className="w-full rounded border border-slate-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 px-2 py-1.5 text-sm"
           />
         </div>
         <div className="space-y-1">
@@ -207,32 +207,32 @@ if (!confirm(`Delete ${sprint.name}?`)) return;
             value={endDraft}
             onChange={(e) => setEndDraft(e.target.value)}
             onBlur={() => saveDate("end_at", endDraft)}
-            className="w-full rounded border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2 py-1.5 text-sm"
+            className="w-full rounded border border-slate-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 px-2 py-1.5 text-sm"
           />
         </div>
         <div className="space-y-1">
           <p className="text-xs uppercase text-muted-foreground">Created</p>
-          <p className="text-sm text-slate-700 dark:text-slate-300 pt-1">{fmtFull(sprint.created_at)}</p>
+          <p className="text-sm text-slate-700 dark:text-neutral-300 pt-1">{fmtFull(sprint.created_at)}</p>
         </div>
       </div>
 
       {taskStats.total > 0 && (
-        <div className="rounded border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 space-y-3">
+        <div className="rounded border border-slate-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 p-4 space-y-3">
           <div className="flex items-baseline justify-between">
             <h2 className="text-sm font-semibold uppercase text-muted-foreground">
               Progress
             </h2>
-            <span className="text-sm text-slate-700 dark:text-slate-300">
+            <span className="text-sm text-slate-700 dark:text-neutral-300">
               {taskStats.done} / {taskStats.total} done · {progressPct}%
             </span>
           </div>
-          <div className="w-full h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+          <div className="w-full h-2 bg-slate-100 dark:bg-neutral-800 rounded-full overflow-hidden">
             <div
               className="h-full bg-blue-500 transition-all"
               style={{ width: `${progressPct}%` }}
             />
           </div>
-          <div className="flex items-center gap-4 text-xs text-slate-500 dark:text-slate-400">
+          <div className="flex items-center gap-4 text-xs text-slate-500 dark:text-neutral-400">
             <span>{taskStats.todo} to do</span>
             <span>{taskStats.inProgress} in progress</span>
             <span>{taskStats.done} done</span>
@@ -263,7 +263,7 @@ if (!confirm(`Delete ${sprint.name}?`)) return;
       </div>
 
       {sprint.start_at && sprint.end_at && (
-        <section className="space-y-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4">
+        <section className="space-y-2 rounded-lg border border-slate-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 p-4">
           <h2 className="text-sm font-semibold uppercase text-muted-foreground">
             Burndown
           </h2>
@@ -308,23 +308,23 @@ if (!confirm(`Delete ${sprint.name}?`)) return;
         ) : (
           <TaskTableCard>
             <TaskTableHead>
-              <tr className="text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400">
+              <tr className="text-[11px] uppercase tracking-wide text-slate-500 dark:text-neutral-400">
                 <th className="px-3 py-2.5 text-left whitespace-nowrap font-medium w-24">ID</th>
                 <th className="px-3 py-2.5 text-left whitespace-nowrap font-medium">Title</th>
                 <th className="px-3 py-2.5 text-left whitespace-nowrap font-medium w-32">Status</th>
               </tr>
             </TaskTableHead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+            <tbody className="divide-y divide-slate-100 dark:divide-neutral-800">
               {tasks.map((t) => (
                 <tr
                   key={t.id}
-                  className="cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors"
+                  className="cursor-pointer hover:bg-slate-50 dark:hover:bg-neutral-800/40 transition-colors"
                   onClick={() => setOpenTaskId(t.id)}
                 >
-                  <td className="px-3 py-2.5 font-mono text-xs text-slate-500 dark:text-slate-400">
+                  <td className="px-3 py-2.5 font-mono text-xs text-slate-500 dark:text-neutral-400">
                     {t.identifier}
                   </td>
-                  <td className="px-3 py-2.5 text-slate-800 dark:text-slate-200" title={t.title}>
+                  <td className="px-3 py-2.5 text-slate-800 dark:text-neutral-200" title={t.title}>
                     <div className="truncate">{t.title}</div>
                   </td>
                   <td className="px-3 py-2.5">

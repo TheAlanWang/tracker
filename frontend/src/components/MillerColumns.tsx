@@ -63,7 +63,7 @@ function NewGoalForm({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="w-full text-left text-sm text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-800/50 rounded px-2 py-1.5"
+        className="w-full text-left text-sm text-slate-500 dark:text-neutral-400 hover:text-slate-900 dark:hover:text-neutral-100 hover:bg-slate-50 dark:hover:bg-neutral-800/50 rounded px-2 py-1.5"
       >
         + New goal
       </button>
@@ -79,7 +79,7 @@ function NewGoalForm({
         onChange={(e) => setTitle(e.target.value)}
         placeholder="Goal title…"
         maxLength={200}
-        className="w-full rounded border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2 py-1 text-sm"
+        className="w-full rounded border border-slate-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 px-2 py-1 text-sm"
       />
       <div className="flex items-center gap-2 justify-end">
         <button
@@ -88,7 +88,7 @@ function NewGoalForm({
             setOpen(false);
             setTitle("");
           }}
-          className="text-xs text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 px-2 py-1"
+          className="text-xs text-slate-500 dark:text-neutral-400 hover:text-slate-900 dark:hover:text-neutral-100 px-2 py-1"
         >
           Cancel
         </button>
@@ -124,12 +124,12 @@ function TaskRow({
     <button
       type="button"
       onClick={() => onOpen(task.id)}
-      className="w-full text-left flex items-center gap-2 rounded-md px-2 py-1.5 hover:bg-slate-50 dark:hover:bg-slate-800/50"
+      className="w-full text-left flex items-center gap-2 rounded-md px-2 py-1.5 hover:bg-slate-50 dark:hover:bg-neutral-800/50"
     >
-      <span className="font-mono text-xs text-slate-400 dark:text-slate-500 shrink-0">
+      <span className="font-mono text-xs text-slate-400 dark:text-neutral-500 shrink-0">
         {task.identifier}
       </span>
-      <span className="flex-1 truncate text-sm text-slate-800 dark:text-slate-200">
+      <span className="flex-1 truncate text-sm text-slate-800 dark:text-neutral-200">
         {task.title}
       </span>
       <StatusPill status={task.status} size="sm" />
@@ -155,15 +155,15 @@ function Column({
   hasChildrenFor: (goalId: string) => boolean;
 }) {
   return (
-    <div className="flex-shrink-0 w-72 border-r border-slate-200 dark:border-slate-800 bg-slate-50/40 flex flex-col">
-      <div className="px-3 py-2 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex items-center">
-        <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400 truncate flex-1">
+    <div className="flex-shrink-0 w-72 border-r border-slate-200 dark:border-neutral-800 bg-slate-50/40 flex flex-col">
+      <div className="px-3 py-2 border-b border-slate-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 flex items-center">
+        <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-neutral-400 truncate flex-1">
           {title}
         </h3>
       </div>
       <div className="flex-1 overflow-y-auto p-2 space-y-1.5">
         {goals.length === 0 && (
-          <p className="text-xs text-slate-400 dark:text-slate-500 px-2 py-1">No goals here.</p>
+          <p className="text-xs text-slate-400 dark:text-neutral-500 px-2 py-1">No goals here.</p>
         )}
         {goals.map((g) => (
           <GoalCard
@@ -198,18 +198,18 @@ function TaskColumn({
     recursive: false,
   });
   return (
-    <div className="flex-shrink-0 w-80 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col">
-      <div className="px-3 py-2 border-b border-slate-200 dark:border-slate-800 flex items-center">
-        <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400 truncate flex-1">
+    <div className="flex-shrink-0 w-80 border-r border-slate-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 flex flex-col">
+      <div className="px-3 py-2 border-b border-slate-200 dark:border-neutral-800 flex items-center">
+        <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-neutral-400 truncate flex-1">
           Tasks in “{goal.title}”
         </h3>
       </div>
       <div className="flex-1 overflow-y-auto p-2 space-y-0.5">
         {isLoading && (
-          <p className="text-xs text-slate-400 dark:text-slate-500 px-2 py-1">Loading…</p>
+          <p className="text-xs text-slate-400 dark:text-neutral-500 px-2 py-1">Loading…</p>
         )}
         {!isLoading && tasks.length === 0 && (
-          <p className="text-xs text-slate-400 dark:text-slate-500 px-2 py-1">
+          <p className="text-xs text-slate-400 dark:text-neutral-500 px-2 py-1">
             No tasks linked yet. Open a task and pick this goal from its
             aside.
           </p>
@@ -335,7 +335,7 @@ export function MillerColumns({
   }
 
   return (
-    <div className="flex h-[calc(100vh-180px)] overflow-x-auto border border-slate-200 dark:border-slate-800 rounded-lg bg-white dark:bg-slate-900">
+    <div className="flex h-[calc(100vh-180px)] overflow-x-auto border border-slate-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-900">
       {columns}
     </div>
   );

@@ -97,10 +97,10 @@ function ThemeSwitch() {
   ];
   return (
     <div className="px-3 py-2">
-      <div className="text-[10px] uppercase tracking-wide text-slate-400 dark:text-slate-500 mb-1.5">
+      <div className="text-[10px] uppercase tracking-wide text-slate-400 dark:text-neutral-500 mb-1.5">
         Theme
       </div>
-      <div className="grid grid-cols-3 gap-0.5 rounded-md bg-slate-100 dark:bg-slate-800 p-0.5">
+      <div className="grid grid-cols-3 gap-0.5 rounded-md bg-slate-100 dark:bg-neutral-800 p-0.5">
         {options.map((o) => {
           const active = theme === o.value;
           return (
@@ -110,8 +110,8 @@ function ThemeSwitch() {
               onClick={() => setTheme(o.value)}
               className={`flex flex-col items-center justify-center gap-0.5 py-1.5 rounded text-[11px] transition-colors ${
                 active
-                  ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-sm"
-                  : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+                  ? "bg-white dark:bg-neutral-700 text-slate-900 dark:text-neutral-200 shadow-sm"
+                  : "text-slate-500 dark:text-neutral-400 hover:text-slate-700 dark:hover:text-neutral-200"
               }`}
             >
               {o.icon}
@@ -141,8 +141,8 @@ function ProfileMenuItem({
 }) {
   const text =
     variant === "danger"
-      ? "text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30"
-      : "text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100";
+      ? "text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30"
+      : "text-slate-700 dark:text-neutral-300 hover:bg-slate-50 dark:hover:bg-neutral-800 hover:text-slate-900 dark:hover:text-neutral-100";
   return (
     <button
       type="button"
@@ -153,7 +153,7 @@ function ProfileMenuItem({
         className={
           variant === "danger"
             ? "text-red-500 shrink-0"
-            : "text-slate-400 dark:text-slate-500 shrink-0"
+            : "text-slate-400 dark:text-neutral-500 shrink-0"
         }
       >
         {icon}
@@ -206,7 +206,7 @@ function notificationLabel(type: Notification["type"]): string {
 // activity (assigned / commented / mentioned / status_changed).
 function NotificationTypeIcon({ type }: { type: Notification["type"] }) {
   const base =
-    "w-4 h-4 rounded-full flex items-center justify-center ring-2 ring-white dark:ring-slate-900";
+    "w-4 h-4 rounded-full flex items-center justify-center ring-2 ring-white dark:ring-neutral-900";
   if (type === "assigned") {
     return (
       <div className={`${base} bg-blue-500 text-white`}>
@@ -323,7 +323,7 @@ function NotificationTypeIcon({ type }: { type: Notification["type"] }) {
   }
   return (
     <div className={`${base} bg-slate-400 text-white`}>
-      <span className="w-1 h-1 rounded-full bg-white dark:bg-slate-900" />
+      <span className="w-1 h-1 rounded-full bg-white dark:bg-neutral-900" />
     </div>
   );
 }
@@ -460,7 +460,7 @@ function InboxPopover({
         <button
           type="button"
           onClick={() => handleClick(n)}
-          className={`w-full text-left px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800/50 flex items-start gap-3 transition-colors ${
+          className={`w-full text-left px-4 py-3 hover:bg-slate-50 dark:hover:bg-neutral-800/50 flex items-start gap-3 transition-colors ${
             isUnread ? "bg-blue-50/40" : ""
           } ${isInvitationOutcome ? "cursor-default" : ""}`}
         >
@@ -478,13 +478,13 @@ function InboxPopover({
           </div>
           <div className="flex-1 min-w-0 pl-1">
             <div className="flex items-baseline justify-between gap-2">
-              <p className="text-xs text-slate-600 dark:text-slate-400 truncate">
-                <span className="font-medium text-slate-900 dark:text-slate-100">{actor}</span>{" "}
-                <span className="text-slate-500 dark:text-slate-400">
+              <p className="text-xs text-slate-600 dark:text-neutral-400 truncate">
+                <span className="font-medium text-slate-900 dark:text-neutral-200">{actor}</span>{" "}
+                <span className="text-slate-500 dark:text-neutral-400">
                   {notificationLabel(n.type).toLowerCase()}
                 </span>
               </p>
-              <span className="text-xs text-slate-400 dark:text-slate-500 shrink-0">
+              <span className="text-xs text-slate-400 dark:text-neutral-500 shrink-0">
                 {timeAgo(n.created_at)}
               </span>
             </div>
@@ -506,12 +506,12 @@ function InboxPopover({
     const preview = (n.payload["preview"] as string) ?? "";
     return (
       <>
-        <p className="mt-0.5 text-sm text-slate-900 dark:text-slate-100 truncate">
-          <span className="font-mono text-xs text-slate-500 dark:text-slate-400">{identifier}</span>
-          {title && <span className="ml-1.5 text-slate-800 dark:text-slate-200">— {title}</span>}
+        <p className="mt-0.5 text-sm text-slate-900 dark:text-neutral-200 truncate">
+          <span className="font-mono text-xs text-slate-500 dark:text-neutral-400">{identifier}</span>
+          {title && <span className="ml-1.5 text-slate-800 dark:text-neutral-200">— {title}</span>}
         </p>
         {preview && (
-          <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400 line-clamp-2">
+          <p className="mt-0.5 text-xs text-slate-500 dark:text-neutral-400 line-clamp-2">
             {preview}
           </p>
         )}
@@ -524,8 +524,8 @@ function InboxPopover({
     const verb =
       n.type === "invitation_accepted" ? "Joined" : "Declined invite to";
     return (
-      <p className="mt-0.5 text-sm text-slate-800 dark:text-slate-200 truncate">
-        {verb} <span className="font-medium text-slate-900 dark:text-slate-100">{wsName}</span>
+      <p className="mt-0.5 text-sm text-slate-800 dark:text-neutral-200 truncate">
+        {verb} <span className="font-medium text-slate-900 dark:text-neutral-200">{wsName}</span>
       </p>
     );
   }
@@ -534,11 +534,11 @@ function InboxPopover({
     <div
       ref={ref}
       style={{ position: "fixed", left, top, width: POPOVER_WIDTH }}
-      className="z-50 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xl flex flex-col max-h-[80vh] overflow-hidden"
+      className="z-50 rounded-xl border border-slate-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-2xl flex flex-col max-h-[80vh] overflow-hidden"
     >
-      <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 dark:border-slate-800">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 dark:border-neutral-800">
         <div className="flex items-baseline gap-2">
-          <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100">Inbox</h3>
+          <h3 className="text-base font-semibold text-slate-900 dark:text-neutral-200">Inbox</h3>
           {(unread.length > 0 || invitations.length > 0) && (
             <span className="text-xs font-medium text-blue-600">
               {unread.length + invitations.length} unread
@@ -546,12 +546,12 @@ function InboxPopover({
           )}
         </div>
         <div className="flex items-center gap-3">
-          <label className="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-400 cursor-pointer select-none">
+          <label className="flex items-center gap-1.5 text-xs text-slate-600 dark:text-neutral-400 cursor-pointer select-none">
             <input
               type="checkbox"
               checked={unreadOnly}
               onChange={(e) => setUnreadOnly(e.target.checked)}
-              className="rounded border-slate-300 dark:border-slate-700"
+              className="rounded border-slate-300 dark:border-neutral-700"
             />
             <span>Unread only</span>
           </label>
@@ -566,7 +566,7 @@ function InboxPopover({
             <div className="px-4 pt-3 pb-1 text-[11px] font-semibold uppercase tracking-wide text-amber-600">
               Workspace invitations
             </div>
-            <ul className="divide-y divide-slate-100 dark:divide-slate-800">
+            <ul className="divide-y divide-slate-100 dark:divide-neutral-800">
               {invitations.map((inv) => {
                 const inviter =
                   inv.invited_by_display_name ??
@@ -598,12 +598,12 @@ function InboxPopover({
                         </svg>
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm text-slate-800 dark:text-slate-200 leading-snug">
-                          <span className="font-semibold text-slate-900 dark:text-slate-100">
+                        <p className="text-sm text-slate-800 dark:text-neutral-200 leading-snug">
+                          <span className="font-semibold text-slate-900 dark:text-neutral-200">
                             {inviter}
                           </span>{" "}
                           invited you to{" "}
-                          <span className="font-semibold text-slate-900 dark:text-slate-100">
+                          <span className="font-semibold text-slate-900 dark:text-neutral-200">
                             {inv.workspace_name ?? "a workspace"}
                           </span>{" "}
                           as <span className="font-medium">{inv.role}</span>
@@ -643,18 +643,18 @@ function InboxPopover({
         )}
 
         {isLoading ? (
-          <p className="px-4 py-12 text-sm text-slate-400 dark:text-slate-500 text-center">
+          <p className="px-4 py-12 text-sm text-slate-400 dark:text-neutral-500 text-center">
             Loading…
           </p>
         ) : totalCount === 0 && invitations.length === 0 ? (
           <div className="px-4 py-12 text-center">
-            <div className="mx-auto w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center mb-3 text-slate-400 dark:text-slate-500">
+            <div className="mx-auto w-10 h-10 rounded-full bg-slate-100 dark:bg-neutral-800 flex items-center justify-center mb-3 text-slate-400 dark:text-neutral-500">
               <BellIcon />
             </div>
-            <p className="text-sm text-slate-500 dark:text-slate-400">
+            <p className="text-sm text-slate-500 dark:text-neutral-400">
               {unreadOnly ? "No unread notifications." : "You're all caught up."}
             </p>
-            <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
+            <p className="text-xs text-slate-400 dark:text-neutral-500 mt-1">
               New activity on your tasks will appear here.
             </p>
           </div>
@@ -662,20 +662,20 @@ function InboxPopover({
           <>
             {unread.length > 0 && (
               <div>
-                <div className="px-4 pt-3 pb-1 text-[11px] font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
+                <div className="px-4 pt-3 pb-1 text-[11px] font-semibold uppercase tracking-wide text-slate-400 dark:text-neutral-500">
                   Unread
                 </div>
-                <ul className="divide-y divide-slate-100 dark:divide-slate-800">
+                <ul className="divide-y divide-slate-100 dark:divide-neutral-800">
                   {unread.map(renderRow)}
                 </ul>
               </div>
             )}
             {earlier.length > 0 && !unreadOnly && (
               <div>
-                <div className="px-4 pt-3 pb-1 text-[11px] font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
+                <div className="px-4 pt-3 pb-1 text-[11px] font-semibold uppercase tracking-wide text-slate-400 dark:text-neutral-500">
                   Earlier
                 </div>
-                <ul className="divide-y divide-slate-100 dark:divide-slate-800">
+                <ul className="divide-y divide-slate-100 dark:divide-neutral-800">
                   {earlier.map(renderRow)}
                 </ul>
               </div>
@@ -685,15 +685,15 @@ function InboxPopover({
       </div>
 
       {totalCount > 0 && (
-        <div className="border-t border-slate-100 dark:border-slate-800 px-3 py-2 flex items-center justify-between">
-          <span className="text-xs text-slate-400 dark:text-slate-500 px-1">
+        <div className="border-t border-slate-100 dark:border-neutral-800 px-3 py-2 flex items-center justify-between">
+          <span className="text-xs text-slate-400 dark:text-neutral-500 px-1">
             {totalCount} notification{totalCount === 1 ? "" : "s"}
           </span>
           <button
             type="button"
             onClick={handleMarkAllRead}
             disabled={markAllRead.isPending || unread.length === 0}
-            className="text-xs text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 px-2 py-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="text-xs text-slate-600 dark:text-neutral-400 hover:text-slate-900 dark:hover:text-neutral-100 px-2 py-1 rounded hover:bg-slate-100 dark:hover:bg-neutral-800 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {markAllRead.isPending ? "Marking…" : "Mark all read"}
           </button>
@@ -840,8 +840,8 @@ export function WorkspaceLayout() {
   }
 
   return (
-    <div className="h-screen flex flex-col bg-slate-50 dark:bg-slate-800/40 overflow-hidden">
-      <header className="border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
+    <div className="h-screen flex flex-col bg-slate-50 dark:bg-neutral-800/40 overflow-hidden">
+      <header className="border-b border-slate-200 dark:border-neutral-800 bg-white dark:bg-neutral-900">
         {/* Header: asymmetric padding so the avatar can sit visibly flush
             against the right edge while the workspace switcher keeps its
             comfortable left margin. py-1.5 + smaller circular buttons
@@ -875,22 +875,22 @@ export function WorkspaceLayout() {
                     setWsMenuOpen((v) => !v);
                   }
                 }}
-                className="flex items-center gap-1 font-semibold text-slate-900 dark:text-slate-100 hover:text-slate-700 dark:hover:text-slate-300"
+                className="flex items-center gap-1 font-semibold text-slate-900 dark:text-neutral-200 hover:text-slate-700 dark:hover:text-neutral-300"
                 title={hideSidebar ? `Back to ${currentWs?.name}` : "Switch workspace"}
               >
                 {currentWs?.name ?? "tracker"}
-                {!hideSidebar && <span className="text-slate-400 dark:text-slate-500 text-xs">▾</span>}
-                {hideSidebar && <span className="text-slate-400 dark:text-slate-500 text-xs">↩</span>}
+                {!hideSidebar && <span className="text-slate-400 dark:text-neutral-500 text-xs">▾</span>}
+                {hideSidebar && <span className="text-slate-400 dark:text-neutral-500 text-xs">↩</span>}
               </button>
               {!hideSidebar && wsMenuOpen && (
-                <div className="absolute left-0 top-full mt-1 w-56 rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-lg z-20 py-1">
+                <div className="absolute left-0 top-full mt-1 w-56 rounded-md border border-slate-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-lg z-20 py-1">
                   <button
                     type="button"
                     onClick={() => {
                       setWsMenuOpen(false);
                       navigate(`/w/${wsSlug}/settings`);
                     }}
-                    className="w-full text-left px-3 py-1.5 text-sm hover:bg-slate-50 dark:hover:bg-slate-800/50 flex items-center gap-2"
+                    className="w-full text-left px-3 py-1.5 text-sm hover:bg-slate-50 dark:hover:bg-neutral-800/50 flex items-center gap-2"
                   >
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
@@ -900,7 +900,7 @@ export function WorkspaceLayout() {
                       strokeWidth={1.8}
                       strokeLinecap="round"
                       strokeLinejoin="round"
-                      className="w-4 h-4 text-slate-500 dark:text-slate-400"
+                      className="w-4 h-4 text-slate-500 dark:text-neutral-400"
                     >
                       <circle cx="12" cy="12" r="3" />
                       <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z" />
@@ -908,8 +908,8 @@ export function WorkspaceLayout() {
                     <span>Workspace Settings</span>
                   </button>
 
-                  <div className="border-t border-slate-100 dark:border-slate-800 mt-1 pt-1">
-                    <div className="px-3 py-1 text-xs uppercase text-slate-400 dark:text-slate-500">
+                  <div className="border-t border-slate-100 dark:border-neutral-800 mt-1 pt-1">
+                    <div className="px-3 py-1 text-xs uppercase text-slate-400 dark:text-neutral-500">
                       Switch workspace
                     </div>
                     {workspaces.map((w) => (
@@ -922,24 +922,24 @@ export function WorkspaceLayout() {
                         }}
                         className={
                           w.id === currentWs?.id
-                            ? "w-full text-left px-3 py-1.5 text-sm bg-slate-50 dark:bg-slate-800/40 font-medium flex items-center justify-between gap-2"
-                            : "w-full text-left px-3 py-1.5 text-sm hover:bg-slate-50 dark:hover:bg-slate-800/50 flex items-center justify-between gap-2"
+                            ? "w-full text-left px-3 py-1.5 text-sm bg-slate-50 dark:bg-neutral-800/40 font-medium flex items-center justify-between gap-2"
+                            : "w-full text-left px-3 py-1.5 text-sm hover:bg-slate-50 dark:hover:bg-neutral-800/50 flex items-center justify-between gap-2"
                         }
                       >
                         <div className="flex items-baseline gap-2 min-w-0">
                           <span className="truncate">{w.name}</span>
-                          <span className="shrink-0 font-mono text-xs text-slate-400 dark:text-slate-500">
+                          <span className="shrink-0 font-mono text-xs text-slate-400 dark:text-neutral-500">
                             {w.slug}
                           </span>
                         </div>
                         {w.id === currentWs?.id && (
-                          <span className="shrink-0 text-slate-400 dark:text-slate-500 text-xs">✓</span>
+                          <span className="shrink-0 text-slate-400 dark:text-neutral-500 text-xs">✓</span>
                         )}
                       </button>
                     ))}
                   </div>
 
-                  <div className="border-t border-slate-100 dark:border-slate-800 mt-1 pt-1">
+                  <div className="border-t border-slate-100 dark:border-neutral-800 mt-1 pt-1">
                     <button
                       type="button"
                       onClick={() => {
@@ -965,7 +965,7 @@ export function WorkspaceLayout() {
             <button
               type="button"
               onClick={togglePalette}
-              className="inline-flex items-center gap-2 rounded-full bg-slate-100 dark:bg-slate-800 px-3.5 py-1.5 text-xs text-slate-500 dark:text-slate-400 hover:bg-slate-200 hover:text-slate-700 dark:hover:text-slate-300 transition-colors"
+              className="inline-flex items-center gap-2 rounded-full bg-slate-100 dark:bg-neutral-800 px-3.5 py-1.5 text-xs text-slate-500 dark:text-neutral-400 hover:bg-slate-200 hover:text-slate-700 dark:hover:text-neutral-300 transition-colors"
               title="Search (⌘K)"
             >
               <svg
@@ -975,14 +975,14 @@ export function WorkspaceLayout() {
                 strokeWidth={1.8}
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500"
+                className="w-3.5 h-3.5 text-slate-400 dark:text-neutral-500"
                 aria-hidden
               >
                 <circle cx="9" cy="9" r="6" />
                 <path d="m18 18-4.5-4.5" />
               </svg>
               <span>Search…</span>
-              <kbd className="ml-1 rounded bg-white dark:bg-slate-900 px-1 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400">
+              <kbd className="ml-1 rounded bg-white dark:bg-neutral-900 px-1 border border-slate-200 dark:border-neutral-800 text-slate-600 dark:text-neutral-400">
                 ⌘K
               </kbd>
             </button>
@@ -1000,15 +1000,15 @@ export function WorkspaceLayout() {
                 }
                 setInboxOpen((v) => !v);
               }}
-              className={`relative inline-flex items-center justify-center rounded-full w-8 h-8 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100 transition-colors ${
-                inboxOpen ? "bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100" : ""
+              className={`relative inline-flex items-center justify-center rounded-full w-8 h-8 text-slate-600 dark:text-neutral-400 hover:bg-slate-100 dark:hover:bg-neutral-800 hover:text-slate-900 dark:hover:text-neutral-100 transition-colors ${
+                inboxOpen ? "bg-slate-100 dark:bg-neutral-800 text-slate-900 dark:text-neutral-200" : ""
               }`}
               title="Inbox"
               aria-label="Inbox"
             >
               <BellIcon filled={unreadCount > 0} />
               {unreadCount > 0 && (
-                <span className="absolute -top-1 -right-1 rounded-full bg-blue-500 min-w-[18px] h-[18px] inline-flex items-center justify-center px-1 text-[10px] font-semibold text-white leading-none ring-2 ring-white dark:ring-slate-900">
+                <span className="absolute -top-1 -right-1 rounded-full bg-blue-500 min-w-[18px] h-[18px] inline-flex items-center justify-center px-1 text-[10px] font-semibold text-white leading-none ring-2 ring-white dark:ring-neutral-900">
                   {unreadCount > 9 ? "9+" : unreadCount}
                 </span>
               )}
@@ -1036,11 +1036,11 @@ export function WorkspaceLayout() {
                 />
               </button>
               {profileMenuOpen && (
-                <div className="absolute right-0 top-full mt-1.5 w-64 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-lg z-20 overflow-hidden">
+                <div className="absolute right-0 top-full mt-1.5 w-64 rounded-lg border border-slate-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 shadow-lg z-20 overflow-hidden">
                   {/* Identity card — avatar + name + email. When the user
                       hasn't set a display_name, the email takes the
                       primary slot so the card still anchors a name. */}
-                  <div className="flex items-center gap-3 px-3 py-3 border-b border-slate-100 dark:border-slate-800">
+                  <div className="flex items-center gap-3 px-3 py-3 border-b border-slate-100 dark:border-neutral-800">
                     <Avatar
                       displayName={me?.display_name ?? null}
                       email={me?.email ?? null}
@@ -1052,15 +1052,15 @@ export function WorkspaceLayout() {
                     <div className="min-w-0 flex-1">
                       {me?.display_name ? (
                         <>
-                          <p className="text-sm font-semibold text-slate-900 dark:text-slate-100 truncate">
+                          <p className="text-sm font-semibold text-slate-900 dark:text-neutral-200 truncate">
                             {me.display_name}
                           </p>
-                          <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
+                          <p className="text-xs text-slate-500 dark:text-neutral-400 truncate">
                             {me?.email}
                           </p>
                         </>
                       ) : (
-                        <p className="text-sm font-semibold text-slate-900 dark:text-slate-100 truncate">
+                        <p className="text-sm font-semibold text-slate-900 dark:text-neutral-200 truncate">
                           {me?.email}
                         </p>
                       )}
@@ -1151,12 +1151,12 @@ export function WorkspaceLayout() {
                   {/* Theme switcher — Supabase-style 3-segment control.
                       Sits between settings and sign-out so the destructive
                       action stays at the bottom. */}
-                  <div className="border-t border-slate-100 dark:border-slate-800">
+                  <div className="border-t border-slate-100 dark:border-neutral-800">
                     <ThemeSwitch />
                   </div>
 
                   {/* Destructive group, visually separated */}
-                  <div className="border-t border-slate-100 dark:border-slate-800 py-1">
+                  <div className="border-t border-slate-100 dark:border-neutral-800 py-1">
                     <ProfileMenuItem
                       onClick={() => {
                         setProfileMenuOpen(false);
@@ -1205,7 +1205,7 @@ export function WorkspaceLayout() {
             members) and shorter ones (a different workspace with fewer)
             shows / hides a vertical scrollbar inside <main>, shifting the
             inner mx-auto-centered content horizontally by ~15px. */}
-        <main className="flex-1 p-8 overflow-y-auto overflow-x-hidden bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-200 [scrollbar-gutter:stable]">
+        <main className="flex-1 p-8 overflow-y-auto overflow-x-hidden bg-white dark:bg-neutral-950 text-slate-900 dark:text-neutral-200 [scrollbar-gutter:stable]">
           <Outlet />
         </main>
       </div>
@@ -1222,9 +1222,9 @@ export function WorkspaceLayout() {
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-sm rounded-lg bg-white dark:bg-slate-900 shadow-xl p-5 space-y-4"
+            className="w-full max-w-sm rounded-lg bg-white dark:bg-neutral-900 shadow-xl p-5 space-y-4"
           >
-            <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">New workspace</h2>
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-neutral-200">New workspace</h2>
             <form onSubmit={onCreateWorkspace} className="space-y-3">
               <div className="space-y-1">
                 <Label htmlFor="modal-ws-name">Name</Label>
@@ -1242,7 +1242,7 @@ export function WorkspaceLayout() {
               <div className="space-y-1">
                 <Label htmlFor="modal-ws-slug">URL</Label>
                 <div className="flex items-center gap-1.5">
-                  <span className="text-sm text-slate-500 dark:text-slate-400 whitespace-nowrap font-mono">
+                  <span className="text-sm text-slate-500 dark:text-neutral-400 whitespace-nowrap font-mono">
                     /w/
                   </span>
                   <Input
@@ -1262,7 +1262,7 @@ export function WorkspaceLayout() {
                     className="font-mono"
                   />
                 </div>
-                <p className="text-xs text-slate-500 dark:text-slate-400">
+                <p className="text-xs text-slate-500 dark:text-neutral-400">
                   3–40 characters · lowercase letters, numbers, and hyphens. Used in URLs and MCP tool calls.
                 </p>
               </div>
@@ -1416,12 +1416,12 @@ function SidebarNav({
   const itemBase = collapsed
     ? "group flex items-center justify-center w-full rounded-md py-1.5 text-sm transition-colors"
     : "group flex items-center gap-2.5 w-full text-left rounded-md px-2 py-1.5 text-sm font-normal tracking-tight transition-colors";
-  const itemIdle = `${itemBase} text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800`;
-  const itemActive = `${itemBase} text-slate-900 dark:text-slate-100 bg-slate-100 dark:bg-slate-800 font-medium`;
+  const itemIdle = `${itemBase} text-slate-600 dark:text-neutral-400 hover:text-slate-900 dark:hover:text-neutral-100 hover:bg-slate-100 dark:hover:bg-neutral-800`;
+  const itemActive = `${itemBase} text-slate-900 dark:text-neutral-200 bg-slate-100 dark:bg-neutral-800 font-medium`;
 
   return (
     <aside
-      className={`group/sidebar relative ${collapsed ? "w-12" : "w-56"} shrink-0 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-2 flex flex-col gap-0.5 overflow-y-auto overflow-x-hidden transition-[width] duration-200 ease-out`}
+      className={`group/sidebar relative ${collapsed ? "w-12" : "w-56"} shrink-0 border-r border-slate-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 p-2 flex flex-col gap-0.5 overflow-y-auto overflow-x-hidden transition-[width] duration-200 ease-out`}
     >
       {/* Collapse toggle — two modes:
             - Expanded: absolute top-right + hidden by default, fades in
@@ -1436,7 +1436,7 @@ function SidebarNav({
         <button
           type="button"
           onClick={onToggle}
-          className="self-center w-7 h-7 flex items-center justify-center rounded text-slate-400 dark:text-slate-500 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 mb-1 shrink-0"
+          className="self-center w-7 h-7 flex items-center justify-center rounded text-slate-400 dark:text-neutral-500 hover:text-slate-900 dark:hover:text-neutral-100 hover:bg-slate-100 dark:hover:bg-neutral-800 mb-1 shrink-0"
           title="Expand sidebar"
           aria-label="Expand sidebar"
         >
@@ -1458,7 +1458,7 @@ function SidebarNav({
         <button
           type="button"
           onClick={onToggle}
-          className="absolute top-2 right-2 z-10 w-7 h-7 flex items-center justify-center rounded text-slate-400 dark:text-slate-500 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 transition-opacity opacity-0 group-hover/sidebar:opacity-100 focus:opacity-100"
+          className="absolute top-2 right-2 z-10 w-7 h-7 flex items-center justify-center rounded text-slate-400 dark:text-neutral-500 hover:text-slate-900 dark:hover:text-neutral-100 hover:bg-slate-100 dark:hover:bg-neutral-800 transition-opacity opacity-0 group-hover/sidebar:opacity-100 focus:opacity-100"
           title="Collapse sidebar"
           aria-label="Collapse sidebar"
         >
@@ -1492,7 +1492,7 @@ function SidebarNav({
           strokeWidth={1.7}
           strokeLinecap="round"
           strokeLinejoin="round"
-          className={`w-4 h-4 ${onDashboard ? "text-slate-700 dark:text-slate-300" : "text-slate-400 dark:text-slate-500 group-hover:text-slate-600"}`}
+          className={`w-4 h-4 ${onDashboard ? "text-slate-700 dark:text-neutral-300" : "text-slate-400 dark:text-neutral-500 group-hover:text-slate-600"}`}
         >
           <path d="M4 19V9l8-5 8 5v10" />
           <path d="M9 19v-6h6v6" />
@@ -1513,7 +1513,7 @@ function SidebarNav({
             strokeWidth={1.7}
             strokeLinecap="round"
             strokeLinejoin="round"
-            className={`w-4 h-4 ${onGoals ? "text-slate-700 dark:text-slate-300" : "text-slate-400 dark:text-slate-500 group-hover:text-slate-600"}`}
+            className={`w-4 h-4 ${onGoals ? "text-slate-700 dark:text-neutral-300" : "text-slate-400 dark:text-neutral-500 group-hover:text-slate-600"}`}
           >
             <circle cx="12" cy="12" r="9" />
             <circle cx="12" cy="12" r="5" />
@@ -1535,7 +1535,7 @@ function SidebarNav({
           strokeWidth={1.7}
           strokeLinecap="round"
           strokeLinejoin="round"
-          className={`w-4 h-4 ${onMyTasks ? "text-slate-700 dark:text-slate-300" : "text-slate-400 dark:text-slate-500 group-hover:text-slate-600"}`}
+          className={`w-4 h-4 ${onMyTasks ? "text-slate-700 dark:text-neutral-300" : "text-slate-400 dark:text-neutral-500 group-hover:text-slate-600"}`}
         >
           <path d="M9 11l3 3 8-8" />
           <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
@@ -1550,7 +1550,7 @@ function SidebarNav({
         <button
           type="button"
           onClick={openModal}
-          className="self-center text-slate-400 dark:text-slate-500 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 rounded w-7 h-7 flex items-center justify-center text-base leading-none mt-4 mb-1"
+          className="self-center text-slate-400 dark:text-neutral-500 hover:text-slate-900 dark:hover:text-neutral-100 hover:bg-slate-100 dark:hover:bg-neutral-800 rounded w-7 h-7 flex items-center justify-center text-base leading-none mt-4 mb-1"
           title="New project"
           aria-label="New project"
         >
@@ -1558,13 +1558,13 @@ function SidebarNav({
         </button>
       ) : (
         <div className="flex items-center justify-between px-2 pt-5 pb-1.5">
-          <span className="text-[10px] uppercase tracking-[0.12em] text-slate-400 dark:text-slate-500 font-semibold">
+          <span className="text-[10px] uppercase tracking-[0.12em] text-slate-400 dark:text-neutral-500 font-semibold">
             Projects
           </span>
           <button
             type="button"
             onClick={openModal}
-            className="text-slate-400 dark:text-slate-500 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 rounded w-5 h-5 flex items-center justify-center text-base leading-none"
+            className="text-slate-400 dark:text-neutral-500 hover:text-slate-900 dark:hover:text-neutral-100 hover:bg-slate-100 dark:hover:bg-neutral-800 rounded w-5 h-5 flex items-center justify-center text-base leading-none"
             title="New project"
             aria-label="New project"
           >
@@ -1580,9 +1580,9 @@ function SidebarNav({
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-sm rounded-lg bg-white dark:bg-slate-900 shadow-xl p-5 space-y-4"
+            className="w-full max-w-sm rounded-lg bg-white dark:bg-neutral-900 shadow-xl p-5 space-y-4"
           >
-            <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">New project</h2>
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-neutral-200">New project</h2>
             <form onSubmit={onCreate} className="space-y-3">
               <div className="space-y-1">
                 <Label htmlFor="modal-proj-name">Name</Label>
@@ -1617,11 +1617,11 @@ function SidebarNav({
                   maxLength={10}
                   className="font-mono uppercase tracking-wider"
                 />
-                <p className="text-xs text-slate-500 dark:text-slate-400 whitespace-nowrap overflow-hidden text-ellipsis">
+                <p className="text-xs text-slate-500 dark:text-neutral-400 whitespace-nowrap overflow-hidden text-ellipsis">
                   Becomes{" "}
                   {[1, 2, 3].map((n) => (
                     <span key={n}>
-                      <span className="font-mono text-slate-700 dark:text-slate-300">
+                      <span className="font-mono text-slate-700 dark:text-neutral-300">
                         {(keyDraft || "KEY")}-{n}
                       </span>
                       {n < 3 ? ", " : " …"}
@@ -1653,7 +1653,7 @@ function SidebarNav({
       )}
 
       {projects.length === 0 && (
-        <p className="px-2 text-xs text-slate-400 dark:text-slate-500 italic">No projects yet</p>
+        <p className="px-2 text-xs text-slate-400 dark:text-neutral-500 italic">No projects yet</p>
       )}
 
       <div className="space-y-0.5">
@@ -1676,12 +1676,12 @@ function SidebarNav({
                 collapsed
                   ? "group flex items-center justify-center rounded-md py-1.5 transition-colors cursor-pointer " +
                     (isActive
-                      ? "bg-slate-100 dark:bg-slate-800"
-                      : "hover:bg-slate-100 dark:hover:bg-slate-800")
+                      ? "bg-slate-100 dark:bg-neutral-800"
+                      : "hover:bg-slate-100 dark:hover:bg-neutral-800")
                   : "group flex items-center gap-2 rounded-md px-2 py-1.5 text-[13px] font-normal tracking-tight transition-colors cursor-pointer " +
                     (isActive
-                      ? "text-slate-900 dark:text-slate-100 bg-slate-100 dark:bg-slate-800 font-medium"
-                      : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800")
+                      ? "text-slate-900 dark:text-neutral-200 bg-slate-100 dark:bg-neutral-800 font-medium"
+                      : "text-slate-500 dark:text-neutral-400 hover:text-slate-900 dark:hover:text-neutral-100 hover:bg-slate-100 dark:hover:bg-neutral-800")
               }
             >
               <span
@@ -1695,7 +1695,7 @@ function SidebarNav({
               {!collapsed && (
                 <div className="flex items-baseline gap-2 min-w-0 flex-1">
                   <span className="truncate min-w-0">{p.name}</span>
-                  <span className="shrink-0 font-mono text-[10px] uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                  <span className="shrink-0 font-mono text-[10px] uppercase tracking-wider text-slate-400 dark:text-neutral-500">
                     {p.key}
                   </span>
                 </div>
@@ -1707,7 +1707,7 @@ function SidebarNav({
                   e.stopPropagation();
                   navigate(`/w/${wsSlug}/p/${p.key}/settings`);
                 }}
-                className="opacity-0 group-hover:opacity-100 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200 rounded p-0.5 transition-opacity"
+                className="opacity-0 group-hover:opacity-100 text-slate-500 dark:text-neutral-400 hover:text-slate-900 dark:hover:text-neutral-100 hover:bg-slate-200 rounded p-0.5 transition-opacity"
                 title={`${p.name} settings`}
                 aria-label={`${p.name} settings`}
               >

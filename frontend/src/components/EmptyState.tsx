@@ -33,7 +33,7 @@ export function EmptyState({
     >
       {icon && (
         <div
-          className={`rounded-full bg-slate-100 dark:bg-slate-800/60 text-slate-400 dark:text-slate-500 flex items-center justify-center ${
+          className={`rounded-full bg-slate-100 dark:bg-neutral-800/60 text-slate-400 dark:text-neutral-500 flex items-center justify-center ${
             compact ? "w-10 h-10 mb-2.5" : "w-12 h-12 mb-3"
           }`}
         >
@@ -41,14 +41,14 @@ export function EmptyState({
         </div>
       )}
       <h3
-        className={`font-medium text-slate-900 dark:text-slate-100 ${
+        className={`font-medium text-slate-900 dark:text-neutral-200 ${
           compact ? "text-sm" : "text-sm"
         }`}
       >
         {title}
       </h3>
       {description && (
-        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400 max-w-sm">
+        <p className="mt-1 text-sm text-slate-500 dark:text-neutral-400 max-w-sm">
           {description}
         </p>
       )}

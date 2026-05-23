@@ -6,9 +6,9 @@ import { Loader2 } from "lucide-react";
 // as "the page is doing something" without dominating the viewport.
 export function PageSpinner() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-white dark:bg-slate-950">
+    <div className="min-h-screen flex items-center justify-center bg-white dark:bg-neutral-950">
       <Loader2
-        className="w-8 h-8 animate-spin text-slate-400 dark:text-slate-500"
+        className="w-8 h-8 animate-spin text-slate-400 dark:text-neutral-500"
         aria-label="Loading"
       />
     </div>
@@ -25,7 +25,7 @@ export function InlineSpinner({ className }: { className?: string }) {
   return (
     <div className={`flex items-center justify-center py-8 ${className ?? ""}`}>
       <Loader2
-        className="w-5 h-5 animate-spin text-slate-400 dark:text-slate-500"
+        className="w-5 h-5 animate-spin text-slate-400 dark:text-neutral-500"
         aria-label="Loading"
       />
     </div>

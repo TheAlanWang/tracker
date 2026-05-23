@@ -163,23 +163,23 @@ function ColumnVisibilityMenu({
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="inline-flex h-7 items-center gap-1.5 text-xs text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 rounded-full px-2.5 transition-colors"
+        className="inline-flex h-7 items-center gap-1.5 text-xs text-slate-600 dark:text-neutral-400 hover:text-slate-900 dark:hover:text-neutral-100 border border-slate-200 dark:border-neutral-700 hover:border-slate-300 dark:hover:border-neutral-600 rounded-full px-2.5 transition-colors"
       >
         <ColumnsIcon />
         <span>Columns</span>
       </button>
       {open && (
-        <div className="absolute right-0 mt-1 w-48 bg-white dark:bg-slate-900 rounded-md border border-slate-200 dark:border-slate-800 shadow-lg z-10 py-1">
+        <div className="absolute right-0 mt-1 w-48 bg-white dark:bg-neutral-900 rounded-md border border-slate-200 dark:border-neutral-800 shadow-lg z-10 py-1">
           {COLUMNS.map((col) => (
             <label
               key={col.status}
-              className="flex items-center gap-2 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.08em] text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer select-none"
+              className="flex items-center gap-2 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.08em] text-slate-600 dark:text-neutral-400 hover:bg-slate-50 dark:hover:bg-neutral-800/50 cursor-pointer select-none"
             >
               <input
                 type="checkbox"
                 checked={!hidden.has(col.status)}
                 onChange={() => onToggle(col.status)}
-                className="rounded border-slate-300 dark:border-slate-700"
+                className="rounded border-slate-300 dark:border-neutral-700"
               />
               <span>{col.label}</span>
             </label>
@@ -190,18 +190,23 @@ function ColumnVisibilityMenu({
   );
 }
 
-function DueDateBadge({ date }: { date: string }) {
+function DueDateBadge({ date, status }: { date: string; status?: TaskStatus }) {
+  // Done / cancelled tasks: due date is informational only, no overdue
+  // red or soon-amber. Linear / Jira / Asana all follow this convention.
+  const completed = status === "done" || status === "cancelled";
   const due = parseDueDate(date);
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  const overdue = due.getTime() < today.getTime();
+  const overdue = !completed && due.getTime() < today.getTime();
   const soon =
-    !overdue && due.getTime() - today.getTime() < 3 * 24 * 60 * 60 * 1000;
+    !completed &&
+    !overdue &&
+    due.getTime() - today.getTime() < 3 * 24 * 60 * 60 * 1000;
   const cls = overdue
-    ? "text-red-600"
+    ? "text-red-500 dark:text-red-400"
     : soon
       ? "text-amber-600"
-      : "text-slate-500 dark:text-slate-400";
+      : "text-slate-500 dark:text-neutral-400";
   return (
     <span className={`inline-flex items-center gap-0.5 text-[11px] ${cls}`}>
       <CalendarIcon />
@@ -292,7 +297,7 @@ function CardBody({
   // while Latin chars rendered serif — same card, two fonts, looked
   // unintentional.
   const titleClass =
-    "text-[16px] font-normal tracking-tight text-slate-700 dark:text-slate-200 leading-snug";
+    "text-[16px] font-normal tracking-tight text-slate-700 dark:text-neutral-200 leading-snug";
 
   return (
     <>
@@ -347,7 +352,7 @@ function CardBody({
               onPointerDown={(e) => e.stopPropagation()}
               title="Edit title"
               aria-label="Edit title"
-              className="ml-1.5 inline-flex items-center align-[-2px] opacity-0 group-hover/card:opacity-100 focus:opacity-100 text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 transition-opacity"
+              className="ml-1.5 inline-flex items-center align-[-2px] opacity-0 group-hover/card:opacity-100 focus:opacity-100 text-slate-400 dark:text-neutral-500 hover:text-slate-700 dark:hover:text-neutral-300 transition-opacity"
             >
               <SquarePen className="w-3.5 h-3.5" aria-hidden />
             </button>
@@ -360,7 +365,7 @@ function CardBody({
           due date so cards without one stay compact. */}
       {task.due_date && (
         <div className="mt-2 flex items-center">
-          <DueDateBadge date={task.due_date} />
+          <DueDateBadge date={task.due_date} status={task.status} />
         </div>
       )}
       {/* Bottom meta row — always renders because the identifier always
@@ -372,7 +377,7 @@ function CardBody({
         className={`${task.due_date ? "mt-1" : "mt-2"} flex items-center justify-between gap-2`}
       >
         <div className="flex items-center gap-1.5 min-w-0">
-          <span className="font-mono text-[10px] text-slate-400 dark:text-slate-500 tracking-wide">
+          <span className="font-mono text-[10px] text-slate-400 dark:text-neutral-500 tracking-wide">
             {task.identifier}
           </span>
           {isBlocked && <BlockedBadge />}
@@ -410,7 +415,7 @@ function CardBody({
                       size={22}
                     />
                   ) : (
-                    <div className="w-[22px] h-[22px] rounded-full border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-slate-500 transition-colors" />
+                    <div className="w-[22px] h-[22px] rounded-full border-2 border-dashed border-slate-300 dark:border-neutral-700 hover:border-slate-500 transition-colors" />
                   )}
                 </button>
               )}
@@ -458,7 +463,7 @@ function SortableCard({
         transition,
         opacity: isDragging ? 0.3 : 1,
       }}
-      className="group/card rounded-md border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-2.5 cursor-grab active:cursor-grabbing shadow-sm hover:shadow-md hover:-translate-y-0.5 hover:border-slate-300 dark:hover:border-slate-700 select-none transition-all duration-150"
+      className="group/card rounded-md border border-slate-200/80 dark:border-transparent bg-white dark:bg-neutral-800 p-2.5 cursor-grab active:cursor-grabbing shadow-sm hover:shadow-md hover:-translate-y-0.5 hover:border-slate-300 dark:hover:border-neutral-700 select-none transition-all duration-150"
       {...attributes}
       {...listeners}
       onClick={() => {
@@ -495,13 +500,13 @@ function Column({
       ref={setNodeRef}
       className={`group rounded-lg p-2 min-h-[120px] flex flex-col transition-colors ${
         highlight
-          ? "bg-blue-50 ring-2 ring-inset ring-blue-300"
-          : "bg-slate-100 dark:bg-slate-800"
+          ? "bg-blue-50 dark:bg-blue-950/30 ring-2 ring-inset ring-blue-300 dark:ring-blue-700"
+          : "bg-slate-100 dark:bg-neutral-900"
       }`}
     >
-      <div className="mb-2 px-1 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-600 dark:text-slate-400">
+      <div className="mb-2 px-1 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-600 dark:text-neutral-400">
         <span>{col.label}</span>
-        <span className="text-slate-400 dark:text-slate-500 font-medium tracking-normal normal-case">
+        <span className="text-slate-400 dark:text-neutral-500 font-medium tracking-normal normal-case">
           {items.length}
         </span>
       </div>
@@ -511,7 +516,7 @@ function Column({
         <InlineTaskCreator
           projectId={projectId}
           status={col.status}
-          triggerClassName="w-full text-left text-xs text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/60 rounded px-2 py-1.5 transition-opacity opacity-0 group-hover:opacity-100"
+          triggerClassName="w-full text-left text-xs text-slate-500 dark:text-neutral-400 hover:text-slate-900 dark:hover:text-neutral-100 hover:bg-slate-200/60 rounded px-2 py-1.5 transition-opacity opacity-0 group-hover:opacity-100"
         />
       ) : (
         <>
@@ -539,7 +544,7 @@ function Column({
             <InlineTaskCreator
               projectId={projectId}
               status={col.status}
-              triggerClassName="w-full text-left text-xs text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/60 rounded px-2 py-1.5 transition-colors"
+              triggerClassName="w-full text-left text-xs text-slate-500 dark:text-neutral-400 hover:text-slate-900 dark:hover:text-neutral-100 hover:bg-slate-200/60 rounded px-2 py-1.5 transition-colors"
             />
           </div>
         </>
@@ -735,7 +740,7 @@ export default function Board() {
         </div>
         <DragOverlay dropAnimation={null}>
           {activeTask ? (
-            <div className="rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 p-2.5 shadow-2xl cursor-grabbing rotate-1">
+            <div className="rounded-md border border-slate-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 p-2.5 shadow-2xl cursor-grabbing rotate-1">
               <CardBody
                 task={activeTask}
                 assignee={

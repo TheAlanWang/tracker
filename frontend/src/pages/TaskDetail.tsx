@@ -133,7 +133,7 @@ function TaskActionsMenu({
         <span className="leading-none text-base">⋯</span>
       </Button>
       {open && (
-        <div className="absolute right-0 top-full mt-1 z-20 w-44 rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-lg py-1 text-sm">
+        <div className="absolute right-0 top-full mt-1 z-20 w-44 rounded-md border border-slate-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-lg py-1 text-sm">
           <button
             type="button"
             onClick={() => {
@@ -250,7 +250,7 @@ function DescriptionThumbnails({
           type="button"
           onClick={() => jumpTo(hit)}
           title={hit.alt || hit.url}
-          className="group relative h-16 w-16 rounded border border-slate-200 dark:border-slate-700 overflow-hidden hover:ring-2 hover:ring-blue-300 transition-shadow bg-slate-100 dark:bg-slate-800/40"
+          className="group relative h-16 w-16 rounded border border-slate-200 dark:border-neutral-700 overflow-hidden hover:ring-2 hover:ring-blue-300 transition-shadow bg-slate-100 dark:bg-neutral-800/40"
         >
           <TaskImage
             src={hit.url}
@@ -271,7 +271,7 @@ function DescriptionThumbnails({
 // changed fields read like tags inside the sentence rather than prose.
 function FieldLabel({ children }: { children: React.ReactNode }) {
   return (
-    <span className="uppercase tracking-wide text-[11px] font-medium text-slate-600 dark:text-slate-400">
+    <span className="uppercase tracking-wide text-[11px] font-medium text-slate-600 dark:text-neutral-400">
       {children}
     </span>
   );
@@ -309,7 +309,7 @@ function FromToArrow() {
       strokeWidth={1.8}
       strokeLinecap="round"
       strokeLinejoin="round"
-      className="inline-block w-3.5 h-3.5 mx-1 text-slate-400 dark:text-slate-500 align-[-2px]"
+      className="inline-block w-3.5 h-3.5 mx-1 text-slate-400 dark:text-neutral-500 align-[-2px]"
       aria-hidden
     >
       <path d="M4 10h12M12 6l4 4-4 4" />
@@ -377,8 +377,8 @@ function renderActivityLine(
 
   return (
     <>
-      <span className="font-medium text-slate-900 dark:text-slate-100">{actor}</span> {body}{" "}
-      <span className="text-slate-400 dark:text-slate-500">· {time}</span>
+      <span className="font-medium text-slate-900 dark:text-neutral-200">{actor}</span> {body}{" "}
+      <span className="text-slate-400 dark:text-neutral-500">· {time}</span>
     </>
   );
 }
@@ -409,11 +409,11 @@ function ActivityItem({ a, ctx }: { a: Activity; ctx: ActivityContext }) {
     : null;
 
   return (
-    <li className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
+    <li className="text-xs text-slate-700 dark:text-neutral-300 leading-relaxed">
       <div
         className={
           expandable
-            ? "cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/40 -mx-2 px-2 py-0.5 rounded flex items-start gap-1 group"
+            ? "cursor-pointer hover:bg-slate-50 dark:hover:bg-neutral-800/40 -mx-2 px-2 py-0.5 rounded flex items-start gap-1 group"
             : ""
         }
         onClick={expandable ? () => setExpanded((v) => !v) : undefined}
@@ -421,7 +421,7 @@ function ActivityItem({ a, ctx }: { a: Activity; ctx: ActivityContext }) {
         <div className="flex-1 min-w-0">{renderActivityLine(a, ctx)}</div>
         {expandable && (
           <ChevronRight
-            className={`w-3 h-3 mt-0.5 text-slate-400 dark:text-slate-500 transition-transform shrink-0 ${
+            className={`w-3 h-3 mt-0.5 text-slate-400 dark:text-neutral-500 transition-transform shrink-0 ${
               expanded ? "rotate-90" : ""
             }`}
             aria-hidden
@@ -429,7 +429,7 @@ function ActivityItem({ a, ctx }: { a: Activity; ctx: ActivityContext }) {
         )}
       </div>
       {expanded && change && fieldKey && (
-        <div className="mt-1.5 ml-1 pl-3 border-l-2 border-slate-200 dark:border-slate-700 space-y-1">
+        <div className="mt-1.5 ml-1 pl-3 border-l-2 border-slate-200 dark:border-neutral-700 space-y-1">
           <div>
             <FieldLabel>From</FieldLabel>{" "}
             <span className="break-words">
@@ -721,7 +721,7 @@ export function TaskDetailContent({
     // Field-specific "default" / empty label — much more useful than a
     // generic em-dash. Tells the reader exactly what state the task was in.
     const empty = (text: string) => (
-      <span className="italic text-slate-500 dark:text-slate-400">{text}</span>
+      <span className="italic text-slate-500 dark:text-neutral-400">{text}</span>
     );
 
     switch (field) {
@@ -730,7 +730,7 @@ export function TaskDetailContent({
         return STATUS[s as TaskStatus] ? (
           <StatusPill status={s as TaskStatus} size="sm" />
         ) : (
-          <span className="italic text-slate-500 dark:text-slate-400">{s.replace(/_/g, " ")}</span>
+          <span className="italic text-slate-500 dark:text-neutral-400">{s.replace(/_/g, " ")}</span>
         );
       }
       case "priority": {
@@ -738,30 +738,30 @@ export function TaskDetailContent({
         return PRIORITY[s as TaskPriority] ? (
           <PriorityPill priority={s as TaskPriority} size="sm" />
         ) : (
-          <span className="italic text-slate-500 dark:text-slate-400">{s.replace(/_/g, " ")}</span>
+          <span className="italic text-slate-500 dark:text-neutral-400">{s.replace(/_/g, " ")}</span>
         );
       }
       case "assignee_id":
         if (isEmpty) return empty("Unassigned");
         return (
-          <span className="font-medium text-slate-900 dark:text-slate-100">{resolveActor(s)}</span>
+          <span className="font-medium text-slate-900 dark:text-neutral-200">{resolveActor(s)}</span>
         );
       case "reporter_id":
         if (isEmpty) return empty("No reporter");
         return (
-          <span className="font-medium text-slate-900 dark:text-slate-100">{resolveActor(s)}</span>
+          <span className="font-medium text-slate-900 dark:text-neutral-200">{resolveActor(s)}</span>
         );
       case "sprint_id":
         if (isEmpty) return empty("Backlog (no sprint)");
         return (
-          <span className="font-medium text-slate-900 dark:text-slate-100">
+          <span className="font-medium text-slate-900 dark:text-neutral-200">
             {sprints.find((sp) => sp.id === s)?.name ?? "—"}
           </span>
         );
       case "due_date":
         if (isEmpty) return empty("No due date");
         return (
-          <span className="font-medium text-slate-900 dark:text-slate-100">
+          <span className="font-medium text-slate-900 dark:text-neutral-200">
             {new Date(s).toLocaleDateString(undefined, {
               year: "numeric",
               month: "short",
@@ -771,7 +771,7 @@ export function TaskDetailContent({
         );
       default:
         if (isEmpty) return empty("—");
-        return <span className="font-medium text-slate-900 dark:text-slate-100">{s}</span>;
+        return <span className="font-medium text-slate-900 dark:text-neutral-200">{s}</span>;
     }
   };
 
@@ -973,7 +973,7 @@ export function TaskDetailContent({
 
   if (taskError) {
     return (
-      <p className="text-slate-700 dark:text-slate-300">
+      <p className="text-slate-700 dark:text-neutral-300">
         This task could not be loaded (access denied).
       </p>
     );
@@ -996,7 +996,7 @@ export function TaskDetailContent({
         <div className="space-y-2">
           <div className="flex items-center justify-between gap-4 min-h-[36px]">
             {task ? (
-              <p className="font-mono text-xs text-slate-500 dark:text-slate-400 tracking-wide select-all">
+              <p className="font-mono text-xs text-slate-500 dark:text-neutral-400 tracking-wide select-all">
                 {task.identifier}
               </p>
             ) : (
@@ -1015,14 +1015,14 @@ export function TaskDetailContent({
                 }
                 className={
                   isWatching
-                    ? "gap-1.5 bg-slate-100 dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100"
+                    ? "gap-1.5 bg-slate-100 dark:bg-neutral-800 border-slate-300 dark:border-neutral-700 text-slate-900 dark:text-neutral-200"
                     : "gap-1.5"
                 }
               >
                 <WatchIcon filled={isWatching} />
                 <span>{isWatching ? "Watching" : "Watch"}</span>
                 {watchers.length > 0 && (
-                  <span className="text-xs text-slate-500 dark:text-slate-400 tabular-nums">
+                  <span className="text-xs text-slate-500 dark:text-neutral-400 tabular-nums">
                     {watchers.length}
                   </span>
                 )}
@@ -1066,7 +1066,7 @@ export function TaskDetailContent({
           {isEditing ? (
             <textarea
               ref={titleTextareaRef}
-              className="w-full bg-transparent text-2xl font-normal tracking-tight text-slate-800 dark:text-slate-100 outline-none hover:bg-slate-100/50 dark:hover:bg-slate-800/40 focus:bg-slate-100/80 dark:focus:bg-slate-800/60 rounded px-1.5 py-0.5 transition-colors resize-none overflow-hidden leading-tight break-words"
+              className="w-full bg-transparent text-2xl font-normal tracking-tight text-slate-800 dark:text-neutral-200 outline-none hover:bg-slate-100/50 dark:hover:bg-neutral-800/40 focus:bg-slate-100/80 dark:focus:bg-neutral-800/60 rounded px-1.5 py-0.5 transition-colors resize-none overflow-hidden leading-tight break-words"
               rows={1}
               value={titleDraft}
               onChange={(e) => setTitleDraft(e.target.value)}
@@ -1080,7 +1080,7 @@ export function TaskDetailContent({
               placeholder="Title"
             />
           ) : (
-            <h1 className="text-2xl font-normal tracking-tight text-slate-800 dark:text-slate-100 px-1.5 py-0.5 break-words">
+            <h1 className="text-2xl font-normal tracking-tight text-slate-800 dark:text-neutral-200 px-1.5 py-0.5 break-words">
               {titleDraft}
             </h1>
           )}
@@ -1093,7 +1093,7 @@ export function TaskDetailContent({
             because Description sits right under the title — no need
             for a full cross-section gap there. */}
         <details open className="pt-1 group">
-          <summary className="cursor-pointer list-none flex items-center gap-1.5 text-sm font-normal uppercase tracking-wide text-muted-foreground hover:text-slate-700 dark:hover:text-slate-300 group-open:pb-2 group-open:border-b border-slate-200 dark:border-slate-800">
+          <summary className="cursor-pointer list-none flex items-center gap-1.5 text-sm font-normal uppercase tracking-wide text-muted-foreground hover:text-slate-700 dark:hover:text-neutral-300 group-open:pb-2 group-open:border-b border-slate-200 dark:border-neutral-800">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               viewBox="0 0 20 20"
@@ -1124,8 +1124,8 @@ export function TaskDetailContent({
                     }}
                     className={`px-2 py-0.5 text-xs rounded transition-colors ${
                       descEditMode === m
-                        ? "bg-slate-200 dark:bg-slate-700 text-slate-900 dark:text-slate-100"
-                        : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+                        ? "bg-slate-200 dark:bg-neutral-700 text-slate-900 dark:text-neutral-200"
+                        : "text-slate-500 hover:text-slate-700 dark:text-neutral-400 dark:hover:text-neutral-200"
                     }`}
                   >
                     {m === "edit" ? "Edit" : "Preview"}
@@ -1142,7 +1142,7 @@ export function TaskDetailContent({
                     <div className="relative">
                       <textarea
                         ref={descTextareaRef}
-                        className="w-full rounded border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-2 text-sm"
+                        className="w-full rounded border border-slate-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 p-2 text-sm"
                         rows={6}
                         value={descDraft}
                         onChange={(e) => setDescDraft(e.target.value)}
@@ -1169,7 +1169,7 @@ export function TaskDetailContent({
                     />
                   </>
                 ) : (
-                  <div className="prose prose-sm max-w-none text-slate-700 dark:text-slate-300 prose-pre:bg-slate-100 dark:prose-pre:bg-slate-800/60 prose-pre:text-slate-800 dark:prose-pre:text-slate-200 prose-pre:rounded-md prose-pre:p-3 prose-pre:text-[13px] prose-code:bg-slate-100 dark:prose-code:bg-slate-800/60 prose-code:text-slate-800 dark:prose-code:text-slate-200 prose-code:rounded prose-code:px-1 prose-code:py-0.5 prose-code:text-[0.85em] prose-code:font-normal prose-code:before:hidden prose-code:after:hidden rounded border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3 min-h-[10rem]">
+                  <div className="prose prose-sm max-w-none text-slate-700 dark:text-neutral-300 prose-pre:bg-slate-100 dark:prose-pre:bg-neutral-800/60 prose-pre:text-slate-800 dark:prose-pre:text-neutral-200 prose-pre:rounded-md prose-pre:p-3 prose-pre:text-[13px] prose-code:bg-slate-100 dark:prose-code:bg-neutral-800/60 prose-code:text-slate-800 dark:prose-code:text-neutral-200 prose-code:rounded prose-code:px-1 prose-code:py-0.5 prose-code:text-[0.85em] prose-code:font-normal prose-code:before:hidden prose-code:after:hidden rounded border border-slate-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 p-3 min-h-[10rem]">
                     <ReactMarkdown
                       remarkPlugins={[remarkGfm]}
                       rehypePlugins={[rehypeHighlight]}
@@ -1187,7 +1187,7 @@ export function TaskDetailContent({
               // near-black dominates a mostly-prose description); inline
               // <code> becomes a subtle pill with the plugin's auto
               // backtick pseudo-elements suppressed.
-              <div className="prose prose-sm max-w-none text-slate-700 dark:text-slate-300 prose-pre:bg-slate-100 dark:prose-pre:bg-slate-800/60 prose-pre:text-slate-800 dark:prose-pre:text-slate-200 prose-pre:rounded-md prose-pre:p-3 prose-pre:text-[13px] prose-code:bg-slate-100 dark:prose-code:bg-slate-800/60 prose-code:text-slate-800 dark:prose-code:text-slate-200 prose-code:rounded prose-code:px-1 prose-code:py-0.5 prose-code:text-[0.85em] prose-code:font-normal prose-code:before:hidden prose-code:after:hidden">
+              <div className="prose prose-sm max-w-none text-slate-700 dark:text-neutral-300 prose-pre:bg-slate-100 dark:prose-pre:bg-neutral-800/60 prose-pre:text-slate-800 dark:prose-pre:text-neutral-200 prose-pre:rounded-md prose-pre:p-3 prose-pre:text-[13px] prose-code:bg-slate-100 dark:prose-code:bg-neutral-800/60 prose-code:text-slate-800 dark:prose-code:text-neutral-200 prose-code:rounded prose-code:px-1 prose-code:py-0.5 prose-code:text-[0.85em] prose-code:font-normal prose-code:before:hidden prose-code:after:hidden">
                 <ReactMarkdown
                   remarkPlugins={[remarkGfm]}
                   rehypePlugins={[rehypeHighlight]}
@@ -1198,7 +1198,7 @@ export function TaskDetailContent({
                 </ReactMarkdown>
               </div>
             ) : (
-              <p className="text-sm italic text-slate-400 dark:text-slate-500">
+              <p className="text-sm italic text-slate-400 dark:text-neutral-500">
                 No description.
               </p>
             )}
@@ -1226,7 +1226,7 @@ export function TaskDetailContent({
             <button
               type="button"
               onClick={() => setShowEmptyChecklist(true)}
-              className="text-sm text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 transition-colors"
+              className="text-sm text-slate-400 dark:text-neutral-500 hover:text-slate-700 dark:hover:text-neutral-300 transition-colors"
             >
               + Add checklist
             </button>
@@ -1237,7 +1237,7 @@ export function TaskDetailContent({
             on first paint, but users can fold it away when the side rail
             is what they're reading. */}
         <details open className="pt-6 group">
-          <summary className="cursor-pointer list-none flex items-center gap-1.5 text-sm font-normal uppercase tracking-wide text-muted-foreground hover:text-slate-700 dark:hover:text-slate-300 group-open:pb-2 group-open:border-b border-slate-200 dark:border-slate-800">
+          <summary className="cursor-pointer list-none flex items-center gap-1.5 text-sm font-normal uppercase tracking-wide text-muted-foreground hover:text-slate-700 dark:hover:text-neutral-300 group-open:pb-2 group-open:border-b border-slate-200 dark:border-neutral-800">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               viewBox="0 0 20 20"
@@ -1253,14 +1253,14 @@ export function TaskDetailContent({
             <MessageSquare className="w-3.5 h-3.5" aria-hidden />
             <span>Comments</span>
             {comments.length > 0 && (
-              <span className="text-slate-400 dark:text-slate-500 font-medium normal-case tracking-normal">
+              <span className="text-slate-400 dark:text-neutral-500 font-medium normal-case tracking-normal">
                 ({comments.length})
               </span>
             )}
           </summary>
           <div className="mt-3 space-y-3">
           {comments.length === 0 ? (
-            <p className="text-sm italic text-slate-400 dark:text-slate-500">
+            <p className="text-sm italic text-slate-400 dark:text-neutral-500">
               No comments yet.
             </p>
           ) : (
@@ -1275,7 +1275,7 @@ export function TaskDetailContent({
               return (
                 <div
                   key={c.id}
-                  className="group rounded border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3"
+                  className="group rounded border border-slate-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 p-3"
                 >
                   {/* Body first — that's what people scan; author/time
                       below as a subordinate footer. */}
@@ -1284,7 +1284,7 @@ export function TaskDetailContent({
                     members={members}
                     onImageClick={setLightboxUrl}
                   />
-                  <div className="mt-3 pt-2 border-t border-slate-100 dark:border-slate-800/60 flex items-center gap-2">
+                  <div className="mt-3 pt-2 border-t border-slate-100 dark:border-neutral-800/60 flex items-center gap-2">
                     <Avatar
                       displayName={author?.display_name ?? null}
                       email={author?.email ?? null}
@@ -1293,11 +1293,11 @@ export function TaskDetailContent({
                       size={20}
                       className="shrink-0"
                     />
-                    <div className="flex-1 min-w-0 text-xs text-slate-500 dark:text-slate-400 truncate">
-                      <span className="font-medium text-slate-700 dark:text-slate-300">
+                    <div className="flex-1 min-w-0 text-xs text-slate-500 dark:text-neutral-400 truncate">
+                      <span className="font-medium text-slate-700 dark:text-neutral-300">
                         {authorName}
                       </span>
-                      <span className="mx-1.5 text-slate-300 dark:text-slate-600">
+                      <span className="mx-1.5 text-slate-300 dark:text-neutral-600">
                         ·
                       </span>
                       <span title={fullTime}>
@@ -1310,7 +1310,7 @@ export function TaskDetailContent({
                         onClick={() => onDeleteComment(c.id)}
                         title="Delete comment"
                         aria-label="Delete comment"
-                        className="opacity-0 group-hover:opacity-100 focus:opacity-100 text-slate-400 dark:text-slate-500 hover:text-red-600 dark:hover:text-red-500 transition-opacity rounded p-1 -mr-1"
+                        className="opacity-0 group-hover:opacity-100 focus:opacity-100 text-slate-400 dark:text-neutral-500 hover:text-red-600 dark:hover:text-red-500 transition-opacity rounded p-1 -mr-1"
                       >
                         <Trash2 className="w-3.5 h-3.5" aria-hidden />
                       </button>
@@ -1328,7 +1328,7 @@ export function TaskDetailContent({
               placeholder="Write a comment… use @ to mention a teammate"
               rows={3}
               maxLength={10000}
-              className="w-full rounded border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 p-2 text-sm"
+              className="w-full rounded border border-slate-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 p-2 text-sm"
             />
             {/* Buttons only appear once the user has typed something —
                 resting state is just the textarea + placeholder, no
@@ -1358,7 +1358,7 @@ export function TaskDetailContent({
         </details>
 
         <details className="pt-6 group">
-          <summary className="cursor-pointer list-none flex items-center gap-1.5 text-sm font-normal uppercase tracking-wide text-muted-foreground hover:text-slate-700 dark:hover:text-slate-300 group-open:pb-2 group-open:border-b border-slate-200 dark:border-slate-800">
+          <summary className="cursor-pointer list-none flex items-center gap-1.5 text-sm font-normal uppercase tracking-wide text-muted-foreground hover:text-slate-700 dark:hover:text-neutral-300 group-open:pb-2 group-open:border-b border-slate-200 dark:border-neutral-800">
             {/* Disclosure chevron stays — rotates to indicate open/closed.
                 Activity icon mirrors the per-section icon pattern used by
                 Description / Checklist / Comments. */}
@@ -1377,14 +1377,14 @@ export function TaskDetailContent({
             <ActivityIcon className="w-3.5 h-3.5" aria-hidden />
             <span>Activity</span>
             {activity.length > 0 && (
-              <span className="text-slate-400 dark:text-slate-500 font-medium normal-case tracking-normal">
+              <span className="text-slate-400 dark:text-neutral-500 font-medium normal-case tracking-normal">
                 ({activity.length})
               </span>
             )}
           </summary>
           <div className="mt-3">
             {activity.length === 0 ? (
-              <p className="text-xs text-slate-400 dark:text-slate-500">No activity yet.</p>
+              <p className="text-xs text-slate-400 dark:text-neutral-500">No activity yet.</p>
             ) : (
               <ol className="space-y-1.5">
                 {activity.map((a) => (
@@ -1403,7 +1403,7 @@ export function TaskDetailContent({
         </details>
       </div>
 
-      <aside className="space-y-4 border-l border-slate-200 dark:border-slate-800 pl-6 self-start sticky top-0 pb-4">
+      <aside className="space-y-4 border-l border-slate-200 dark:border-neutral-800 pl-6 self-start sticky top-0 pb-4">
         <div className="space-y-1">
           <p className="text-sm font-normal uppercase tracking-wide text-muted-foreground">
             Status
@@ -1456,12 +1456,12 @@ export function TaskDetailContent({
             {isEditing ? (
               <input
                 type="date"
-                className="w-full rounded border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2 py-1.5 text-sm"
+                className="w-full rounded border border-slate-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 px-2 py-1.5 text-sm"
                 value={dueDateDraft}
                 onChange={(e) => setDueDateDraft(e.target.value)}
               />
             ) : (
-              <p className="text-sm text-slate-700 dark:text-slate-300">
+              <p className="text-sm text-slate-700 dark:text-neutral-300">
                 {new Date(dueDateDraft).toLocaleDateString(undefined, {
                   year: "numeric",
                   month: "short",
@@ -1497,7 +1497,7 @@ export function TaskDetailContent({
                 ]}
               />
             ) : (
-              <p className="text-sm text-slate-700 dark:text-slate-300">
+              <p className="text-sm text-slate-700 dark:text-neutral-300">
                 {sprints.find((s) => s.id === sprintDraft)?.name ?? "Unknown"}
               </p>
             )}
@@ -1517,7 +1517,7 @@ export function TaskDetailContent({
                 workspaceId={task?.workspace_id ?? ""}
               />
             ) : (
-              <p className="text-sm text-slate-700 dark:text-slate-300">
+              <p className="text-sm text-slate-700 dark:text-neutral-300">
                 {goals.find((g) => g.id === goalDraft)?.title ?? "Unknown"}
               </p>
             )}
@@ -1547,7 +1547,7 @@ export function TaskDetailContent({
                 renderOption={(o) => {
                   if (o.value === "") {
                     return (
-                      <span className="text-slate-500 dark:text-slate-400">
+                      <span className="text-slate-500 dark:text-neutral-400">
                         Unassigned
                       </span>
                     );
@@ -1558,10 +1558,10 @@ export function TaskDetailContent({
                   if (name && email) {
                     return (
                       <span className="inline-flex items-baseline gap-1.5 min-w-0">
-                        <span className="text-slate-900 dark:text-slate-100">
+                        <span className="text-slate-900 dark:text-neutral-200">
                           {name}
                         </span>
-                        <span className="text-xs text-slate-500 dark:text-slate-400 truncate">
+                        <span className="text-xs text-slate-500 dark:text-neutral-400 truncate">
                           {email}
                         </span>
                       </span>
@@ -1592,12 +1592,12 @@ export function TaskDetailContent({
                   />
                   {/* Single line: name (bold) + email (muted) flow inline. */}
                   {/* truncation falls on email so the name stays readable. */}
-                  <p className="text-sm text-slate-700 dark:text-slate-300 truncate min-w-0">
-                    <span className="font-medium text-slate-900 dark:text-slate-100">
+                  <p className="text-sm text-slate-700 dark:text-neutral-300 truncate min-w-0">
+                    <span className="font-medium text-slate-900 dark:text-neutral-200">
                       {name || email || assigneeDraft}
                     </span>
                     {name && email && (
-                      <span className="ml-1.5 text-xs text-slate-500 dark:text-slate-400">
+                      <span className="ml-1.5 text-xs text-slate-500 dark:text-neutral-400">
                         {email}
                       </span>
                     )}
@@ -1654,13 +1654,13 @@ export function TaskDetailContent({
           {/* Matches Due Date's format ("May 12, 2026") with the time
               tucked alongside in muted slate so the value reads as one
               breath rather than a wall of digits. */}
-          <p className="text-sm text-slate-700 dark:text-slate-300">
+          <p className="text-sm text-slate-700 dark:text-neutral-300">
             {new Date(task.created_at).toLocaleDateString(undefined, {
               year: "numeric",
               month: "short",
               day: "numeric",
             })}
-            <span className="ml-1.5 text-xs text-slate-400 dark:text-slate-500">
+            <span className="ml-1.5 text-xs text-slate-400 dark:text-neutral-500">
               {new Date(task.created_at).toLocaleTimeString(undefined, {
                 hour: "numeric",
                 minute: "2-digit",
@@ -1716,7 +1716,7 @@ export default function TaskDetail() {
   if (resolveError) {
     return (
       <div className="space-y-2">
-        <p className="text-slate-700 dark:text-slate-300">
+        <p className="text-slate-700 dark:text-neutral-300">
           This task could not be loaded (not found).
         </p>
         <button
@@ -1739,7 +1739,7 @@ export default function TaskDetail() {
         <button
           type="button"
           onClick={goBack}
-          className="inline-flex items-center gap-1.5 text-sm text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100"
+          className="inline-flex items-center gap-1.5 text-sm text-slate-500 dark:text-neutral-400 hover:text-slate-900 dark:hover:text-neutral-100"
         >
           <ArrowLeftIcon />
           <span>Back to {backLabel}</span>

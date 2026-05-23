@@ -10,7 +10,7 @@ import { SortableHeader } from "@/components/SortableHeader";
 import { TaskDetailModal } from "@/components/TaskDetailModal";
 import { type Member, useMembers } from "@/features/members/api";
 import { useSprints } from "@/features/sprints/api";
-import { useTasks } from "@/features/tasks/api";
+import { type TaskStatus, useTasks } from "@/features/tasks/api";
 import {
   applyFilters,
   applySort,
@@ -135,23 +135,23 @@ function ColumnVisibilityMenu({
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="inline-flex h-7 items-center gap-1.5 text-xs text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 rounded-full px-2.5 transition-colors"
+        className="inline-flex h-7 items-center gap-1.5 text-xs text-slate-600 dark:text-neutral-400 hover:text-slate-900 dark:hover:text-neutral-100 border border-slate-200 dark:border-neutral-700 hover:border-slate-300 dark:hover:border-neutral-600 rounded-full px-2.5 transition-colors"
       >
         <ColumnsIcon />
         <span>Columns</span>
       </button>
       {open && (
-        <div className="absolute right-0 mt-1 w-48 bg-white dark:bg-slate-900 rounded-md border border-slate-200 dark:border-slate-800 shadow-lg z-10 py-1">
+        <div className="absolute right-0 mt-1 w-48 bg-white dark:bg-neutral-900 rounded-md border border-slate-200 dark:border-neutral-800 shadow-lg z-10 py-1">
           {columns.map((c) => (
             <label
               key={c.key}
-              className="flex items-center gap-2 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.08em] text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer select-none"
+              className="flex items-center gap-2 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.08em] text-slate-600 dark:text-neutral-400 hover:bg-slate-50 dark:hover:bg-neutral-800/50 cursor-pointer select-none"
             >
               <input
                 type="checkbox"
                 checked={!hidden.has(c.key)}
                 onChange={() => onToggle(c.key)}
-                className="rounded border-slate-300 dark:border-slate-700"
+                className="rounded border-slate-300 dark:border-neutral-700"
               />
               <span>{c.label}</span>
             </label>
@@ -162,18 +162,22 @@ function ColumnVisibilityMenu({
   );
 }
 
-function DueDateCell({ date }: { date: string }) {
+function DueDateCell({ date, status }: { date: string; status?: TaskStatus }) {
+  // Done / cancelled: due date is informational only, no overdue red.
+  const completed = status === "done" || status === "cancelled";
   const due = parseDueDate(date);
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  const overdue = due.getTime() < today.getTime();
+  const overdue = !completed && due.getTime() < today.getTime();
   const soon =
-    !overdue && due.getTime() - today.getTime() < 3 * 24 * 60 * 60 * 1000;
+    !completed &&
+    !overdue &&
+    due.getTime() - today.getTime() < 3 * 24 * 60 * 60 * 1000;
   const cls = overdue
-    ? "text-red-600"
+    ? "text-red-500 dark:text-red-400"
     : soon
       ? "text-amber-600"
-      : "text-slate-600 dark:text-slate-400";
+      : "text-slate-600 dark:text-neutral-400";
   return (
     <span className={`text-xs ${cls}`}>
       {due.toLocaleDateString(undefined, { month: "short", day: "numeric" })}
@@ -313,7 +317,7 @@ function TaskListContent() {
       {!isLoading && displayedTasks.length > 0 && (
         <TaskTableCard>
           <TaskTableHead>
-            <tr className="text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400">
+            <tr className="text-[11px] uppercase tracking-wide text-slate-500 dark:text-neutral-400">
               {columns.map((c) => {
                 if (!show(c.key)) return null;
                 const sortField = COL_SORT_FIELD[c.key];
@@ -355,7 +359,7 @@ function TaskListContent() {
               })}
             </tr>
           </TaskTableHead>
-          <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+          <tbody className="divide-y divide-slate-100 dark:divide-neutral-800">
             {displayedTasks.map((t) => {
               const assignee = t.assignee_id
                 ? memberByUser.get(t.assignee_id)
@@ -368,16 +372,16 @@ function TaskListContent() {
               return (
                 <tr
                   key={t.id}
-                  className="cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors"
+                  className="cursor-pointer hover:bg-slate-50 dark:hover:bg-neutral-800/40 transition-colors"
                   onClick={() => setOpenTaskId(t.id)}
                 >
                   {show("id") && (
-                    <td className="px-3 py-2.5 font-mono text-xs text-slate-500 dark:text-slate-400">
+                    <td className="px-3 py-2.5 font-mono text-xs text-slate-500 dark:text-neutral-400">
                       {t.identifier}
                     </td>
                   )}
                   {show("title") && (
-                    <td className="px-3 py-2.5 text-slate-800 dark:text-slate-200" title={t.title}>
+                    <td className="px-3 py-2.5 text-slate-800 dark:text-neutral-200" title={t.title}>
                       <div className="truncate">{t.title}</div>
                     </td>
                   )}
@@ -401,37 +405,37 @@ function TaskListContent() {
                             avatarUrl={assignee.avatar_url}
                             color={assignee.avatar_color}
                           />
-                          <span className="text-xs text-slate-700 dark:text-slate-300 truncate">
+                          <span className="text-xs text-slate-700 dark:text-neutral-300 truncate">
                             {assigneeLabel}
                           </span>
                         </div>
                       ) : (
-                        <span className="text-xs text-slate-300 dark:text-slate-600">—</span>
+                        <span className="text-xs text-slate-300 dark:text-neutral-600">—</span>
                       )}
                     </td>
                   )}
                   {show("due") && (
                     <td className="px-3 py-2.5">
                       {t.due_date ? (
-                        <DueDateCell date={t.due_date} />
+                        <DueDateCell date={t.due_date} status={t.status} />
                       ) : (
-                        <span className="text-xs text-slate-300 dark:text-slate-600">—</span>
+                        <span className="text-xs text-slate-300 dark:text-neutral-600">—</span>
                       )}
                     </td>
                   )}
                   {show("sprint") && (
                     <td className="px-3 py-2.5">
                       {sprintName ? (
-                        <span className="text-xs text-slate-700 dark:text-slate-300 truncate block">
+                        <span className="text-xs text-slate-700 dark:text-neutral-300 truncate block">
                           {sprintName}
                         </span>
                       ) : (
-                        <span className="text-xs text-slate-300 dark:text-slate-600">—</span>
+                        <span className="text-xs text-slate-300 dark:text-neutral-600">—</span>
                       )}
                     </td>
                   )}
                   {show("created") && (
-                    <td className="px-3 py-2.5 text-xs text-slate-500 dark:text-slate-400">
+                    <td className="px-3 py-2.5 text-xs text-slate-500 dark:text-neutral-400">
                       {new Date(t.created_at).toLocaleDateString(undefined, {
                         month: "short",
                         day: "numeric",

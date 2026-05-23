@@ -181,16 +181,16 @@ function ProfileSettingsContent({
     <SettingsLayout>
       <div className="space-y-10">
         <header>
-          <h1 className="text-3xl font-semibold text-slate-900 dark:text-slate-100">Profile Settings</h1>
-          <p className="mt-2 text-slate-500 dark:text-slate-400">
+          <h1 className="text-3xl font-semibold text-slate-900 dark:text-neutral-200">Profile Settings</h1>
+          <p className="mt-2 text-slate-500 dark:text-neutral-400">
             Your personal account info — display name and email.
           </p>
         </header>
 
       <section className="space-y-4">
-        <h2 className="text-xl font-medium text-slate-900 dark:text-slate-100 dark:text-slate-100">General Settings</h2>
+        <h2 className="text-xl font-medium text-slate-900 dark:text-neutral-200 dark:text-neutral-200">General Settings</h2>
         <form onSubmit={onSave}>
-          <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 divide-y divide-slate-200 dark:divide-slate-800">
+          <div className="rounded-lg border border-slate-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 divide-y divide-slate-200 dark:divide-neutral-800">
             <SettingRow
               label="Avatar"
               description={
@@ -219,7 +219,7 @@ function ProfileSettingsContent({
                   disabled={uploading || updateMutation.isPending}
                   aria-label="Edit avatar"
                   aria-expanded={editOpen}
-                  className="group relative h-14 w-14 rounded-full overflow-hidden ring-1 ring-slate-200 dark:ring-slate-700 shadow-sm disabled:opacity-60 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                  className="group relative h-14 w-14 rounded-full overflow-hidden ring-1 ring-slate-200 dark:ring-neutral-700 shadow-sm disabled:opacity-60 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                 >
                   <Avatar
                     displayName={me.display_name}
@@ -238,7 +238,7 @@ function ProfileSettingsContent({
                 </button>
 
                 {editOpen && (
-                  <div className="absolute left-0 top-full mt-2 w-60 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-lg z-20 overflow-hidden">
+                  <div className="absolute left-0 top-full mt-2 w-60 rounded-lg border border-slate-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 shadow-lg z-20 overflow-hidden">
                     <button
                       type="button"
                       onClick={() => {
@@ -246,7 +246,7 @@ function ProfileSettingsContent({
                         setEditOpen(false);
                       }}
                       disabled={uploading}
-                      className="flex w-full items-center gap-2 px-3 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50 disabled:opacity-60"
+                      className="flex w-full items-center gap-2 px-3 py-2 text-sm text-slate-700 dark:text-neutral-300 hover:bg-slate-50 dark:hover:bg-neutral-800/50 disabled:opacity-60"
                     >
                       <Camera className="h-4 w-4" strokeWidth={1.7} />
                       {isUploadedAvatar(me.avatar_url) ? "Change photo" : "Upload new photo"}
@@ -264,7 +264,7 @@ function ProfileSettingsContent({
                           }
                         }}
                         disabled={updateMutation.isPending}
-                        className="flex w-full items-center gap-2 px-3 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50 disabled:opacity-60"
+                        className="flex w-full items-center gap-2 px-3 py-2 text-sm text-slate-700 dark:text-neutral-300 hover:bg-slate-50 dark:hover:bg-neutral-800/50 disabled:opacity-60"
                       >
                         <Trash2 className="h-4 w-4" strokeWidth={1.7} />
                         Remove photo
@@ -272,9 +272,9 @@ function ProfileSettingsContent({
                     )}
                     {!isUploadedAvatar(me.avatar_url) && (
                       <>
-                        <div className="border-t border-slate-100 dark:border-slate-800" />
+                        <div className="border-t border-slate-100 dark:border-neutral-800" />
                         <div className="px-3 py-2.5">
-                          <p className="text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400 font-semibold mb-2">
+                          <p className="text-[11px] uppercase tracking-wide text-slate-500 dark:text-neutral-400 font-semibold mb-2">
                             Background color
                           </p>
                           <div className="flex flex-wrap items-center gap-2">
@@ -287,8 +287,8 @@ function ProfileSettingsContent({
                                 title={c.name}
                                 className={`h-5 w-5 rounded-full ring-2 transition-shadow ${
                                   avatarColor === c.value
-                                    ? "ring-slate-900 dark:ring-slate-100"
-                                    : "ring-transparent hover:ring-slate-300 dark:hover:ring-slate-600"
+                                    ? "ring-slate-900 dark:ring-neutral-100"
+                                    : "ring-transparent hover:ring-slate-300 dark:hover:ring-neutral-600"
                                 }`}
                                 style={{ backgroundColor: c.value }}
                               />
@@ -298,7 +298,7 @@ function ProfileSettingsContent({
                             <button
                               type="button"
                               onClick={() => setAvatarColor(null)}
-                              className="mt-2 text-xs text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100"
+                              className="mt-2 text-xs text-slate-500 dark:text-neutral-400 hover:text-slate-900 dark:hover:text-neutral-100"
                             >
                               Reset to default
                             </button>
@@ -329,7 +329,7 @@ function ProfileSettingsContent({
               <Input
                 value={me.email ?? ""}
                 readOnly
-                className="bg-slate-50 dark:bg-slate-800/40 text-slate-500 dark:text-slate-400 cursor-default"
+                className="bg-slate-50 dark:bg-neutral-800/40 text-slate-500 dark:text-neutral-400 cursor-default"
               />
             </SettingRow>
             <div className="flex justify-end p-4">
@@ -426,30 +426,30 @@ function DangerZoneSection({ me }: { me: Me }) {
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-md rounded-xl bg-white dark:bg-slate-900 shadow-2xl p-6 space-y-4"
+            className="w-full max-w-md rounded-xl bg-white dark:bg-neutral-900 shadow-2xl p-6 space-y-4"
           >
             <div>
-              <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+              <h2 className="text-lg font-semibold text-slate-900 dark:text-neutral-200">
                 Delete your account?
               </h2>
-              <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
+              <p className="mt-1 text-sm text-slate-600 dark:text-neutral-400">
                 This will remove:
               </p>
-              <ul className="mt-2 text-sm text-slate-600 dark:text-slate-400 list-disc list-inside space-y-0.5">
+              <ul className="mt-2 text-sm text-slate-600 dark:text-neutral-400 list-disc list-inside space-y-0.5">
                 <li>Every workspace you own + everything inside</li>
                 <li>Your membership in shared workspaces</li>
                 <li>Your notifications, watch subscriptions, and invites</li>
               </ul>
-              <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+              <p className="mt-2 text-xs text-slate-500 dark:text-neutral-400">
                 Tasks and comments you authored in other workspaces stay, but
                 show as <span className="italic">Someone</span> afterwards.
               </p>
             </div>
 
             <div className="space-y-1">
-              <label className="text-xs font-medium text-slate-700 dark:text-slate-300">
+              <label className="text-xs font-medium text-slate-700 dark:text-neutral-300">
                 Type{" "}
-                <span className="font-mono text-slate-900 dark:text-slate-100">{me.email}</span>{" "}
+                <span className="font-mono text-slate-900 dark:text-neutral-200">{me.email}</span>{" "}
                 to confirm
               </label>
               <Input
@@ -521,14 +521,14 @@ function InvitationsSection({ invitations }: { invitations: Invitation[] }) {
   return (
     <section className="space-y-4">
       <div className="flex items-baseline gap-2">
-        <h2 className="text-xl font-medium text-slate-900 dark:text-slate-100 dark:text-slate-100">
+        <h2 className="text-xl font-medium text-slate-900 dark:text-neutral-200 dark:text-neutral-200">
           Workspace invitations
         </h2>
-        <span className="text-sm text-slate-400 dark:text-slate-500 tabular-nums">
+        <span className="text-sm text-slate-400 dark:text-neutral-500 tabular-nums">
           {invitations.length}
         </span>
       </div>
-      <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 divide-y divide-slate-200 dark:divide-slate-800">
+      <div className="rounded-lg border border-slate-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 divide-y divide-slate-200 dark:divide-neutral-800">
         {invitations.map((inv) => {
           const inviter =
             inv.invited_by_display_name ??
@@ -550,7 +550,7 @@ function InvitationsSection({ invitations }: { invitations: Invitation[] }) {
               className="grid grid-cols-[1fr_auto] items-center gap-4 p-5"
             >
               <div className="min-w-0">
-                <p className="text-slate-900 dark:text-slate-100 leading-snug">
+                <p className="text-slate-900 dark:text-neutral-200 leading-snug">
                   <span className="font-semibold">{inviter}</span> invited you
                   to{" "}
                   <span className="font-semibold">
@@ -558,7 +558,7 @@ function InvitationsSection({ invitations }: { invitations: Invitation[] }) {
                   </span>{" "}
                   as <span className="font-medium">{inv.role}</span>
                 </p>
-                <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">Sent {sent}</p>
+                <p className="mt-0.5 text-xs text-slate-500 dark:text-neutral-400">Sent {sent}</p>
               </div>
               <div className="flex items-center gap-2 shrink-0">
                 <Button
@@ -598,10 +598,10 @@ function SignInMethodsSection() {
   if (!identities) {
     return (
       <section className="space-y-4">
-        <h2 className="text-xl font-medium text-slate-900 dark:text-slate-100">
+        <h2 className="text-xl font-medium text-slate-900 dark:text-neutral-200">
           Sign-In Methods
         </h2>
-        <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
+        <div className="rounded-lg border border-slate-200 dark:border-neutral-800 bg-white dark:bg-neutral-900">
           <InlineSpinner />
         </div>
       </section>
@@ -650,17 +650,17 @@ function SignInMethodsSection() {
   return (
     <>
       <section className="space-y-4">
-        <h2 className="text-xl font-medium text-slate-900 dark:text-slate-100">
+        <h2 className="text-xl font-medium text-slate-900 dark:text-neutral-200">
           Sign-In Methods
         </h2>
         {/* Section-level meta hint: states the "at least one method"
             rule once instead of repeating it across rows. Lets each row's
             description stay self-contained (Password explains password,
             Google explains Google — neither references the other). */}
-        <p className="-mt-2 text-sm text-slate-500 dark:text-slate-400">
+        <p className="-mt-2 text-sm text-slate-500 dark:text-neutral-400">
           You need at least one active sign-in method.
         </p>
-        <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 divide-y divide-slate-200 dark:divide-slate-800">
+        <div className="rounded-lg border border-slate-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 divide-y divide-slate-200 dark:divide-neutral-800">
           <SettingRow
             label="Password"
             description={
@@ -779,13 +779,13 @@ function PasswordModal({
       <form
         onClick={(e) => e.stopPropagation()}
         onSubmit={handleSubmit}
-        className="w-full max-w-md rounded-xl bg-white dark:bg-slate-900 shadow-2xl p-6 space-y-4"
+        className="w-full max-w-md rounded-xl bg-white dark:bg-neutral-900 shadow-2xl p-6 space-y-4"
       >
         <div>
-          <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+          <h2 className="text-lg font-semibold text-slate-900 dark:text-neutral-200">
             {mode === "set" ? "Set a password" : "Change password"}
           </h2>
-          <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
+          <p className="mt-1 text-sm text-slate-600 dark:text-neutral-400">
             {mode === "set"
               ? "Add an email + password login alongside your existing methods."
               : "Enter a new password. You'll still be signed in afterward."}
@@ -793,7 +793,7 @@ function PasswordModal({
         </div>
         <div className="space-y-3">
           <div className="space-y-1">
-            <label className="text-xs font-medium text-slate-700 dark:text-slate-300">
+            <label className="text-xs font-medium text-slate-700 dark:text-neutral-300">
               New password
             </label>
             <Input
@@ -812,7 +812,7 @@ function PasswordModal({
             )}
           </div>
           <div className="space-y-1">
-            <label className="text-xs font-medium text-slate-700 dark:text-slate-300">
+            <label className="text-xs font-medium text-slate-700 dark:text-neutral-300">
               Confirm new password
             </label>
             <Input
@@ -866,9 +866,9 @@ function SettingRow({
     // column is a fixed 320px so inputs don't stretch to ridiculous widths.
     <div className="grid grid-cols-[1fr_320px] items-center gap-6 p-5">
       <div>
-        <div className="font-medium text-slate-900 dark:text-slate-100">{label}</div>
+        <div className="font-medium text-slate-900 dark:text-neutral-200">{label}</div>
         {description && (
-          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{description}</p>
+          <p className="mt-1 text-sm text-slate-500 dark:text-neutral-400">{description}</p>
         )}
       </div>
       <div className="min-w-0">{children}</div>

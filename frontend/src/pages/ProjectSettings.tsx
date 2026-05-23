@@ -150,12 +150,12 @@ function ProjectSettingsContent({
   return (
     <SettingsLayout>
       <header className="mb-10">
-        <h1 className="text-3xl font-semibold text-slate-900 dark:text-slate-100">
+        <h1 className="text-3xl font-semibold text-slate-900 dark:text-neutral-200">
           Project Settings
         </h1>
-        <p className="mt-2 text-slate-500 dark:text-slate-400">
+        <p className="mt-2 text-slate-500 dark:text-neutral-400">
           Configure{" "}
-          <span className="font-medium text-slate-700 dark:text-slate-300">
+          <span className="font-medium text-slate-700 dark:text-neutral-300">
             {currentProject.name}
           </span>{" "}
           — rename, describe, or delete.
@@ -164,11 +164,11 @@ function ProjectSettingsContent({
 
       <div className="space-y-10 min-w-0">
         <section className="space-y-4">
-          <h2 className="text-xl font-medium text-slate-900 dark:text-slate-100">
+          <h2 className="text-xl font-medium text-slate-900 dark:text-neutral-200">
             General Settings
           </h2>
           <form onSubmit={onSave}>
-            <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 divide-y divide-slate-100 dark:divide-slate-800">
+            <div className="rounded-lg border border-slate-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 divide-y divide-slate-100 dark:divide-neutral-800">
               <SettingRow
                 label="Project Name"
                 description="Shown in the sidebar and project header."
@@ -198,18 +198,18 @@ function ProjectSettingsContent({
                     minLength={2}
                     maxLength={10}
                   />
-                  <p className="text-xs text-slate-500 dark:text-slate-400 whitespace-nowrap overflow-hidden text-ellipsis">
+                  <p className="text-xs text-slate-500 dark:text-neutral-400 whitespace-nowrap overflow-hidden text-ellipsis">
                     Task IDs:{" "}
                     {[1, 2, 3].map((n) => (
                       <span key={n}>
-                        <span className="font-mono text-slate-700 dark:text-slate-300">
+                        <span className="font-mono text-slate-700 dark:text-neutral-300">
                           {(normalisedKey || "KEY")}-{n}
                         </span>
                         {n < 3 ? ", " : " …"}
                       </span>
                     ))}
                   </p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                  <p className="text-xs text-slate-500 dark:text-neutral-400">
                     2–10 characters · uppercase letters and digits
                   </p>
                   {keyChanged && (
@@ -244,7 +244,7 @@ function ProjectSettingsContent({
                         title={c}
                         className={`relative w-6 h-6 rounded-full transition-transform hover:scale-110 focus:outline-none ${
                           active
-                            ? "ring-2 ring-offset-2 ring-slate-900 dark:ring-slate-100 dark:ring-offset-slate-900"
+                            ? "ring-2 ring-offset-2 ring-slate-900 dark:ring-neutral-100 dark:ring-offset-neutral-900"
                             : ""
                         }`}
                         style={{ backgroundColor: c }}
@@ -269,18 +269,18 @@ function ProjectSettingsContent({
                     onClick={() => setColorDraft(null)}
                     aria-label="Use default color"
                     title="Use default (auto-pick from project key)"
-                    className="relative w-6 h-6 rounded-full border border-dashed border-slate-300 dark:border-slate-600 flex items-center justify-center text-[10px] leading-none font-semibold text-slate-400 dark:text-slate-500 transition-transform hover:scale-110 hover:text-slate-600 dark:hover:text-slate-300 focus:outline-none"
+                    className="relative w-6 h-6 rounded-full border border-dashed border-slate-300 dark:border-neutral-600 flex items-center justify-center text-[10px] leading-none font-semibold text-slate-400 dark:text-neutral-500 transition-transform hover:scale-110 hover:text-slate-600 dark:hover:text-neutral-300 focus:outline-none"
                   >
                     A
                   </button>
                 </div>
               </SettingRow>
-              {/* Footer bar — bg-slate-50 dark:bg-slate-800/40 to read as a "form footer"
+              {/* Footer bar — bg-slate-50 dark:bg-neutral-800/40 to read as a "form footer"
                   separate from data rows. The Save button only enables
                   when there's something to save. */}
-              <div className="flex items-center justify-end gap-3 px-5 py-3 bg-slate-50/50 dark:bg-slate-800/30">
+              <div className="flex items-center justify-end gap-3 px-5 py-3 bg-slate-50/50 dark:bg-neutral-800/30">
                 {dirty && (
-                  <span className="text-xs text-slate-500 dark:text-slate-400">Unsaved changes</span>
+                  <span className="text-xs text-slate-500 dark:text-neutral-400">Unsaved changes</span>
                 )}
                 <Button
                   type="submit"
@@ -337,11 +337,11 @@ function SettingRow({
   return (
     <div className="grid grid-cols-[280px_1fr] items-start gap-6 p-5">
       <div>
-        <div className="font-medium text-slate-900 dark:text-slate-100">
+        <div className="font-medium text-slate-900 dark:text-neutral-200">
           {label}
         </div>
         {description && (
-          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+          <p className="mt-1 text-sm text-slate-500 dark:text-neutral-400">
             {description}
           </p>
         )}

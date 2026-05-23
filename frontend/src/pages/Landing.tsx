@@ -50,7 +50,7 @@ function BoardMock() {
   const pri = {
     urgent: "bg-red-100 dark:bg-red-950/40 text-red-700 dark:text-red-300",
     high: "bg-amber-100 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300",
-    med: "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400",
+    med: "bg-slate-100 dark:bg-neutral-800 text-slate-600 dark:text-neutral-400",
     low: "bg-emerald-100 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300",
   } as const;
 
@@ -74,22 +74,22 @@ function BoardMock() {
         className="absolute -inset-x-6 -inset-y-8 bg-gradient-to-br from-blue-200/50 via-violet-200/30 to-emerald-100/30 blur-3xl rounded-[3rem]"
       />
       {/* Mock browser frame */}
-      <div className="relative rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xl shadow-slate-900/10 overflow-hidden">
-        <div className="flex items-center gap-1.5 px-4 py-2.5 border-b border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/40">
+      <div className="relative rounded-2xl border border-slate-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-2xl shadow-slate-900/10 overflow-hidden">
+        <div className="flex items-center gap-1.5 px-4 py-2.5 border-b border-slate-100 dark:border-neutral-800 bg-slate-50/80 dark:bg-neutral-800/40">
           <span className="w-2.5 h-2.5 rounded-full bg-red-300/80" />
           <span className="w-2.5 h-2.5 rounded-full bg-amber-300/80" />
           <span className="w-2.5 h-2.5 rounded-full bg-emerald-300/80" />
-          <span className="ml-3 text-[11px] text-slate-400 dark:text-slate-500">
+          <span className="ml-3 text-[11px] text-slate-400 dark:text-neutral-500">
             trackly.app / engineering / backend / board
           </span>
         </div>
-        <div className="relative p-4 grid grid-cols-3 gap-3 bg-slate-50/40 dark:bg-slate-950/40">
+        <div className="relative p-4 grid grid-cols-3 gap-3 bg-slate-50/40 dark:bg-neutral-950/40">
           {/* Ghost card — absolutely positioned over the Todo column at
               roughly the second-row position, then translates one column
               + gap to land in the highlighted In progress column. */}
           <div
             aria-hidden
-            className="absolute pointer-events-none z-10 rounded-md border border-sky-300 dark:border-sky-700 bg-white dark:bg-slate-900 shadow-xl"
+            className="absolute pointer-events-none z-10 rounded-md border border-sky-300 dark:border-sky-700 bg-white dark:bg-neutral-900 shadow-xl"
             style={{
               top: "100px",
               left: "16px",
@@ -98,7 +98,7 @@ function BoardMock() {
               animation: "landingDragGhost 5s ease-in-out infinite",
             }}
           >
-            <p className="text-[11px] leading-tight text-slate-800 dark:text-slate-200">
+            <p className="text-[11px] leading-tight text-slate-800 dark:text-neutral-200">
               Drag cards across columns
             </p>
             <div className="mt-1.5 flex items-center justify-between">
@@ -119,12 +119,12 @@ function BoardMock() {
             <div
               key={col.label}
               className={`rounded-lg p-2 min-h-[160px] ${
-                col.highlight ? "bg-blue-50/80 dark:bg-blue-950/30 ring-2 ring-blue-200 dark:ring-blue-800/40" : "bg-slate-100 dark:bg-slate-800"
+                col.highlight ? "bg-blue-50/80 dark:bg-blue-950/30 ring-2 ring-blue-200 dark:ring-blue-800/40" : "bg-slate-100 dark:bg-neutral-800"
               }`}
             >
-              <p className="mb-2 px-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-600 dark:text-slate-400">
+              <p className="mb-2 px-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-600 dark:text-neutral-400">
                 {col.label}{" "}
-                <span className="text-slate-400 dark:text-slate-500 font-normal">
+                <span className="text-slate-400 dark:text-neutral-500 font-normal">
                   {col.cards.length}
                 </span>
               </p>
@@ -132,9 +132,9 @@ function BoardMock() {
                 {col.cards.map((c) => (
                   <div
                     key={c.id}
-                    className="rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-2"
+                    className="rounded-md border border-slate-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 p-2"
                   >
-                    <p className="text-[11px] leading-tight text-slate-800 dark:text-slate-200">
+                    <p className="text-[11px] leading-tight text-slate-800 dark:text-neutral-200">
                       {c.title}
                     </p>
                     <div className="mt-1.5 flex items-center justify-between">
@@ -173,12 +173,12 @@ function FeatureCard({
   body: string;
 }) {
   return (
-    <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 transition-shadow hover:shadow-sm">
-      <div className="w-10 h-10 rounded-lg bg-slate-50 dark:bg-slate-800/40 text-slate-700 dark:text-slate-300 flex items-center justify-center">
+    <div className="rounded-xl border border-slate-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 p-6 transition-shadow hover:shadow-sm">
+      <div className="w-10 h-10 rounded-lg bg-slate-50 dark:bg-neutral-800/40 text-slate-700 dark:text-neutral-300 flex items-center justify-center">
         {icon}
       </div>
-      <h3 className="mt-4 text-base font-semibold text-slate-900 dark:text-slate-100">{title}</h3>
-      <p className="mt-1.5 text-sm leading-relaxed text-slate-500 dark:text-slate-400">{body}</p>
+      <h3 className="mt-4 text-base font-semibold text-slate-900 dark:text-neutral-200">{title}</h3>
+      <p className="mt-1.5 text-sm leading-relaxed text-slate-500 dark:text-neutral-400">{body}</p>
     </div>
   );
 }
@@ -268,7 +268,7 @@ function ThemeToggle() {
       onClick={() => setTheme(isDark ? "light" : "dark")}
       aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
       title={isDark ? "Switch to light mode" : "Switch to dark mode"}
-      className="inline-flex items-center justify-center w-8 h-8 rounded-md text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100 transition-colors"
+      className="inline-flex items-center justify-center w-8 h-8 rounded-md text-slate-500 dark:text-neutral-400 hover:bg-slate-100 dark:hover:bg-neutral-800 hover:text-slate-900 dark:hover:text-neutral-100 transition-colors"
     >
       {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
     </button>
@@ -285,7 +285,7 @@ function Logo({ className = "" }: { className?: string }) {
         alt="Trackly logo"
         className="w-6 h-6 dark:invert dark:hue-rotate-180"
       />
-      <span className="text-slate-900 dark:text-slate-100">trackly</span>
+      <span className="text-slate-900 dark:text-neutral-200">trackly</span>
     </span>
   );
 }
@@ -316,9 +316,9 @@ export default function Landing() {
   };
 
   return (
-    <div className="min-h-screen bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">
+    <div className="min-h-screen bg-white dark:bg-neutral-900 text-slate-900 dark:text-neutral-200">
       {/* Nav */}
-      <header className="sticky top-0 z-20 bg-white/80 dark:bg-slate-900/80 backdrop-blur border-b border-slate-100 dark:border-slate-800">
+      <header className="sticky top-0 z-20 bg-white/80 dark:bg-neutral-900/80 backdrop-blur border-b border-slate-100 dark:border-neutral-800">
         <nav className="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
           <Logo />
           <div className="flex items-center gap-2">
@@ -326,7 +326,7 @@ export default function Landing() {
             <button
               type="button"
               onClick={() => setDialog("signin")}
-              className="px-3 py-1.5 text-sm font-medium text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100"
+              className="px-3 py-1.5 text-sm font-medium text-slate-700 dark:text-neutral-300 hover:text-slate-900 dark:hover:text-neutral-100"
             >
               Log in
             </button>
@@ -349,18 +349,18 @@ export default function Landing() {
         />
         <div className="relative max-w-6xl mx-auto px-6 pt-16 pb-12 sm:pt-24 sm:pb-20 grid lg:grid-cols-[1.05fr_1fr] gap-12 lg:gap-16 items-center">
           <div>
-            <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-1 text-xs text-slate-600 dark:text-slate-400">
+            <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 px-3 py-1 text-xs text-slate-600 dark:text-neutral-400">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
               Built for shipping teams
             </div>
             <h1 className="mt-5 text-4xl sm:text-5xl lg:text-[3.4rem] font-bold tracking-tight leading-[1.05]">
               Ship work,
               <br />
-              <span className="bg-gradient-to-br from-slate-900 via-slate-700 to-slate-500 dark:from-slate-100 dark:via-slate-300 dark:to-slate-500 bg-clip-text text-transparent">
+              <span className="bg-gradient-to-br from-slate-900 via-slate-700 to-slate-500 dark:from-neutral-100 dark:via-neutral-300 dark:to-neutral-500 bg-clip-text text-transparent">
                 not paperwork.
               </span>
             </h1>
-            <p className="mt-5 text-lg leading-relaxed text-slate-500 dark:text-slate-400 max-w-xl">
+            <p className="mt-5 text-lg leading-relaxed text-slate-500 dark:text-neutral-400 max-w-xl">
               An opinionated task tracker. Start with a flat list of tasks —
               turn on sprints, goals, and dependencies only when your team
               needs them.
@@ -376,14 +376,14 @@ export default function Landing() {
               <button
                 type="button"
                 onClick={() => setDialog("signin")}
-                className="text-sm font-medium text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100 px-3 py-2"
+                className="text-sm font-medium text-slate-700 dark:text-neutral-300 hover:text-slate-900 dark:hover:text-neutral-100 px-3 py-2"
               >
                 Already have an account? Log in →
               </button>
             </div>
-            <div className="mt-8 flex items-center gap-4 text-xs text-slate-400 dark:text-slate-500">
+            <div className="mt-8 flex items-center gap-4 text-xs text-slate-400 dark:text-neutral-500">
               <span>No credit card required</span>
-              <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600" />
+              <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-neutral-600" />
               <span>Set up in under a minute</span>
             </div>
           </div>
@@ -396,7 +396,7 @@ export default function Landing() {
       {/* Features */}
       <section className="max-w-6xl mx-auto px-6 py-14 sm:py-20">
         <div className="max-w-2xl">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500 dark:text-neutral-400">
             What you get
           </p>
           <h2 className="mt-2 text-3xl sm:text-4xl font-bold tracking-tight">
@@ -410,8 +410,8 @@ export default function Landing() {
           className="mt-10 relative overflow-hidden group"
           aria-label="Feature highlights"
         >
-          <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-16 bg-gradient-to-r from-white dark:from-slate-900 to-transparent" />
-          <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-16 bg-gradient-to-l from-white dark:from-slate-900 to-transparent" />
+          <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-16 bg-gradient-to-r from-white dark:from-neutral-900 to-transparent" />
+          <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-16 bg-gradient-to-l from-white dark:from-neutral-900 to-transparent" />
           <div className="flex w-max gap-4 motion-safe:animate-marquee group-hover:[animation-play-state:paused]">
             {[...FEATURES, ...FEATURES].map((f, i) => (
               <div key={i} className="w-80 shrink-0" aria-hidden={i >= FEATURES.length}>
@@ -423,13 +423,13 @@ export default function Landing() {
       </section>
 
       {/* CTA strip */}
-      <section className="border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/20">
+      <section className="border-t border-slate-100 dark:border-neutral-800 bg-slate-50/50 dark:bg-neutral-800/20">
         <div className="max-w-6xl mx-auto px-6 py-14 sm:py-16 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
           <div>
             <h3 className="text-2xl font-bold tracking-tight">
               Start tracking in a minute.
             </h3>
-            <p className="mt-1.5 text-slate-500 dark:text-slate-400">
+            <p className="mt-1.5 text-slate-500 dark:text-neutral-400">
               Create a workspace, add your first task, and ship.
             </p>
           </div>
@@ -444,9 +444,9 @@ export default function Landing() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-slate-100 dark:border-slate-800">
-        <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between text-xs text-slate-400 dark:text-slate-500">
-          <Logo className="text-slate-500 dark:text-slate-400" />
+      <footer className="border-t border-slate-100 dark:border-neutral-800">
+        <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between text-xs text-slate-400 dark:text-neutral-500">
+          <Logo className="text-slate-500 dark:text-neutral-400" />
           <span>© {new Date().getFullYear()} Trackly</span>
         </div>
       </footer>

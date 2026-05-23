@@ -142,7 +142,7 @@ function ProgressBar({
       : 0;
   return (
     <div
-      className={`${height} w-full rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden flex`}
+      className={`${height} w-full rounded-full bg-slate-100 dark:bg-neutral-800 overflow-hidden flex`}
     >
       <div
         className="bg-emerald-500 h-full transition-all"
@@ -173,7 +173,7 @@ function ActiveSprintCard({
     <button
       type="button"
       onClick={onClick}
-      className="group block w-full text-left rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 hover:border-slate-300 hover:shadow-sm transition-all"
+      className="group block w-full text-left rounded-xl border border-slate-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 p-5 hover:border-slate-300 hover:shadow-sm transition-all"
     >
       <div className="flex items-center gap-2 mb-3">
         <StatusDot status="active" />
@@ -185,20 +185,20 @@ function ActiveSprintCard({
 
       <div className="flex items-start justify-between gap-4 mb-3">
         <div>
-          <h3 className="text-xl font-semibold text-slate-900 dark:text-slate-100">
+          <h3 className="text-xl font-semibold text-slate-900 dark:text-neutral-200">
             {sprint.name}
           </h3>
-          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+          <p className="mt-1 text-sm text-slate-500 dark:text-neutral-400">
             {dateRangeText(sprint)}
-            {dur ? <span className="text-slate-400 dark:text-slate-500"> · {dur}</span> : null}
+            {dur ? <span className="text-slate-400 dark:text-neutral-500"> · {dur}</span> : null}
           </p>
         </div>
         <div className="text-right shrink-0">
-          <div className="text-3xl font-bold text-slate-900 dark:text-slate-100 tabular-nums leading-none">
+          <div className="text-3xl font-bold text-slate-900 dark:text-neutral-200 tabular-nums leading-none">
             {donePct}
-            <span className="text-base font-medium text-slate-400 dark:text-slate-500">%</span>
+            <span className="text-base font-medium text-slate-400 dark:text-neutral-500">%</span>
           </div>
-          <p className="mt-1 text-[11px] uppercase tracking-wide text-slate-400 dark:text-slate-500">
+          <p className="mt-1 text-[11px] uppercase tracking-wide text-slate-400 dark:text-neutral-500">
             Complete
           </p>
         </div>
@@ -210,7 +210,7 @@ function ActiveSprintCard({
         <Stat label="Total" value={stats.total} />
         <Stat label="In progress" value={stats.inProgress} accent="amber" />
         <Stat label="Done" value={stats.done} accent="emerald" />
-        <span className="ml-auto text-slate-400 dark:text-slate-500 group-hover:text-slate-600 transition-colors">
+        <span className="ml-auto text-slate-400 dark:text-neutral-500 group-hover:text-slate-600 transition-colors">
           View sprint →
         </span>
       </div>
@@ -232,13 +232,13 @@ function Stat({
       ? "text-amber-700"
       : accent === "emerald"
         ? "text-emerald-700"
-        : "text-slate-900 dark:text-slate-100";
+        : "text-slate-900 dark:text-neutral-200";
   return (
     <div className="flex items-baseline gap-1.5">
       <span className={`text-sm font-semibold tabular-nums ${valueCls}`}>
         {value}
       </span>
-      <span className="text-slate-500 dark:text-slate-400">{label}</span>
+      <span className="text-slate-500 dark:text-neutral-400">{label}</span>
     </div>
   );
 }
@@ -257,25 +257,25 @@ function PlannedSprintCard({
     <button
       type="button"
       onClick={onClick}
-      className="text-left rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 hover:border-slate-300 hover:shadow-sm transition-all"
+      className="text-left rounded-lg border border-slate-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 p-4 hover:border-slate-300 hover:shadow-sm transition-all"
     >
       <div className="flex items-center gap-2 mb-2">
         <StatusDot status="planned" />
         <CountdownPill sprint={sprint} />
       </div>
-      <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100 truncate">
+      <h3 className="text-base font-semibold text-slate-900 dark:text-neutral-200 truncate">
         {sprint.name}
       </h3>
-      <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
+      <p className="mt-0.5 text-xs text-slate-500 dark:text-neutral-400">
         {dateRangeText(sprint)}
-        {dur ? <span className="text-slate-400 dark:text-slate-500"> · {dur}</span> : null}
+        {dur ? <span className="text-slate-400 dark:text-neutral-500"> · {dur}</span> : null}
       </p>
-      <div className="mt-3 text-xs text-slate-500 dark:text-slate-400">
+      <div className="mt-3 text-xs text-slate-500 dark:text-neutral-400">
         {stats.total === 0 ? (
-          <span className="text-slate-400 dark:text-slate-500">No tasks yet</span>
+          <span className="text-slate-400 dark:text-neutral-500">No tasks yet</span>
         ) : (
           <span>
-            <span className="font-semibold text-slate-700 dark:text-slate-300 tabular-nums">
+            <span className="font-semibold text-slate-700 dark:text-neutral-300 tabular-nums">
               {stats.total}
             </span>{" "}
             task{stats.total === 1 ? "" : "s"} queued
@@ -299,14 +299,14 @@ function CompletedSprintRow({
     <button
       type="button"
       onClick={onClick}
-      className="flex items-center w-full text-left gap-4 rounded-lg border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:border-slate-200 transition-colors"
+      className="flex items-center w-full text-left gap-4 rounded-lg border border-slate-100 dark:border-neutral-800 bg-white dark:bg-neutral-900 px-4 py-3 hover:bg-slate-50 dark:hover:bg-neutral-800/50 hover:border-slate-200 transition-colors"
     >
       <StatusDot status="completed" />
-      <span className="font-medium text-slate-700 dark:text-slate-300 truncate">{sprint.name}</span>
-      <span className="text-xs text-slate-400 dark:text-slate-500 tabular-nums">
+      <span className="font-medium text-slate-700 dark:text-neutral-300 truncate">{sprint.name}</span>
+      <span className="text-xs text-slate-400 dark:text-neutral-500 tabular-nums">
         {dateRangeText(sprint)}
       </span>
-      <span className="ml-auto text-xs text-slate-500 dark:text-slate-400 tabular-nums">
+      <span className="ml-auto text-xs text-slate-500 dark:text-neutral-400 tabular-nums">
         {stats.done}/{stats.total} done
       </span>
     </button>
@@ -364,9 +364,9 @@ function NewSprintModal({
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-md rounded-lg bg-white dark:bg-slate-900 shadow-xl p-5 space-y-4"
+        className="w-full max-w-md rounded-lg bg-white dark:bg-neutral-900 shadow-xl p-5 space-y-4"
       >
-        <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">New Sprint</h2>
+        <h2 className="text-lg font-semibold text-slate-900 dark:text-neutral-200">New Sprint</h2>
         <form onSubmit={onSubmit} className="space-y-3">
           <div className="space-y-1">
             <Label htmlFor="sprint-name">Name</Label>
@@ -389,7 +389,7 @@ function NewSprintModal({
                 type="date"
                 value={startAt}
                 onChange={(e) => setStartAt(e.target.value)}
-                className="w-full rounded border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2 py-1.5 text-sm"
+                className="w-full rounded border border-slate-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 px-2 py-1.5 text-sm"
               />
             </div>
             <div className="space-y-1">
@@ -399,11 +399,11 @@ function NewSprintModal({
                 type="date"
                 value={endAt}
                 onChange={(e) => setEndAt(e.target.value)}
-                className="w-full rounded border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2 py-1.5 text-sm"
+                className="w-full rounded border border-slate-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 px-2 py-1.5 text-sm"
               />
             </div>
           </div>
-          <p className="text-xs text-slate-500 dark:text-slate-400">
+          <p className="text-xs text-slate-500 dark:text-neutral-400">
             Dates are optional. The sprint starts as{" "}
             <span className="font-medium">Planned</span> — activate it from its
             detail page when ready.
@@ -497,10 +497,10 @@ export default function SprintList() {
       <section className="space-y-2">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <h2 className="text-sm font-semibold uppercase tracking-[0.08em] text-slate-500 dark:text-slate-400">
+            <h2 className="text-sm font-semibold uppercase tracking-[0.08em] text-slate-500 dark:text-neutral-400">
               Active
             </h2>
-            <span className="text-xs text-slate-400 dark:text-slate-500 tabular-nums">
+            <span className="text-xs text-slate-400 dark:text-neutral-500 tabular-nums">
               {active.length}
             </span>
           </div>
@@ -516,8 +516,8 @@ export default function SprintList() {
         {isLoading && <InlineSpinner />}
 
         {!isLoading && active.length === 0 && (
-          <div className="rounded-xl border border-dashed border-slate-200 dark:border-slate-800 bg-slate-50/50 p-6 text-center">
-            <p className="text-sm text-slate-500 dark:text-slate-400">
+          <div className="rounded-xl border border-dashed border-slate-200 dark:border-neutral-800 bg-slate-50/50 p-6 text-center">
+            <p className="text-sm text-slate-500 dark:text-neutral-400">
               No active sprint. Start one from a planned sprint's detail page.
             </p>
           </div>
@@ -536,10 +536,10 @@ export default function SprintList() {
       {planned.length > 0 && (
         <section className="space-y-2">
           <div className="flex items-center gap-2">
-            <h2 className="text-sm font-semibold uppercase tracking-[0.08em] text-slate-500 dark:text-slate-400">
+            <h2 className="text-sm font-semibold uppercase tracking-[0.08em] text-slate-500 dark:text-neutral-400">
               Planned
             </h2>
-            <span className="text-xs text-slate-400 dark:text-slate-500 tabular-nums">
+            <span className="text-xs text-slate-400 dark:text-neutral-500 tabular-nums">
               {planned.length}
             </span>
           </div>
@@ -557,8 +557,8 @@ export default function SprintList() {
       )}
 
       {completed.length > 0 && (
-        <section className="space-y-3 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4">
-          <h2 className="text-sm font-semibold uppercase tracking-[0.08em] text-slate-500 dark:text-slate-400">
+        <section className="space-y-3 rounded-lg border border-slate-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 p-4">
+          <h2 className="text-sm font-semibold uppercase tracking-[0.08em] text-slate-500 dark:text-neutral-400">
             Velocity
           </h2>
           <VelocityChart projectId={projectId} />
@@ -568,10 +568,10 @@ export default function SprintList() {
       {completed.length > 0 && (
         <section className="space-y-2">
           <div className="flex items-center gap-2">
-            <h2 className="text-sm font-semibold uppercase tracking-[0.08em] text-slate-500 dark:text-slate-400">
+            <h2 className="text-sm font-semibold uppercase tracking-[0.08em] text-slate-500 dark:text-neutral-400">
               Completed
             </h2>
-            <span className="text-xs text-slate-400 dark:text-slate-500 tabular-nums">
+            <span className="text-xs text-slate-400 dark:text-neutral-500 tabular-nums">
               {completed.length}
             </span>
           </div>
@@ -589,7 +589,7 @@ export default function SprintList() {
             <button
               type="button"
               onClick={() => setShowAllCompleted((v) => !v)}
-              className="text-xs text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100"
+              className="text-xs text-slate-500 dark:text-neutral-400 hover:text-slate-900 dark:hover:text-neutral-100"
             >
               {showAllCompleted
                 ? "Show fewer"

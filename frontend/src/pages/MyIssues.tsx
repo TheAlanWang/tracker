@@ -137,23 +137,23 @@ function ColumnVisibilityMenu({
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="inline-flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md px-2.5 py-1 transition-colors"
+        className="inline-flex items-center gap-1.5 text-xs text-slate-600 dark:text-neutral-400 hover:text-slate-900 dark:hover:text-neutral-100 hover:bg-slate-100 dark:hover:bg-neutral-800 rounded-md px-2.5 py-1 transition-colors"
       >
         <ColumnsIcon />
         <span>Columns</span>
       </button>
       {open && (
-        <div className="absolute right-0 mt-1 w-48 bg-white dark:bg-slate-900 rounded-md border border-slate-200 dark:border-slate-800 shadow-lg z-30 py-1">
+        <div className="absolute right-0 mt-1 w-48 bg-white dark:bg-neutral-900 rounded-md border border-slate-200 dark:border-neutral-800 shadow-lg z-30 py-1">
           {COLUMNS.map((c) => (
             <label
               key={c.key}
-              className="flex items-center gap-2 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.08em] text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer select-none"
+              className="flex items-center gap-2 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.08em] text-slate-600 dark:text-neutral-400 hover:bg-slate-50 dark:hover:bg-neutral-800/50 cursor-pointer select-none"
             >
               <input
                 type="checkbox"
                 checked={!hidden.has(c.key)}
                 onChange={() => onToggle(c.key)}
-                className="rounded border-slate-300 dark:border-slate-700"
+                className="rounded border-slate-300 dark:border-neutral-700"
               />
               <span>{c.label}</span>
             </label>
@@ -164,18 +164,22 @@ function ColumnVisibilityMenu({
   );
 }
 
-function DueDateCell({ date }: { date: string }) {
+function DueDateCell({ date, status }: { date: string; status?: TaskStatus }) {
+  // Done / cancelled: due date is informational only, no overdue red.
+  const completed = status === "done" || status === "cancelled";
   const due = new Date(date);
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  const overdue = due.getTime() < today.getTime();
+  const overdue = !completed && due.getTime() < today.getTime();
   const soon =
-    !overdue && due.getTime() - today.getTime() < 3 * 24 * 60 * 60 * 1000;
+    !completed &&
+    !overdue &&
+    due.getTime() - today.getTime() < 3 * 24 * 60 * 60 * 1000;
   const cls = overdue
-    ? "text-red-600"
+    ? "text-red-500 dark:text-red-400"
     : soon
       ? "text-amber-600"
-      : "text-slate-600 dark:text-slate-400";
+      : "text-slate-600 dark:text-neutral-400";
   return (
     <span className={`text-xs ${cls}`}>
       {due.toLocaleDateString(undefined, { month: "short", day: "numeric" })}
@@ -270,12 +274,12 @@ function MyIssuesContent() {
     <div className="space-y-4">
       <div className="flex items-end justify-between gap-4 flex-wrap">
         <div className="flex items-baseline gap-3">
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-neutral-200">
             My Tasks
           </h1>
           {/* Row count — gives the page a quick "how much am I looking
               at" anchor that updates with every filter / sort change. */}
-          <span className="text-sm text-slate-400 dark:text-slate-500 tabular-nums">
+          <span className="text-sm text-slate-400 dark:text-neutral-500 tabular-nums">
             {displayedTasks.length} task{displayedTasks.length === 1 ? "" : "s"}
           </span>
         </div>
@@ -283,14 +287,14 @@ function MyIssuesContent() {
           {/* View toggle — assigned (default) vs everything I'm watching.
               Active button gets a clearer contrast (shadow + bg-white on a
               slate-100 track) so it doesn't blend with the inactive one. */}
-          <div className="inline-flex rounded-md bg-slate-100 dark:bg-slate-800 p-0.5 text-sm">
+          <div className="inline-flex rounded-md bg-slate-100 dark:bg-neutral-800 p-0.5 text-sm">
             <button
               type="button"
               onClick={() => setView("assigned")}
               className={`px-3 py-1 rounded transition-colors ${
                 view === "assigned"
                   ? "bg-blue-600 text-white font-medium shadow-sm"
-                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100"
+                  : "text-slate-600 dark:text-neutral-400 hover:text-slate-900 dark:hover:text-neutral-100"
               }`}
             >
               Assigned to me
@@ -301,7 +305,7 @@ function MyIssuesContent() {
               className={`px-3 py-1 rounded transition-colors ${
                 view === "watching"
                   ? "bg-blue-600 text-white font-medium shadow-sm"
-                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100"
+                  : "text-slate-600 dark:text-neutral-400 hover:text-slate-900 dark:hover:text-neutral-100"
               }`}
             >
               Watching
@@ -362,7 +366,7 @@ function MyIssuesContent() {
         // TaskTableCard so every list page in the app stays in sync.
         <TaskTableCard>
               <TaskTableHead>
-                <tr className="text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                <tr className="text-[11px] uppercase tracking-wide text-slate-500 dark:text-neutral-400">
                   {COLUMNS.map((c) => {
                     if (!show(c.key)) return null;
                     const sortField = COL_SORT_FIELD[c.key];
@@ -405,12 +409,12 @@ function MyIssuesContent() {
                   })}
                 </tr>
               </TaskTableHead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
+              <tbody className="divide-y divide-slate-100 dark:divide-neutral-800/60">
                 {displayedTasks.length === 0 && (
                   <tr>
                     <td
                       colSpan={COLUMNS.filter((c) => show(c.key)).length}
-                      className="px-3 py-10 text-center text-sm text-slate-400 dark:text-slate-500"
+                      className="px-3 py-10 text-center text-sm text-slate-400 dark:text-neutral-500"
                     >
                       No tasks match the current filters.
                     </td>
@@ -421,18 +425,18 @@ function MyIssuesContent() {
                   return (
                     <tr
                       key={issue.id}
-                      className="cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors"
+                      className="cursor-pointer hover:bg-slate-50 dark:hover:bg-neutral-800/40 transition-colors"
                       onClick={() => setOpenTaskId(issue.id)}
                     >
                       {show("id") && (
-                        <td className="px-3 py-2.5 font-mono text-xs text-slate-500 dark:text-slate-400">
+                        <td className="px-3 py-2.5 font-mono text-xs text-slate-500 dark:text-neutral-400">
                           {issue.identifier}
                         </td>
                       )}
                       {show("project") && (
                         <td className="px-3 py-2.5">
                           {project ? (
-                            <span className="inline-flex items-center gap-1.5 text-xs text-slate-700 dark:text-slate-300">
+                            <span className="inline-flex items-center gap-1.5 text-xs text-slate-700 dark:text-neutral-300">
                               <span
                                 className="w-1.5 h-1.5 rounded-full shrink-0"
                                 style={{
@@ -445,13 +449,13 @@ function MyIssuesContent() {
                               <span className="truncate">{project.name}</span>
                             </span>
                           ) : (
-                            <span className="text-xs text-slate-400 dark:text-slate-500">—</span>
+                            <span className="text-xs text-slate-400 dark:text-neutral-500">—</span>
                           )}
                         </td>
                       )}
                       {show("title") && (
                         <td className="px-3 py-2.5" title={issue.title}>
-                          <div className="truncate text-slate-800 dark:text-slate-200">
+                          <div className="truncate text-slate-800 dark:text-neutral-200">
                             {issue.title}
                           </div>
                         </td>
@@ -469,14 +473,14 @@ function MyIssuesContent() {
                       {show("due") && (
                         <td className="px-3 py-2.5">
                           {issue.due_date ? (
-                            <DueDateCell date={issue.due_date} />
+                            <DueDateCell date={issue.due_date} status={issue.status} />
                           ) : (
-                            <span className="text-xs text-slate-300 dark:text-slate-600">—</span>
+                            <span className="text-xs text-slate-300 dark:text-neutral-600">—</span>
                           )}
                         </td>
                       )}
                       {show("updated") && (
-                        <td className="px-3 py-2.5 text-xs text-slate-500 dark:text-slate-400">
+                        <td className="px-3 py-2.5 text-xs text-slate-500 dark:text-neutral-400">
                           {new Date(issue.updated_at).toLocaleDateString(
                             undefined,
                             { month: "short", day: "numeric" },

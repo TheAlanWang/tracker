@@ -31,7 +31,7 @@ export default function Browse() {
   if (!identifier || isError) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center gap-4">
-        <p className="text-lg font-medium text-slate-700 dark:text-slate-300">Task not found</p>
+        <p className="text-lg font-medium text-slate-700 dark:text-neutral-300">Task not found</p>
         <a href="/" className="text-sm text-blue-600 hover:underline">
           Back to home
         </a>

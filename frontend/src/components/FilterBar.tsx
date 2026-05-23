@@ -108,19 +108,19 @@ function FilterChip({
 
   return (
     <>
-      <div className="inline-flex h-7 items-center rounded-full border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs">
+      <div className="inline-flex h-7 items-center rounded-full border border-slate-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 text-xs">
         <button
           ref={triggerRef}
           type="button"
           onClick={() => setOpen((v) => !v)}
-          className="px-2.5 py-1 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100"
+          className="px-2.5 py-1 text-slate-700 dark:text-neutral-300 hover:text-slate-900 dark:hover:text-neutral-100"
         >
           {summarizeFilter(filter, projectOptions)}
         </button>
         <button
           type="button"
           onClick={onRemove}
-          className="px-2 py-1 text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+          className="px-2 py-1 text-slate-400 dark:text-neutral-500 hover:text-slate-700 dark:hover:text-neutral-300"
           aria-label="Remove filter"
         >
           ×
@@ -131,7 +131,7 @@ function FilterChip({
           <div
             ref={popoverRef}
             style={{ position: "fixed", left: pos.left, top: pos.top }}
-            className="z-50 w-56 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xl py-1 max-h-80 overflow-y-auto"
+            className="z-50 w-56 rounded-lg border border-slate-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-xl py-1 max-h-80 overflow-y-auto"
           >
             {filter.field === "status" && (
               <CheckboxList
@@ -170,7 +170,7 @@ function FilterChip({
             {filter.field === "project" && (
               <>
                 {projectOptions.length === 0 ? (
-                  <p className="px-3 py-2 text-xs text-slate-400 dark:text-slate-500">
+                  <p className="px-3 py-2 text-xs text-slate-400 dark:text-neutral-500">
                     No projects in this workspace.
                   </p>
                 ) : (
@@ -215,13 +215,13 @@ function CheckboxList<T extends string>({
       {options.map((opt) => (
         <label
           key={opt}
-          className="flex items-center gap-2 px-3 py-1.5 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer select-none"
+          className="flex items-center gap-2 px-3 py-1.5 text-sm text-slate-700 dark:text-neutral-300 hover:bg-slate-50 dark:hover:bg-neutral-800/50 cursor-pointer select-none"
         >
           <input
             type="checkbox"
             checked={selected.includes(opt)}
             onChange={() => toggle(opt)}
-            className="rounded border-slate-300 dark:border-slate-700"
+            className="rounded border-slate-300 dark:border-neutral-700"
           />
           <span>{labelFor(opt)}</span>
         </label>
@@ -248,8 +248,8 @@ function RadioList<T extends string>({
           key={opt}
           type="button"
           onClick={() => onChange(opt)}
-          className={`w-full text-left flex items-center justify-between px-3 py-1.5 text-sm hover:bg-slate-50 dark:hover:bg-slate-800/50 ${
-            selected === opt ? "bg-slate-50 dark:bg-slate-800/40 text-slate-900 dark:text-slate-100" : "text-slate-700 dark:text-slate-300"
+          className={`w-full text-left flex items-center justify-between px-3 py-1.5 text-sm hover:bg-slate-50 dark:hover:bg-neutral-800/50 ${
+            selected === opt ? "bg-slate-50 dark:bg-neutral-800/40 text-slate-900 dark:text-neutral-200" : "text-slate-700 dark:text-neutral-300"
           }`}
         >
           <span>{labelFor(opt)}</span>
@@ -283,7 +283,7 @@ function AddFilterButton({
         ref={triggerRef}
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="inline-flex h-7 items-center gap-1 rounded-full border border-dashed border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2.5 text-xs text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:border-slate-400"
+        className="inline-flex h-7 items-center gap-1 rounded-full border border-dashed border-slate-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 px-2.5 text-xs text-slate-600 dark:text-neutral-400 hover:text-slate-900 dark:hover:text-neutral-100 hover:border-slate-400"
       >
         <span>+ Filter</span>
         <svg viewBox="0 0 20 20" fill="currentColor" className="w-3 h-3">
@@ -299,7 +299,7 @@ function AddFilterButton({
           <div
             ref={menuRef}
             style={{ position: "fixed", left: pos.left, top: pos.top }}
-            className="z-50 w-40 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xl py-1"
+            className="z-50 w-40 rounded-lg border border-slate-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-xl py-1"
           >
             {availableFields.map((f) => (
               <button
@@ -309,7 +309,7 @@ function AddFilterButton({
                   onAdd(f);
                   setOpen(false);
                 }}
-                className="w-full text-left px-3 py-1.5 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                className="w-full text-left px-3 py-1.5 text-sm text-slate-700 dark:text-neutral-300 hover:bg-slate-50 dark:hover:bg-neutral-800/50"
               >
                 {FILTER_FIELD_LABELS[f]}
               </button>

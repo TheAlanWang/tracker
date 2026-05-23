@@ -149,12 +149,12 @@ export default function Home() {
     invitations.length > 0 ? (
       <div className="w-full max-w-md space-y-4">
         <div className="space-y-1">
-          <h2 className="text-2xl font-semibold tracking-tight text-slate-900 dark:text-slate-100">
+          <h2 className="text-2xl font-semibold tracking-tight text-slate-900 dark:text-neutral-200">
             {invitations.length === 1
               ? "You have a workspace invitation"
               : `You have ${invitations.length} workspace invitations`}
           </h2>
-          <p className="text-sm text-slate-500 dark:text-slate-400">
+          <p className="text-sm text-slate-500 dark:text-neutral-400">
             Accept to join, or decline to dismiss.
           </p>
         </div>
@@ -167,17 +167,17 @@ export default function Home() {
             return (
               <div
                 key={inv.id}
-                className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-sm"
+                className="rounded-xl border border-slate-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 p-4 shadow-sm"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <p className="font-semibold text-slate-900 dark:text-slate-100 truncate">
+                    <p className="font-semibold text-slate-900 dark:text-neutral-200 truncate">
                       {inv.workspace_name ?? "Workspace"}
                     </p>
-                    <p className="mt-0.5 text-sm text-slate-500 dark:text-slate-400">
-                      <span className="text-slate-700 dark:text-slate-300">{inviter}</span> invited
+                    <p className="mt-0.5 text-sm text-slate-500 dark:text-neutral-400">
+                      <span className="text-slate-700 dark:text-neutral-300">{inviter}</span> invited
                       you as{" "}
-                      <span className="font-medium text-slate-700 dark:text-slate-300">
+                      <span className="font-medium text-slate-700 dark:text-neutral-300">
                         {inv.role}
                       </span>
                     </p>
@@ -209,7 +209,7 @@ export default function Home() {
         {me.workspaces.length > 0 && (
           <button
             type="button"
-            className="text-xs text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100"
+            className="text-xs text-slate-500 dark:text-neutral-400 hover:text-slate-900 dark:hover:text-neutral-100"
             onClick={() => {
               const stored = localStorage.getItem(LAST_WORKSPACE_KEY);
               const target =
@@ -226,7 +226,7 @@ export default function Home() {
 
   if (invitationsPanel) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-800/40 p-4">
+      <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-neutral-800/40 p-4">
         {invitationsPanel}
       </div>
     );
@@ -235,7 +235,7 @@ export default function Home() {
   if (me.workspaces.length === 0) {
     const firstName = me.display_name?.trim().split(/\s+/)[0] ?? null;
     return (
-      <div className="min-h-screen flex items-center justify-center bg-white dark:bg-slate-900 p-4">
+      <div className="min-h-screen flex items-center justify-center bg-white dark:bg-neutral-900 p-4">
         <div
           aria-hidden
           className="pointer-events-none fixed inset-x-0 top-0 h-96 bg-[radial-gradient(circle_at_top,rgba(99,102,241,0.08),transparent_70%)]"
@@ -253,28 +253,28 @@ export default function Home() {
                 </svg>
               </div>
               <div className="space-y-1">
-                <h1 className="text-xl font-semibold text-slate-900 dark:text-slate-100">
+                <h1 className="text-xl font-semibold text-slate-900 dark:text-neutral-200">
                   We hit a snag setting up your workspace.
                 </h1>
-                <p className="text-sm text-slate-500 dark:text-slate-400">{autoCreateError}</p>
+                <p className="text-sm text-slate-500 dark:text-neutral-400">{autoCreateError}</p>
               </div>
               <Button onClick={retryAutoCreate}>Try again</Button>
             </>
           ) : (
             <>
               <div
-                className="mx-auto w-10 h-10 rounded-full border-2 border-slate-200 dark:border-slate-800 border-t-slate-900 animate-spin"
+                className="mx-auto w-10 h-10 rounded-full border-2 border-slate-200 dark:border-neutral-800 border-t-slate-900 animate-spin"
                 aria-label="Loading"
               />
               <div className="space-y-1">
-                <h1 className="text-xl font-semibold tracking-tight text-slate-900 dark:text-slate-100">
+                <h1 className="text-xl font-semibold tracking-tight text-slate-900 dark:text-neutral-200">
                   {firstName ? `Welcome, ${firstName}.` : "Welcome."}
                 </h1>
-                <p className="text-sm text-slate-500 dark:text-slate-400">
+                <p className="text-sm text-slate-500 dark:text-neutral-400">
                   Setting up your workspace…
                 </p>
               </div>
-              <p className="text-xs text-slate-400 dark:text-slate-500">
+              <p className="text-xs text-slate-400 dark:text-neutral-500">
                 You can rename it anytime from settings.
               </p>
             </>

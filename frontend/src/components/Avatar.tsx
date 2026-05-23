@@ -46,10 +46,13 @@ export function Avatar({
   // assignees lists) still show a stable, person-specific hue.
   const background = color ?? `hsl(${hueFor(email ?? displayName ?? "?")} 55% 50%)`;
   const title = displayName || email || "";
-  // Ring matches whatever surface the avatar overlaps — white in light
-  // mode, the dark chrome color in dark mode. Without the dark variant
-  // the avatar gets a glaring white halo on dark backgrounds.
-  const baseClass = `rounded-full overflow-hidden flex items-center justify-center text-white font-semibold shrink-0 ring-2 ring-white dark:ring-slate-900 ${className}`;
+  // Ring in light mode (ring-2 ring-white) gives the avatar a clean cut-out
+  // against light surfaces and white gaps when avatars stack. In dark mode
+  // any ring color reads as a halo — neutral-900 looks like a black ring on
+  // neutral-800 cards, neutral-800 would look pale on darker surfaces. No
+  // single color matches every container, so drop the ring in dark mode and
+  // let the saturated avatar bg provide the visual edge.
+  const baseClass = `rounded-full overflow-hidden flex items-center justify-center text-white font-semibold shrink-0 ring-2 ring-white dark:ring-0 dark:opacity-90 ${className}`;
 
   // Only render the real <img> for avatars actually uploaded through our
   // Storage bucket. Third-party defaults (Google initials etc.) skip this

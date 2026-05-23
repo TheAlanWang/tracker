@@ -174,7 +174,7 @@ export function LabelsEditor({
             ref={triggerRef}
             type="button"
             onClick={() => setOpen((v) => !v)}
-            className="inline-flex items-center gap-1 rounded-md border border-dashed border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2 py-1 text-xs text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:border-slate-400 dark:hover:border-slate-600 transition-colors"
+            className="inline-flex items-center gap-1 rounded-md border border-dashed border-slate-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 px-2 py-1 text-xs text-slate-500 dark:text-neutral-400 hover:text-slate-900 dark:hover:text-neutral-100 hover:border-slate-400 dark:hover:border-neutral-600 transition-colors"
           >
             + Add
           </button>
@@ -186,12 +186,12 @@ export function LabelsEditor({
           <div
             ref={popoverRef}
             style={{ position: "fixed", left: pos.left, top: pos.top }}
-            className="z-50 w-64 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xl"
+            className="z-50 w-64 rounded-lg border border-slate-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-xl"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="max-h-64 overflow-y-auto py-1">
               {workspaceLabels.length === 0 && !creating && (
-                <p className="px-3 py-2 text-xs text-slate-400 dark:text-slate-500">
+                <p className="px-3 py-2 text-xs text-slate-400 dark:text-neutral-500">
                   No labels yet. Create one below.
                 </p>
               )}
@@ -200,13 +200,13 @@ export function LabelsEditor({
                   key={l.id}
                   type="button"
                   onClick={() => toggle(l.id)}
-                  className="w-full flex items-center gap-2 px-3 py-1.5 text-sm hover:bg-slate-50 dark:hover:bg-slate-800/50 text-left"
+                  className="w-full flex items-center gap-2 px-3 py-1.5 text-sm hover:bg-slate-50 dark:hover:bg-neutral-800/50 text-left"
                 >
                   <span
                     className="w-3 h-3 rounded-full"
                     style={{ backgroundColor: l.color }}
                   />
-                  <span className="flex-1 truncate text-slate-800 dark:text-slate-200">
+                  <span className="flex-1 truncate text-slate-800 dark:text-neutral-200">
                     {l.name}
                   </span>
                   {attached.has(l.id) && (
@@ -215,7 +215,7 @@ export function LabelsEditor({
                 </button>
               ))}
             </div>
-            <div className="border-t border-slate-100 dark:border-slate-800 p-2">
+            <div className="border-t border-slate-100 dark:border-neutral-800 p-2">
               {creating ? (
                 <form onSubmit={onCreate} className="space-y-2">
                   <input
@@ -225,7 +225,7 @@ export function LabelsEditor({
                     placeholder="Label name"
                     maxLength={50}
                     autoFocus
-                    className="w-full rounded border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2 py-1 text-sm"
+                    className="w-full rounded border border-slate-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 px-2 py-1 text-sm"
                   />
                   <div className="flex items-center gap-1.5 flex-wrap">
                     {COLOR_PALETTE.map((c) => (
@@ -250,7 +250,7 @@ export function LabelsEditor({
                         setCreating(false);
                         setNewName("");
                       }}
-                      className="text-xs text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 px-2 py-1"
+                      className="text-xs text-slate-500 dark:text-neutral-400 hover:text-slate-900 dark:hover:text-neutral-100 px-2 py-1"
                     >
                       Cancel
                     </button>
@@ -271,7 +271,7 @@ export function LabelsEditor({
                     setNewColor(COLOR_PALETTE[0]!);
                     setCreating(true);
                   }}
-                  className="w-full text-left text-sm text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-800/50 rounded px-2 py-1.5"
+                  className="w-full text-left text-sm text-slate-600 dark:text-neutral-400 hover:text-slate-900 dark:hover:text-neutral-100 hover:bg-slate-50 dark:hover:bg-neutral-800/50 rounded px-2 py-1.5"
                 >
                   + New label
                 </button>

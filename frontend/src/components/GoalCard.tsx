@@ -23,7 +23,7 @@ import {
 const STATUS_STYLE: Record<GoalStatus, string> = {
   active: "bg-blue-50 text-blue-700",
   achieved: "bg-emerald-50 text-emerald-700",
-  paused: "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400",
+  paused: "bg-slate-100 dark:bg-neutral-800 text-slate-600 dark:text-neutral-400",
   dropped: "bg-red-50 text-red-600",
 };
 
@@ -112,7 +112,7 @@ function GoalActionsMenu({
           e.stopPropagation();
           setOpen((v) => !v);
         }}
-        className={`px-1.5 py-0 rounded text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 text-sm leading-none transition-opacity ${
+        className={`px-1.5 py-0 rounded text-slate-400 dark:text-neutral-500 hover:text-slate-700 dark:hover:text-neutral-300 hover:bg-slate-100 dark:hover:bg-neutral-800 text-sm leading-none transition-opacity ${
           forceVisible ? "opacity-100" : "opacity-0 group-hover:opacity-100"
         }`}
         aria-label="Goal actions"
@@ -124,17 +124,17 @@ function GoalActionsMenu({
           // Stop card-level clicks bubbling out of the menu when the user
           // chooses an item.
           onClick={(e) => e.stopPropagation()}
-          className="absolute right-0 top-6 z-20 w-44 rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-lg py-1 text-sm"
+          className="absolute right-0 top-6 z-20 w-44 rounded-md border border-slate-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-lg py-1 text-sm"
         >
           <button
             type="button"
             onClick={onRename}
-            className="w-full text-left px-3 py-1.5 hover:bg-slate-50 dark:hover:bg-slate-800/50"
+            className="w-full text-left px-3 py-1.5 hover:bg-slate-50 dark:hover:bg-neutral-800/50"
           >
             Rename
           </button>
-          <div className="border-t border-slate-100 dark:border-slate-800 my-1" />
-          <p className="px-3 py-0.5 text-[10px] uppercase text-slate-400 dark:text-slate-500">
+          <div className="border-t border-slate-100 dark:border-neutral-800 my-1" />
+          <p className="px-3 py-0.5 text-[10px] uppercase text-slate-400 dark:text-neutral-500">
             Status
           </p>
           {(["active", "achieved", "paused", "dropped"] as GoalStatus[]).map(
@@ -143,15 +143,15 @@ function GoalActionsMenu({
                 key={s}
                 type="button"
                 onClick={() => pickStatus(s)}
-                className={`w-full text-left px-3 py-1.5 hover:bg-slate-50 dark:hover:bg-slate-800/50 ${
-                  goal.status === s ? "font-semibold text-slate-900 dark:text-slate-100" : ""
+                className={`w-full text-left px-3 py-1.5 hover:bg-slate-50 dark:hover:bg-neutral-800/50 ${
+                  goal.status === s ? "font-semibold text-slate-900 dark:text-neutral-200" : ""
                 }`}
               >
                 {STATUS_LABEL[s]}
               </button>
             ),
           )}
-          <div className="border-t border-slate-100 dark:border-slate-800 my-1" />
+          <div className="border-t border-slate-100 dark:border-neutral-800 my-1" />
           <button
             type="button"
             onClick={onDelete}
@@ -196,15 +196,15 @@ export function GoalCard({
           onSelect();
         }
       }}
-      className={`group relative w-full cursor-pointer rounded-md border bg-white dark:bg-slate-900 pl-3 pr-2 py-2.5 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 ${
+      className={`group relative w-full cursor-pointer rounded-md border bg-white dark:bg-neutral-900 pl-3 pr-2 py-2.5 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 ${
         selected
           ? "border-blue-500 ring-1 ring-blue-200 shadow-sm"
-          : "border-slate-200 dark:border-slate-800 hover:border-slate-300"
+          : "border-slate-200 dark:border-neutral-800 hover:border-slate-300"
       }`}
     >
       <div className="min-w-0 pr-6">
         <div className="flex items-center gap-2">
-          <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100 truncate">
+          <h3 className="text-sm font-semibold text-slate-900 dark:text-neutral-200 truncate">
             {goal.title}
           </h3>
           {goal.status !== "active" && (
@@ -216,24 +216,24 @@ export function GoalCard({
           )}
         </div>
         {goal.description && (
-          <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400 line-clamp-1">
+          <p className="mt-0.5 text-xs text-slate-500 dark:text-neutral-400 line-clamp-1">
             {goal.description}
           </p>
         )}
         {total > 0 ? (
           <div className="mt-2 flex items-center gap-2">
-            <div className="h-1 flex-1 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+            <div className="h-1 flex-1 rounded-full bg-slate-100 dark:bg-neutral-800 overflow-hidden">
               <div
                 className="h-full bg-emerald-500 transition-all"
                 style={{ width: `${pct}%` }}
               />
             </div>
-            <span className="text-[10px] tabular-nums text-slate-500 dark:text-slate-400">
+            <span className="text-[10px] tabular-nums text-slate-500 dark:text-neutral-400">
               {done}/{total}
             </span>
           </div>
         ) : (
-          <p className="mt-2 text-[10px] text-slate-400 dark:text-slate-500">No tasks linked</p>
+          <p className="mt-2 text-[10px] text-slate-400 dark:text-neutral-500">No tasks linked</p>
         )}
       </div>
 
@@ -248,7 +248,7 @@ export function GoalCard({
           setForceVisible={setMenuVisible}
         />
         {hasChildren && (
-          <span className="text-slate-400 dark:text-slate-500 text-sm leading-none px-1">›</span>
+          <span className="text-slate-400 dark:text-neutral-500 text-sm leading-none px-1">›</span>
         )}
       </div>
     </div>

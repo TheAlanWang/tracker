@@ -222,21 +222,21 @@ export default function WorkspaceSettings() {
   return (
     <SettingsLayout>
       <header className="mb-10">
-        <p className="text-xs font-mono uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-0.5">
+        <p className="text-xs font-mono uppercase tracking-wider text-slate-400 dark:text-neutral-500 mb-0.5">
           Workspace
         </p>
-        <h1 className="text-3xl font-semibold text-slate-900 dark:text-slate-100">
+        <h1 className="text-3xl font-semibold text-slate-900 dark:text-neutral-200">
           {currentWs?.name ?? "—"}
         </h1>
       </header>
 
       <div className="space-y-10 min-w-0">
         <section className="space-y-4">
-          <h2 className="text-xl font-medium text-slate-900 dark:text-slate-100 dark:text-slate-100">
+          <h2 className="text-xl font-medium text-slate-900 dark:text-neutral-200 dark:text-neutral-200">
             General Settings
           </h2>
           <form onSubmit={onSaveGeneral}>
-            <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 divide-y divide-slate-100 dark:divide-slate-800">
+            <div className="rounded-lg border border-slate-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 divide-y divide-slate-100 dark:divide-neutral-800">
               <SettingRow
                 label="Workspace Name"
                 description="Shown throughout the app."
@@ -249,7 +249,7 @@ export default function WorkspaceSettings() {
                   className="max-w-md"
                 />
                 {!isOwner && (
-                  <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+                  <p className="mt-2 text-xs text-slate-500 dark:text-neutral-400">
                     Only the workspace owner can rename.
                   </p>
                 )}
@@ -260,7 +260,7 @@ export default function WorkspaceSettings() {
               >
                 <div className="space-y-2 max-w-md">
                   <div className="flex items-center gap-1.5">
-                    <span className="text-sm text-slate-500 dark:text-slate-400 whitespace-nowrap font-mono">
+                    <span className="text-sm text-slate-500 dark:text-neutral-400 whitespace-nowrap font-mono">
                       /w/
                     </span>
                     <Input
@@ -278,7 +278,7 @@ export default function WorkspaceSettings() {
                       className="font-mono"
                     />
                   </div>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                  <p className="text-xs text-slate-500 dark:text-neutral-400">
                     3–40 characters · lowercase letters, numbers, and hyphens
                   </p>
                   {wsSlugChanged && isOwner && (
@@ -291,18 +291,18 @@ export default function WorkspaceSettings() {
                     </div>
                   )}
                   {!isOwner && (
-                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                    <p className="text-xs text-slate-500 dark:text-neutral-400">
                       Only the workspace owner can change the URL.
                     </p>
                   )}
                 </div>
               </SettingRow>
-              {/* Footer bar — bg-slate-50 dark:bg-slate-800/40 reads as a
+              {/* Footer bar — bg-slate-50 dark:bg-neutral-800/40 reads as a
                   "form footer" separate from data rows. Single Save fires
                   the whole General-Settings dirty payload at once. */}
-              <div className="flex items-center justify-end gap-3 px-5 py-3 bg-slate-50/50 dark:bg-slate-800/30">
+              <div className="flex items-center justify-end gap-3 px-5 py-3 bg-slate-50/50 dark:bg-neutral-800/30">
                 {dirty && (
-                  <span className="text-xs text-slate-500 dark:text-slate-400">
+                  <span className="text-xs text-slate-500 dark:text-neutral-400">
                     Unsaved changes
                   </span>
                 )}
@@ -323,20 +323,20 @@ export default function WorkspaceSettings() {
         </section>
 
         <section className="space-y-4">
-          <h2 className="text-xl font-medium text-slate-900 dark:text-slate-100 dark:text-slate-100">Members</h2>
-          <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden">
+          <h2 className="text-xl font-medium text-slate-900 dark:text-neutral-200 dark:text-neutral-200">Members</h2>
+          <div className="rounded-lg border border-slate-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 overflow-hidden">
             {/* Header zone — WHITE background. Title + summary on the
                 left, invite form on the right (owner only). The slate
                 tint goes on the column-header row below, not here, so
                 this zone reads as content while the next reads as a
                 table guide rail. */}
-            <div className="px-5 py-4 border-b border-slate-200 dark:border-slate-800">
+            <div className="px-5 py-4 border-b border-slate-200 dark:border-neutral-800">
               <div className="flex items-center justify-between gap-4">
                 <div className="min-w-0">
-                  <h3 className="text-base font-medium text-slate-900 dark:text-slate-100">
+                  <h3 className="text-base font-medium text-slate-900 dark:text-neutral-200">
                     Workspace Members
                   </h3>
-                  <p className="mt-0.5 text-sm text-slate-500 dark:text-slate-400">
+                  <p className="mt-0.5 text-sm text-slate-500 dark:text-neutral-400">
                     {members.length === 1
                       ? "1 member can access this workspace."
                       : `All ${members.length} members can access this workspace.`}
@@ -371,7 +371,7 @@ export default function WorkspaceSettings() {
 
             {/* Column headers — slate-50 tinted so the row reads as a
                 table guide separate from the data rows beneath. */}
-            <div className="bg-slate-50/70 dark:bg-slate-800/40 px-5 py-2 grid grid-cols-[1fr_160px_60px] gap-4 text-[10px] uppercase tracking-[0.08em] text-slate-500 dark:text-slate-400 font-medium border-b border-slate-200 dark:border-slate-800">
+            <div className="bg-slate-50/70 dark:bg-neutral-800/40 px-5 py-2 grid grid-cols-[1fr_160px_60px] gap-4 text-[10px] uppercase tracking-[0.08em] text-slate-500 dark:text-neutral-400 font-medium border-b border-slate-200 dark:border-neutral-800">
               <span>Member</span>
               <span>Role</span>
               <span />
@@ -380,7 +380,7 @@ export default function WorkspaceSettings() {
             {isLoading ? (
               <InlineSpinner />
             ) : (
-              <div className="divide-y divide-slate-100 dark:divide-slate-800 dark:divide-slate-800">
+              <div className="divide-y divide-slate-100 dark:divide-neutral-800 dark:divide-neutral-800">
                 {members.map((m) => {
                   const display = m.email ?? m.user_id;
                   const memberIsOwner = m.role === "owner";
@@ -391,20 +391,20 @@ export default function WorkspaceSettings() {
                       className="group grid grid-cols-[1fr_160px_60px] gap-4 items-center px-5 py-3"
                     >
                       <div className="flex items-center gap-2 min-w-0">
-                        <span className="text-sm text-slate-800 dark:text-slate-200 truncate">
+                        <span className="text-sm text-slate-800 dark:text-neutral-200 truncate">
                           {display}
                         </span>
                         {isMe && (
-                          <span className="text-[10px] font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400 border border-slate-300 dark:border-slate-700 rounded-full px-1.5 py-0.5">
+                          <span className="text-[10px] font-medium uppercase tracking-wide text-slate-500 dark:text-neutral-400 border border-slate-300 dark:border-neutral-700 rounded-full px-1.5 py-0.5">
                             You
                           </span>
                         )}
                       </div>
                       {memberIsOwner ? (
-                        <span className="text-sm text-slate-600 dark:text-slate-400">Owner</span>
+                        <span className="text-sm text-slate-600 dark:text-neutral-400">Owner</span>
                       ) : isOwner ? (
                         <select
-                          className="rounded border border-transparent hover:border-slate-300 focus:border-slate-300 bg-transparent px-1.5 py-0.5 text-sm text-slate-700 dark:text-slate-300 w-fit -ml-1.5"
+                          className="rounded border border-transparent hover:border-slate-300 focus:border-slate-300 bg-transparent px-1.5 py-0.5 text-sm text-slate-700 dark:text-neutral-300 w-fit -ml-1.5"
                           value={m.role}
                           onChange={(e) =>
                             onChangeRole(
@@ -418,7 +418,7 @@ export default function WorkspaceSettings() {
                           <option value="member">Member</option>
                         </select>
                       ) : (
-                        <span className="text-sm text-slate-600 dark:text-slate-400 capitalize">
+                        <span className="text-sm text-slate-600 dark:text-neutral-400 capitalize">
                           {m.role}
                         </span>
                       )}
@@ -428,7 +428,7 @@ export default function WorkspaceSettings() {
                       {isOwner && !memberIsOwner ? (
                         <button
                           type="button"
-                          className="text-xs text-slate-400 dark:text-slate-500 hover:text-red-600 justify-self-end opacity-0 group-hover:opacity-100 transition-opacity"
+                          className="text-xs text-slate-400 dark:text-neutral-500 hover:text-red-600 justify-self-end opacity-0 group-hover:opacity-100 transition-opacity"
                           onClick={() => onRemove(m.user_id, display)}
                           disabled={removeMutation.isPending}
                         >
@@ -459,10 +459,10 @@ export default function WorkspaceSettings() {
                       className="group grid grid-cols-[1fr_160px_60px] gap-4 items-center px-5 py-3"
                     >
                       <div className="min-w-0">
-                        <span className="text-sm text-slate-800 dark:text-slate-200 truncate block">
+                        <span className="text-sm text-slate-800 dark:text-neutral-200 truncate block">
                           {inv.invited_email}
                         </span>
-                        <span className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5 block truncate">
+                        <span className="text-[11px] text-slate-400 dark:text-neutral-500 mt-0.5 block truncate">
                           Invited by {inviter} · {sent}
                         </span>
                       </div>
@@ -473,7 +473,7 @@ export default function WorkspaceSettings() {
                       {isOwner ? (
                         <button
                           type="button"
-                          className="text-xs text-slate-400 dark:text-slate-500 hover:text-red-600 justify-self-end opacity-0 group-hover:opacity-100 transition-opacity"
+                          className="text-xs text-slate-400 dark:text-neutral-500 hover:text-red-600 justify-self-end opacity-0 group-hover:opacity-100 transition-opacity"
                           onClick={() => onRevoke(inv.id, inv.invited_email)}
                           disabled={revokeMutation.isPending}
                         >
@@ -491,7 +491,7 @@ export default function WorkspaceSettings() {
         </section>
 
         <section className="space-y-4">
-          <h2 className="text-xl font-medium text-slate-900 dark:text-slate-100 dark:text-slate-100">Features</h2>
+          <h2 className="text-xl font-medium text-slate-900 dark:text-neutral-200 dark:text-neutral-200">Features</h2>
           <div className="rounded-lg border border-blue-100 dark:border-blue-900/40 bg-blue-50/40 dark:bg-blue-950/15 divide-y divide-blue-100/70 dark:divide-blue-900/30">
             {/* Each feature row: title + Beta pill + multi-line description
                 on the left (flexes to fill), Toggle switch on the right.
@@ -593,9 +593,9 @@ function SettingRow({
   return (
     <div className="grid grid-cols-[280px_1fr] items-start gap-6 p-5">
       <div>
-        <div className="font-medium text-slate-900 dark:text-slate-100">{label}</div>
+        <div className="font-medium text-slate-900 dark:text-neutral-200">{label}</div>
         {description && (
-          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{description}</p>
+          <p className="mt-1 text-sm text-slate-500 dark:text-neutral-400">{description}</p>
         )}
       </div>
       <div className="min-w-0">{children}</div>
@@ -631,14 +631,14 @@ function FeatureRow({
       <div className="flex items-start gap-6">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <h3 className="font-medium text-slate-900 dark:text-slate-100">{title}</h3>
+            <h3 className="font-medium text-slate-900 dark:text-neutral-200">{title}</h3>
             {pill !== null && (
-              <span className="text-[10px] font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400 border border-slate-300 dark:border-slate-700 rounded-full px-1.5 py-0.5">
+              <span className="text-[10px] font-medium uppercase tracking-wide text-slate-500 dark:text-neutral-400 border border-slate-300 dark:border-neutral-700 rounded-full px-1.5 py-0.5">
                 {pill}
               </span>
             )}
           </div>
-          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
+          <p className="mt-1 text-sm text-slate-500 dark:text-neutral-400 leading-relaxed">
             {description}
           </p>
         </div>
@@ -652,7 +652,7 @@ function FeatureRow({
         </div>
       </div>
       {note && (
-        <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">{note}</p>
+        <p className="mt-2 text-xs text-slate-500 dark:text-neutral-400">{note}</p>
       )}
     </div>
   );
@@ -684,7 +684,7 @@ function Toggle({
       }`}
     >
       <span
-        className={`inline-block h-4 w-4 rounded-full bg-white dark:bg-slate-900 shadow-sm transition-transform ${
+        className={`inline-block h-4 w-4 rounded-full bg-white dark:bg-neutral-900 shadow-sm transition-transform ${
           checked ? "translate-x-[18px]" : "translate-x-[2px]"
         }`}
       />

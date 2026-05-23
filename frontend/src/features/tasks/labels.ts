@@ -26,11 +26,11 @@ export type PriorityVisual = {
 export const STATUS: Record<TaskStatus, StatusVisual> = {
   backlog: {
     label: "Backlog",
-    pill: "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400",
+    pill: "bg-slate-100 dark:bg-neutral-800 text-slate-500 dark:text-neutral-400",
   },
   todo: {
     label: "To do",
-    pill: "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300",
+    pill: "bg-slate-100 dark:bg-neutral-800 text-slate-700 dark:text-neutral-300",
   },
   in_progress: {
     label: "In progress",
@@ -46,7 +46,7 @@ export const STATUS: Record<TaskStatus, StatusVisual> = {
   },
   cancelled: {
     label: "Cancelled",
-    pill: "bg-slate-50 dark:bg-slate-900 text-slate-400 dark:text-slate-500",
+    pill: "bg-slate-50 dark:bg-neutral-900 text-slate-400 dark:text-neutral-500",
   },
 };
 
@@ -65,11 +65,11 @@ export const PRIORITY: Record<TaskPriority, PriorityVisual> = {
   },
   low: {
     label: "Low",
-    pill: "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400",
+    pill: "bg-slate-100 dark:bg-neutral-800 text-slate-500 dark:text-neutral-400",
   },
   no_priority: {
     label: "No priority",
-    pill: "bg-transparent text-slate-400 dark:text-slate-500",
+    pill: "bg-transparent text-slate-400 dark:text-neutral-500",
   },
 };
 

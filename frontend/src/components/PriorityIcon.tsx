@@ -54,12 +54,16 @@ const ICON: Record<TaskPriority, LucideIcon | typeof TripleChevronUp> = {
   no_priority: CircleDashed,
 };
 
+// Dark mode priority colors use -500 (one step darker than -400) so
+// they read as "informational accent" rather than "neon highlight"
+// against the neutral dark background. Light mode keeps -600 for
+// proper contrast on white.
 const COLOR: Record<TaskPriority, string> = {
-  urgent: "text-red-600 dark:text-red-400",
-  high: "text-orange-600 dark:text-orange-400",
-  medium: "text-yellow-500 dark:text-yellow-400",
-  low: "text-slate-400 dark:text-slate-500",
-  no_priority: "text-slate-300 dark:text-slate-600",
+  urgent: "text-red-600 dark:text-red-500",
+  high: "text-orange-600 dark:text-orange-500",
+  medium: "text-yellow-500 dark:text-yellow-500",
+  low: "text-slate-400 dark:text-neutral-500",
+  no_priority: "text-slate-300 dark:text-neutral-600",
 };
 
 type Props = {

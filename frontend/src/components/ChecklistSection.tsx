@@ -68,7 +68,7 @@ function ChecklistRow({
         className={`shrink-0 w-4 h-4 rounded border flex items-center justify-center transition-colors ${
           item.done
             ? "bg-emerald-500 border-emerald-500 text-white"
-            : "border-slate-300 dark:border-slate-700 hover:border-slate-400 bg-white dark:bg-slate-900"
+            : "border-slate-300 dark:border-neutral-700 hover:border-slate-400 bg-white dark:bg-neutral-900"
         }`}
       >
         {item.done && (
@@ -104,14 +104,14 @@ function ChecklistRow({
             }
           }}
           maxLength={200}
-          className="flex-1 bg-transparent outline-none text-sm text-slate-800 dark:text-slate-200"
+          className="flex-1 bg-transparent outline-none text-sm text-slate-800 dark:text-neutral-200"
         />
       ) : (
         <button
           type="button"
           onClick={startEdit}
           className={`flex-1 text-left text-sm cursor-text ${
-            item.done ? "line-through text-slate-400 dark:text-slate-500" : "text-slate-800 dark:text-slate-200"
+            item.done ? "line-through text-slate-400 dark:text-neutral-500" : "text-slate-800 dark:text-neutral-200"
           }`}
         >
           {item.text}
@@ -120,7 +120,7 @@ function ChecklistRow({
       <button
         type="button"
         onClick={onDelete}
-        className="opacity-0 group-hover:opacity-100 text-slate-400 dark:text-slate-500 hover:text-red-600 text-xs px-1 transition-opacity"
+        className="opacity-0 group-hover:opacity-100 text-slate-400 dark:text-neutral-500 hover:text-red-600 text-xs px-1 transition-opacity"
         aria-label="Delete item"
       >
         ×
@@ -176,7 +176,7 @@ function AddRow({
         placeholder="Add a step…"
         maxLength={200}
         disabled={pending}
-        className="flex-1 bg-transparent outline-none text-sm text-slate-800 dark:text-slate-200 placeholder:text-slate-400 disabled:opacity-50"
+        className="flex-1 bg-transparent outline-none text-sm text-slate-800 dark:text-neutral-200 placeholder:text-slate-400 disabled:opacity-50"
       />
     </li>
   );
@@ -207,7 +207,7 @@ export function ChecklistSection({
 
   return (
     <details open className="pt-6 group">
-      <summary className="cursor-pointer list-none flex items-center gap-1.5 text-sm font-normal uppercase tracking-wide text-muted-foreground hover:text-slate-700 dark:hover:text-slate-300 group-open:pb-2 group-open:border-b border-slate-200 dark:border-slate-800">
+      <summary className="cursor-pointer list-none flex items-center gap-1.5 text-sm font-normal uppercase tracking-wide text-muted-foreground hover:text-slate-700 dark:hover:text-neutral-300 group-open:pb-2 group-open:border-b border-slate-200 dark:border-neutral-800">
         <svg
           xmlns="http://www.w3.org/2000/svg"
           viewBox="0 0 20 20"
@@ -223,7 +223,7 @@ export function ChecklistSection({
         <ListChecks className="w-3.5 h-3.5" aria-hidden />
         <span>Checklist</span>
         {total > 0 && (
-          <span className="text-slate-400 dark:text-slate-500 font-medium normal-case tracking-normal">
+          <span className="text-slate-400 dark:text-neutral-500 font-medium normal-case tracking-normal">
             ({done}/{total})
           </span>
         )}

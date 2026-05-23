@@ -54,7 +54,7 @@ const FIELD_LABEL: Record<string, string> = {
 // uppercase tokens so changed fields read like tags inside the sentence.
 function FieldLabel({ children }: { children: React.ReactNode }) {
   return (
-    <span className="uppercase tracking-wide text-[10.5px] font-medium text-slate-600 dark:text-slate-400">
+    <span className="uppercase tracking-wide text-[10.5px] font-medium text-slate-600 dark:text-neutral-400">
       {children}
     </span>
   );
@@ -134,7 +134,7 @@ function Chevron({ active }: { active: boolean }) {
     <svg
       viewBox="0 0 20 20"
       fill="currentColor"
-      className={`w-3.5 h-3.5 text-slate-400 dark:text-slate-500 transition-transform ${active ? "rotate-180" : ""}`}
+      className={`w-3.5 h-3.5 text-slate-400 dark:text-neutral-500 transition-transform ${active ? "rotate-180" : ""}`}
     >
       <path
         fillRule="evenodd"
@@ -164,10 +164,10 @@ function WorkloadHero({
     <button
       type="button"
       onClick={onClick}
-      className={`sm:col-span-2 text-left rounded-xl border bg-gradient-to-br from-white via-white to-blue-50/40 dark:from-slate-900 dark:via-slate-900 dark:to-blue-950/30 p-5 shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition-all hover:shadow-[0_4px_12px_rgba(15,23,42,0.06)] ${
+      className={`sm:col-span-2 text-left rounded-xl border bg-gradient-to-br from-white via-white to-blue-50/40 dark:from-neutral-900 dark:via-neutral-900 dark:to-blue-950/30 p-5 shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition-all hover:shadow-[0_4px_12px_rgba(15,23,42,0.06)] ${
         active
           ? "border-blue-400 dark:border-blue-700 ring-2 ring-blue-100 dark:ring-blue-900/40"
-          : "border-blue-100 dark:border-blue-900/30 ring-1 ring-blue-50/60 dark:ring-blue-900/20"
+          : "border-blue-100 dark:border-transparent ring-1 ring-blue-50/60 dark:ring-0"
       }`}
     >
       <div className="flex items-start justify-between gap-3">
@@ -176,16 +176,16 @@ function WorkloadHero({
             Workload <Chevron active={active} />
           </p>
           <div className="mt-2 flex items-baseline gap-2">
-            <span className="text-4xl font-bold leading-none tabular-nums text-slate-900 dark:text-slate-100">
+            <span className="text-4xl font-bold leading-none tabular-nums text-slate-900 dark:text-neutral-200">
               {stats.open}
             </span>
-            <span className="text-sm font-medium text-slate-500 dark:text-slate-400">open</span>
+            <span className="text-sm font-medium text-slate-500 dark:text-neutral-400">open</span>
           </div>
           {stats.in_review > 0 && (
-            <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+            <p className="mt-2 text-sm text-slate-500 dark:text-neutral-400">
               <span className="inline-flex items-center gap-1.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-blue-400" />
-                <span className="tabular-nums font-medium text-slate-700 dark:text-slate-300">
+                <span className="tabular-nums font-medium text-slate-700 dark:text-neutral-300">
                   {stats.in_review}
                 </span>{" "}
                 in review
@@ -193,7 +193,7 @@ function WorkloadHero({
             </p>
           )}
         </div>
-        <div className="w-10 h-10 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+        <div className="w-10 h-10 rounded-lg bg-blue-50 dark:bg-blue-500/15 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
           <svg viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">
             <path
               fillRule="evenodd"
@@ -221,26 +221,26 @@ function ThroughputTile({
     <button
       type="button"
       onClick={onClick}
-      className={`text-left rounded-xl border bg-gradient-to-br from-white via-white to-emerald-50/30 dark:from-slate-900 dark:via-slate-900 dark:to-emerald-950/30 p-5 shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition-all hover:shadow-[0_4px_12px_rgba(15,23,42,0.06)] ${
+      className={`text-left rounded-xl border bg-gradient-to-br from-white via-white to-emerald-50/30 dark:from-neutral-900 dark:via-neutral-900 dark:to-emerald-950/30 p-5 shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition-all hover:shadow-[0_4px_12px_rgba(15,23,42,0.06)] ${
         active
           ? "border-emerald-400 dark:border-emerald-700 ring-2 ring-emerald-100 dark:ring-emerald-900/40"
           : accent
-            ? "border-emerald-100 dark:border-emerald-900/30 ring-1 ring-emerald-50 dark:ring-emerald-900/20"
-            : "border-slate-200/80 dark:border-slate-800"
+            ? "border-emerald-100 dark:border-transparent ring-1 ring-emerald-50 dark:ring-0"
+            : "border-slate-200/80 dark:border-transparent"
       }`}
     >
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-[11px] uppercase tracking-[0.08em] text-slate-500 dark:text-slate-400 font-semibold flex items-center gap-1.5">
+          <p className="text-[11px] uppercase tracking-[0.08em] text-slate-500 dark:text-neutral-400 font-semibold flex items-center gap-1.5">
             Done this week <Chevron active={active} />
           </p>
           <p
-            className={`mt-2 text-3xl font-bold leading-none tabular-nums ${accent ? "text-emerald-700" : "text-slate-900 dark:text-slate-100"}`}
+            className={`mt-2 text-3xl font-bold leading-none tabular-nums ${accent ? "text-emerald-700" : "text-slate-900 dark:text-neutral-200"}`}
           >
             {value}
           </p>
         </div>
-        <div className="w-9 h-9 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+        <div className="w-9 h-9 rounded-lg bg-emerald-50 dark:bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
           <svg viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
             <path
               fillRule="evenodd"
@@ -270,26 +270,26 @@ function RiskTile({
     <button
       type="button"
       onClick={onClick}
-      className={`text-left rounded-xl border bg-gradient-to-br from-white via-white to-amber-50/30 dark:from-slate-900 dark:via-slate-900 dark:to-amber-950/30 p-5 shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition-all hover:shadow-[0_4px_12px_rgba(15,23,42,0.06)] ${
+      className={`text-left rounded-xl border bg-gradient-to-br from-white via-white to-amber-50/30 dark:from-neutral-900 dark:via-neutral-900 dark:to-amber-950/30 p-5 shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition-all hover:shadow-[0_4px_12px_rgba(15,23,42,0.06)] ${
         active
           ? "border-amber-400 dark:border-amber-700 ring-2 ring-amber-100 dark:ring-amber-900/40"
           : accent
-            ? "border-amber-100 dark:border-amber-900/30 ring-1 ring-amber-50 dark:ring-amber-900/20"
-            : "border-slate-200/80 dark:border-slate-800"
+            ? "border-amber-100 dark:border-transparent ring-1 ring-amber-50 dark:ring-0"
+            : "border-slate-200/80 dark:border-transparent"
       }`}
     >
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-[11px] uppercase tracking-[0.08em] text-slate-500 dark:text-slate-400 font-semibold flex items-center gap-1.5">
+          <p className="text-[11px] uppercase tracking-[0.08em] text-slate-500 dark:text-neutral-400 font-semibold flex items-center gap-1.5">
             Overdue <Chevron active={active} />
           </p>
           <p
-            className={`mt-2 text-3xl font-bold leading-none tabular-nums ${accent ? "text-amber-700" : "text-slate-900 dark:text-slate-100"}`}
+            className={`mt-2 text-3xl font-bold leading-none tabular-nums ${accent ? "text-amber-700" : "text-slate-900 dark:text-neutral-200"}`}
           >
             {value}
           </p>
         </div>
-        <div className="w-9 h-9 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
+        <div className="w-9 h-9 rounded-lg bg-amber-50 dark:bg-amber-500/15 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
           <CircleAlert className="w-4 h-4" strokeWidth={2.25} />
         </div>
       </div>
@@ -435,12 +435,12 @@ function ExpansionPanel({
   }[expanded];
 
   return (
-    <section className="rounded-xl border border-slate-200/80 bg-white dark:bg-slate-900 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
-      <div className="flex items-center justify-between px-5 py-3 border-b border-slate-100 dark:border-slate-800">
-        <h2 className="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500 dark:text-slate-400">
+    <section className="rounded-xl border border-slate-200/80 dark:border-transparent bg-white dark:bg-neutral-900 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
+      <div className="flex items-center justify-between px-5 py-3 border-b border-slate-100 dark:border-neutral-800">
+        <h2 className="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500 dark:text-neutral-400">
           {cfg.title}
           {cfg.tasks.length > 0 && (
-            <span className="ml-1.5 text-slate-400 dark:text-slate-500 normal-case tracking-normal tabular-nums">
+            <span className="ml-1.5 text-slate-400 dark:text-neutral-500 normal-case tracking-normal tabular-nums">
               {cfg.tasks.length}
             </span>
           )}
@@ -449,7 +449,7 @@ function ExpansionPanel({
           type="button"
           onClick={onClose}
           aria-label="Close"
-          className="w-6 h-6 rounded-md text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center"
+          className="w-6 h-6 rounded-md text-slate-400 dark:text-neutral-500 hover:text-slate-700 dark:hover:text-neutral-300 hover:bg-slate-100 dark:hover:bg-neutral-800 flex items-center justify-center"
         >
           <svg viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5">
             <path
@@ -462,7 +462,7 @@ function ExpansionPanel({
       </div>
       <div className="p-2">
         {cfg.tasks.length === 0 ? (
-          <p className="text-sm text-slate-400 dark:text-slate-500 px-3 py-2">{cfg.empty}</p>
+          <p className="text-sm text-slate-400 dark:text-neutral-500 px-3 py-2">{cfg.empty}</p>
         ) : (
           <TaskTable tasks={cfg.tasks} onOpenTask={onOpenTask} />
         )}
@@ -527,25 +527,25 @@ function FocusCard({
       ? "text-red-600"
       : reason === "today"
         ? "text-amber-600"
-        : "text-slate-400 dark:text-slate-500";
+        : "text-slate-400 dark:text-neutral-500";
 
   // Use a real <table> like TaskTable. See the comment on TaskTable for the
   // "why not Grid" backstory.
 
   return (
-    <section className="rounded-xl border border-slate-200/80 bg-white dark:bg-slate-900 p-5 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
+    <section className="rounded-xl border border-slate-200/80 dark:border-transparent bg-white dark:bg-neutral-900 p-5 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
       <div className="flex items-center justify-between mb-3">
-        <h2 className="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500 dark:text-slate-400">
+        <h2 className="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500 dark:text-neutral-400">
           Today's focus
         </h2>
-        <span className="text-[11px] text-slate-400 dark:text-slate-500">
+        <span className="text-[11px] text-slate-400 dark:text-neutral-500">
           Top {picks.length} priorit{picks.length === 1 ? "y" : "ies"}
         </span>
       </div>
 
       <table className="w-full text-sm">
         <thead>
-          <tr className="text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-400 dark:text-slate-500">
+          <tr className="text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-400 dark:text-neutral-500">
             <th className="px-3 pb-2 text-left w-6" />
             <th className="px-3 pb-2 text-left">Project</th>
             <th className="px-3 pb-2 text-left">Task</th>
@@ -576,7 +576,7 @@ function FocusCard({
                     onOpen(task.id);
                   }
                 }}
-                className="group border-t border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer"
+                className="group border-t border-slate-100 dark:border-neutral-800 hover:bg-slate-50 dark:hover:bg-neutral-800/50 transition-colors cursor-pointer"
               >
                 <td className="px-3 py-2.5 align-middle">
                   <span
@@ -599,14 +599,14 @@ function FocusCard({
                     projectName={task.project_name}
                   />
                 </td>
-                <td className="px-3 py-2.5 align-middle text-sm text-slate-800 dark:text-slate-200 group-hover:text-slate-900">
+                <td className="px-3 py-2.5 align-middle text-sm text-slate-800 dark:text-neutral-200 group-hover:text-slate-900">
                   {task.title}
                 </td>
                 <td className="px-3 py-2.5 align-middle whitespace-nowrap">
                   {dueLabel ? (
                     <span
                       className={`text-xs ${
-                        isOverdue ? "text-red-600 font-medium" : "text-slate-500 dark:text-slate-400"
+                        isOverdue ? "text-red-600 font-medium" : "text-slate-500 dark:text-neutral-400"
                       }`}
                     >
                       {dueLabel}
@@ -641,12 +641,12 @@ function SectionCard({
   rightSlot?: React.ReactNode;
 }) {
   return (
-    <section className="rounded-xl border border-slate-200/80 bg-white dark:bg-slate-900 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
-      <div className="flex items-center justify-between px-5 py-3 border-b border-slate-100 dark:border-slate-800">
-        <h2 className="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500 dark:text-slate-400">
+    <section className="rounded-xl border border-slate-200/80 dark:border-transparent bg-white dark:bg-neutral-900 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
+      <div className="flex items-center justify-between px-5 py-3 border-b border-slate-100 dark:border-neutral-800">
+        <h2 className="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500 dark:text-neutral-400">
           {title}
           {typeof count === "number" && (
-            <span className="ml-1.5 text-slate-400 dark:text-slate-500 normal-case tracking-normal tabular-nums">
+            <span className="ml-1.5 text-slate-400 dark:text-neutral-500 normal-case tracking-normal tabular-nums">
               {count}
             </span>
           )}
@@ -688,7 +688,7 @@ function ProjectChip({
         e.stopPropagation();
         navigate(`/w/${workspaceSlug}/p/${projectKey}/board`);
       }}
-      className="inline-flex items-center gap-1.5 text-sm rounded px-1.5 py-0.5 -mx-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100 transition-colors shrink-0 max-w-[12rem]"
+      className="inline-flex items-center gap-1.5 text-sm rounded px-1.5 py-0.5 -mx-1.5 hover:bg-slate-100 dark:hover:bg-neutral-800 text-slate-700 dark:text-neutral-300 hover:text-slate-900 dark:hover:text-neutral-100 transition-colors shrink-0 max-w-[12rem]"
     >
       <span
         className="w-1.5 h-1.5 rounded-full shrink-0"
@@ -718,7 +718,7 @@ function TaskTable({
   return (
     <table className="w-full text-sm">
       <thead>
-        <tr className="text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-400 dark:text-slate-500">
+        <tr className="text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-400 dark:text-neutral-500">
           <th className="px-3 pb-2 text-left">Project</th>
           <th className="px-3 pb-2 text-left">Task</th>
           <th className="px-3 pb-2 text-left whitespace-nowrap">Due</th>
@@ -764,7 +764,7 @@ function TaskRow({
       role="button"
       tabIndex={0}
       style={{ animationDelay: `${delay}ms` }}
-      className="group border-t border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer animate-in fade-in slide-in-from-top-1 fill-mode-both duration-200"
+      className="group border-t border-slate-100 dark:border-neutral-800 hover:bg-slate-50 dark:hover:bg-neutral-800/50 transition-colors cursor-pointer animate-in fade-in slide-in-from-top-1 fill-mode-both duration-200"
       onClick={onClick}
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") {
@@ -780,14 +780,14 @@ function TaskRow({
           projectName={task.project_name}
         />
       </td>
-      <td className="px-3 py-2 align-middle text-slate-800 dark:text-slate-200 group-hover:text-slate-900">
+      <td className="px-3 py-2 align-middle text-slate-800 dark:text-neutral-200 group-hover:text-slate-900">
         {task.title}
       </td>
       <td className="px-3 py-2 align-middle whitespace-nowrap">
         {dueLabel ? (
           <span
             className={`text-xs ${
-              isOverdue ? "text-red-600 font-medium" : "text-slate-500 dark:text-slate-400"
+              isOverdue ? "text-red-600 font-medium" : "text-slate-500 dark:text-neutral-400"
             }`}
           >
             {dueLabel}
@@ -813,17 +813,17 @@ function SprintRow({
   return (
     <button
       type="button"
-      className="w-full text-left flex items-center gap-3 px-3 py-2 rounded hover:bg-slate-50 dark:hover:bg-slate-800/50 text-sm"
+      className="w-full text-left flex items-center gap-3 px-3 py-2 rounded hover:bg-slate-50 dark:hover:bg-neutral-800/50 text-sm"
       onClick={onClick}
     >
-      <span className="flex-1 truncate font-medium text-slate-800 dark:text-slate-200">
+      <span className="flex-1 truncate font-medium text-slate-800 dark:text-neutral-200">
         {sprint.name}
       </span>
-      <span className="text-xs text-slate-400 dark:text-slate-500 shrink-0">
+      <span className="text-xs text-slate-400 dark:text-neutral-500 shrink-0">
         {sprint.workspace_slug} / {sprint.project_key}
       </span>
       {sprint.end_at && (
-        <span className="text-xs text-slate-500 dark:text-slate-400 shrink-0">
+        <span className="text-xs text-slate-500 dark:text-neutral-400 shrink-0">
           ends{" "}
           {new Date(sprint.end_at).toLocaleDateString(undefined, {
             month: "short",
@@ -887,7 +887,7 @@ function ActivityRow({
     <button
       type="button"
       onClick={onClick}
-      className="w-full text-left flex items-center gap-2.5 px-3 py-2 rounded hover:bg-slate-50 dark:hover:bg-slate-800/50"
+      className="w-full text-left flex items-center gap-2.5 px-3 py-2 rounded hover:bg-slate-50 dark:hover:bg-neutral-800/50"
     >
       <Avatar
         displayName={a.actor_display_name}
@@ -901,15 +901,15 @@ function ActivityRow({
           so the name itself can sit at the same weight as the verb.
           Task title gets darker (slate-700) since that's what the user
           actually cares about scanning for. */}
-      <p className="flex-1 min-w-0 truncate text-xs text-slate-500 dark:text-slate-400">
-        <span className="text-slate-700 dark:text-slate-300">{actor}</span>
+      <p className="flex-1 min-w-0 truncate text-xs text-slate-500 dark:text-neutral-400">
+        <span className="text-slate-700 dark:text-neutral-300">{actor}</span>
         <span className="ml-1">{formatActivityAction(a)} </span>
-        <span className="font-mono text-[11px] px-1 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 mx-0.5">
+        <span className="font-mono text-[11px] px-1 py-0.5 rounded bg-slate-100 dark:bg-neutral-800 text-slate-600 dark:text-neutral-400 mx-0.5">
           {a.task_identifier}
         </span>
-        <span className="text-slate-700 dark:text-slate-300"> {a.task_title}</span>
+        <span className="text-slate-700 dark:text-neutral-300"> {a.task_title}</span>
       </p>
-      <span className="text-xs text-slate-400 dark:text-slate-500 shrink-0">
+      <span className="text-xs text-slate-400 dark:text-neutral-500 shrink-0">
         {formatRelative(a.created_at)}
       </span>
     </button>
@@ -943,7 +943,7 @@ function ActivityFeed({
         <button
           type="button"
           onClick={() => setExpanded((v) => !v)}
-          className="mt-2 ml-1 text-xs text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 px-2 py-1"
+          className="mt-2 ml-1 text-xs text-slate-500 dark:text-neutral-400 hover:text-slate-900 dark:hover:text-neutral-100 px-2 py-1"
         >
           {expanded
             ? "Show less"
@@ -989,7 +989,7 @@ function GroupedActivity({
         if (arr.length === 0) return null;
         return (
           <div key={k}>
-            <p className="px-3 pt-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-400 dark:text-slate-500">
+            <p className="px-3 pt-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-400 dark:text-neutral-500">
               {labels[k]}
             </p>
             <div className="space-y-0.5 mt-1">
@@ -1082,10 +1082,10 @@ export default function Dashboard() {
         {/* Two-line hero: personalized greeting + actionable subtitle. The
             workspace name lives in the sidebar's switcher already, so
             repeating it here was just noise. */}
-        <h1 className="text-2xl font-semibold tracking-tight text-slate-900 dark:text-slate-100">
+        <h1 className="text-2xl font-semibold tracking-tight text-slate-900 dark:text-neutral-200">
           {hi}
         </h1>
-        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{subtitle}</p>
+        <p className="mt-1 text-sm text-slate-500 dark:text-neutral-400">{subtitle}</p>
       </div>
 
       <StatsRow stats={stats} expanded={expanded} onToggle={toggleExpand} />
@@ -1189,7 +1189,7 @@ export default function Dashboard() {
         <div className="min-w-0">
           <SectionCard title="Recent activity">
             {recentActivity.length === 0 ? (
-              <p className="text-sm text-slate-400 dark:text-slate-500 px-3 py-2">
+              <p className="text-sm text-slate-400 dark:text-neutral-500 px-3 py-2">
                 No activity yet.
               </p>
             ) : (

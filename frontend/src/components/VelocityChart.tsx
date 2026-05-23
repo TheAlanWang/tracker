@@ -12,10 +12,10 @@ const PAD = { left: 28, right: 12, top: 12, bottom: 38 };
 export function VelocityChart({ projectId }: { projectId: string }) {
   const { data, isLoading } = useVelocity(projectId);
 
-  if (isLoading) return <p className="text-sm text-slate-400 dark:text-slate-500">Loading velocity…</p>;
+  if (isLoading) return <p className="text-sm text-slate-400 dark:text-neutral-500">Loading velocity…</p>;
   if (!data || data.bars.length === 0) {
     return (
-      <p className="text-sm text-slate-400 dark:text-slate-500">
+      <p className="text-sm text-slate-400 dark:text-neutral-500">
         No completed sprints yet. Velocity appears once you complete a sprint.
       </p>
     );

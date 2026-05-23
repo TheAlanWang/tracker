@@ -152,7 +152,7 @@ export function BurndownChart({ sprintId }: { sprintId: string }) {
   const { data, isLoading, error } = useBurndown(sprintId);
 
   if (isLoading) {
-    return <p className="text-sm text-slate-400 dark:text-slate-500">Loading burndown…</p>;
+    return <p className="text-sm text-slate-400 dark:text-neutral-500">Loading burndown…</p>;
   }
 
   // The most useful failure mode: sprint has no dates. We surface that
@@ -161,11 +161,11 @@ export function BurndownChart({ sprintId }: { sprintId: string }) {
     const detail =
       (error as { response?: { data?: { detail?: string } } }).response?.data
         ?.detail ?? "Could not load burndown.";
-    return <p className="text-sm text-slate-500 dark:text-slate-400">{detail}</p>;
+    return <p className="text-sm text-slate-500 dark:text-neutral-400">{detail}</p>;
   }
   if (!data || data.total === 0) {
     return (
-      <p className="text-sm text-slate-400 dark:text-slate-500">
+      <p className="text-sm text-slate-400 dark:text-neutral-500">
         No tasks in this sprint yet. Add tasks to see a burndown.
       </p>
     );
@@ -173,7 +173,7 @@ export function BurndownChart({ sprintId }: { sprintId: string }) {
 
   return (
     <div>
-      <div className="flex items-center gap-4 text-xs text-slate-600 dark:text-slate-400 mb-2">
+      <div className="flex items-center gap-4 text-xs text-slate-600 dark:text-neutral-400 mb-2">
         <span className="flex items-center gap-1.5">
           <span className="inline-block w-3 h-0.5 bg-blue-600" /> Actual
         </span>
@@ -184,7 +184,7 @@ export function BurndownChart({ sprintId }: { sprintId: string }) {
           />{" "}
           Ideal
         </span>
-        <span className="ml-auto text-slate-400 dark:text-slate-500">{data.total} tasks total</span>
+        <span className="ml-auto text-slate-400 dark:text-neutral-500">{data.total} tasks total</span>
       </div>
       <BurndownInner data={data} />
     </div>

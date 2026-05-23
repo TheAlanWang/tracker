@@ -44,7 +44,7 @@ const TYPE_LABEL: Record<ProjectEnvironmentType, string> = {
 // real wayfinding value — environments are short enough that label alone
 // distinguishes them.
 const PILL_CLASS =
-  "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300";
+  "bg-slate-100 text-slate-700 dark:bg-neutral-800 dark:text-neutral-300";
 
 const TYPE_OPTIONS: ProjectEnvironmentType[] = [
   "production",
@@ -222,7 +222,7 @@ export function ProjectDetailPopover({
         width: POPOVER_WIDTH,
         maxHeight: POPOVER_MAX_H,
       }}
-      className="z-50 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xl overflow-y-auto"
+      className="z-50 rounded-lg border border-slate-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-xl overflow-y-auto"
     >
       {/* Top bar — 2-row `[LABEL] [name]` grid identity + actions.
           Reads like a definition list: row 1 is workspace context,
@@ -235,29 +235,29 @@ export function ProjectDetailPopover({
             the right edge — spreads the identity across the available
             width rather than clumping at the left. */}
         <div className="grid grid-cols-[auto_minmax(0,1fr)_auto_minmax(0,1fr)] gap-x-3 gap-y-0.5 items-baseline min-w-0 flex-1">
-          <span className="font-mono text-xs uppercase tracking-wider text-slate-400 dark:text-slate-500">
+          <span className="font-mono text-xs uppercase tracking-wider text-slate-400 dark:text-neutral-500">
             Workspace
           </span>
-          <span className="text-sm font-medium text-slate-700 dark:text-slate-300 truncate">
+          <span className="text-sm font-medium text-slate-700 dark:text-neutral-300 truncate">
             {workspace?.name ?? "—"}
           </span>
-          <span className="font-mono text-xs uppercase tracking-wider text-slate-400 dark:text-slate-500">
+          <span className="font-mono text-xs uppercase tracking-wider text-slate-400 dark:text-neutral-500">
             Slug
           </span>
-          <span className="font-mono text-xs text-slate-500 dark:text-slate-400 truncate">
+          <span className="font-mono text-xs text-slate-500 dark:text-neutral-400 truncate">
             {workspace?.slug ?? ""}
           </span>
 
-          <span className="font-mono text-xs uppercase tracking-wider text-slate-400 dark:text-slate-500">
+          <span className="font-mono text-xs uppercase tracking-wider text-slate-400 dark:text-neutral-500">
             Project
           </span>
-          <span className="text-base font-semibold text-slate-900 dark:text-slate-100 truncate">
+          <span className="text-base font-semibold text-slate-900 dark:text-neutral-200 truncate">
             {project.name}
           </span>
-          <span className="font-mono text-xs uppercase tracking-wider text-slate-400 dark:text-slate-500">
+          <span className="font-mono text-xs uppercase tracking-wider text-slate-400 dark:text-neutral-500">
             Key
           </span>
-          <span className="font-mono text-xs uppercase tracking-wider text-slate-700 dark:text-slate-300 truncate">
+          <span className="font-mono text-xs uppercase tracking-wider text-slate-700 dark:text-neutral-300 truncate">
             {project.key}
           </span>
         </div>
@@ -292,7 +292,7 @@ export function ProjectDetailPopover({
                 onClick={() => setEditing(true)}
                 title="Edit"
                 aria-label="Edit project details"
-                className="text-slate-400 dark:text-slate-500 hover:text-slate-900 dark:hover:text-slate-100 p-1 rounded transition-colors"
+                className="text-slate-400 dark:text-neutral-500 hover:text-slate-900 dark:hover:text-neutral-100 p-1 rounded transition-colors"
               >
                 <SquarePen className="w-3.5 h-3.5" />
               </button>
@@ -301,7 +301,7 @@ export function ProjectDetailPopover({
                 onClick={onClose}
                 title="Close"
                 aria-label="Close"
-                className="text-slate-400 dark:text-slate-500 hover:text-slate-900 dark:hover:text-slate-100 p-1 rounded transition-colors"
+                className="text-slate-400 dark:text-neutral-500 hover:text-slate-900 dark:hover:text-neutral-100 p-1 rounded transition-colors"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -314,13 +314,13 @@ export function ProjectDetailPopover({
         {/* Description */}
         <section className="space-y-2">
           <div>
-            <h3 className="flex items-center gap-1.5 text-sm font-medium text-slate-600 dark:text-slate-400">
+            <h3 className="flex items-center gap-1.5 text-sm font-medium text-slate-600 dark:text-neutral-400">
               <AlignLeft className="w-3.5 h-3.5" aria-hidden />
               <span>Description</span>
             </h3>
             {/* Hairline directly below section label — reads as
                 "title underline" rather than "inter-section divider". */}
-            <div className="h-px bg-slate-100 dark:bg-slate-800 mt-2" />
+            <div className="h-px bg-slate-100 dark:bg-neutral-800 mt-2" />
           </div>
           {editing ? (
             <textarea
@@ -328,10 +328,10 @@ export function ProjectDetailPopover({
               onChange={(e) => setDescDraft(e.target.value)}
               placeholder="What is this project? (markdown supported)"
               rows={3}
-              className="w-full rounded border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-2 text-sm resize-y"
+              className="w-full rounded border border-slate-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 p-2 text-sm resize-y"
             />
           ) : project.description?.trim() ? (
-            <div className="prose prose-sm max-w-none text-slate-700 dark:text-slate-300 prose-pre:bg-slate-100 dark:prose-pre:bg-slate-800/60">
+            <div className="prose prose-sm max-w-none text-slate-700 dark:text-neutral-300 prose-pre:bg-slate-100 dark:prose-pre:bg-neutral-800/60">
               <ReactMarkdown
                 remarkPlugins={[remarkGfm]}
                 rehypePlugins={[rehypeHighlight]}
@@ -341,7 +341,7 @@ export function ProjectDetailPopover({
               </ReactMarkdown>
             </div>
           ) : (
-            <p className="text-sm italic text-slate-400 dark:text-slate-500">
+            <p className="text-sm italic text-slate-400 dark:text-neutral-500">
               No description yet.
             </p>
           )}
@@ -350,17 +350,17 @@ export function ProjectDetailPopover({
         {/* Environments */}
         <section className="space-y-2">
           <div>
-            <h3 className="flex items-center gap-1.5 text-sm font-medium text-slate-600 dark:text-slate-400">
+            <h3 className="flex items-center gap-1.5 text-sm font-medium text-slate-600 dark:text-neutral-400">
               <Link2 className="w-3.5 h-3.5" aria-hidden />
               <span>Environments</span>
             </h3>
-            <div className="h-px bg-slate-100 dark:bg-slate-800 mt-2" />
+            <div className="h-px bg-slate-100 dark:bg-neutral-800 mt-2" />
           </div>
 
           {!editing ? (
             // View mode
             draft.length === 0 ? (
-              <p className="text-sm italic text-slate-400 dark:text-slate-500">
+              <p className="text-sm italic text-slate-400 dark:text-neutral-500">
                 No environments yet.
               </p>
             ) : (
@@ -375,7 +375,7 @@ export function ProjectDetailPopover({
                     >
                       {TYPE_LABEL[env.type]}
                     </span>
-                    <span className="shrink-0 text-sm font-medium text-slate-900 dark:text-slate-100 min-w-[3rem]">
+                    <span className="shrink-0 text-sm font-medium text-slate-900 dark:text-neutral-200 min-w-[3rem]">
                       {env.name}
                     </span>
                     <a
@@ -402,7 +402,7 @@ export function ProjectDetailPopover({
                 {draft.map((env, i) => (
                   <div
                     key={i}
-                    className="group grid grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-3 py-2 border-b border-slate-100 dark:border-slate-800 last:border-b-0"
+                    className="group grid grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-3 py-2 border-b border-slate-100 dark:border-neutral-800 last:border-b-0"
                   >
                     <select
                       value={env.type}
@@ -411,7 +411,7 @@ export function ProjectDetailPopover({
                           type: e.target.value as ProjectEnvironmentType,
                         })
                       }
-                      className={`mt-0.5 shrink-0 appearance-none cursor-pointer w-14 text-center text-[10px] font-medium uppercase tracking-wider rounded-full px-1 py-1 ${PILL_CLASS} hover:ring-1 hover:ring-slate-300 dark:hover:ring-slate-600 transition`}
+                      className={`mt-0.5 shrink-0 appearance-none cursor-pointer w-14 text-center text-[10px] font-medium uppercase tracking-wider rounded-full px-1 py-1 ${PILL_CLASS} hover:ring-1 hover:ring-slate-300 dark:hover:ring-neutral-600 transition`}
                     >
                       {TYPE_OPTIONS.map((t) => (
                         <option key={t} value={t}>
@@ -424,7 +424,7 @@ export function ProjectDetailPopover({
                         placeholder="Name (e.g. Production)"
                         value={env.name}
                         onChange={(e) => updateRow(i, { name: e.target.value })}
-                        className="bg-transparent outline-none text-sm font-medium text-slate-900 dark:text-slate-100 placeholder:text-slate-400 placeholder:font-normal"
+                        className="bg-transparent outline-none text-sm font-medium text-slate-900 dark:text-neutral-200 placeholder:text-slate-400 placeholder:font-normal"
                       />
                       <input
                         placeholder="https://..."
@@ -445,7 +445,7 @@ export function ProjectDetailPopover({
                         disabled={i === 0}
                         title="Move up"
                         aria-label="Move up"
-                        className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 disabled:opacity-30 disabled:hover:text-slate-400 dark:disabled:hover:text-slate-500"
+                        className="text-slate-400 hover:text-slate-700 dark:hover:text-neutral-200 disabled:opacity-30 disabled:hover:text-slate-400 dark:disabled:hover:text-neutral-500"
                       >
                         <ChevronUp className="w-3.5 h-3.5" />
                       </button>
@@ -455,7 +455,7 @@ export function ProjectDetailPopover({
                         disabled={i === draft.length - 1}
                         title="Move down"
                         aria-label="Move down"
-                        className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 disabled:opacity-30 disabled:hover:text-slate-400 dark:disabled:hover:text-slate-500"
+                        className="text-slate-400 hover:text-slate-700 dark:hover:text-neutral-200 disabled:opacity-30 disabled:hover:text-slate-400 dark:disabled:hover:text-neutral-500"
                       >
                         <ChevronDown className="w-3.5 h-3.5" />
                       </button>
@@ -475,7 +475,7 @@ export function ProjectDetailPopover({
               <button
                 type="button"
                 onClick={addRow}
-                className="mt-3 w-full inline-flex items-center justify-center gap-1 rounded border border-dashed border-slate-300 dark:border-slate-700 px-2 py-1.5 text-xs text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:border-slate-400"
+                className="mt-3 w-full inline-flex items-center justify-center gap-1 rounded border border-dashed border-slate-300 dark:border-neutral-700 px-2 py-1.5 text-xs text-slate-500 dark:text-neutral-400 hover:text-slate-900 dark:hover:text-neutral-100 hover:border-slate-400"
               >
                 <Plus className="w-3 h-3" />
                 Add environment

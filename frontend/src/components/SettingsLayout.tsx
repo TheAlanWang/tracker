@@ -81,7 +81,7 @@ export function SettingsLayout({ children }: Props) {
             overflowing. */}
         <aside className="space-y-6 sticky top-0 self-start max-h-[calc(100vh-3.5rem)] overflow-y-auto pb-4">
           <section className="space-y-1">
-            <p className="flex items-center gap-1.5 text-[11px] uppercase tracking-wide text-slate-400 dark:text-slate-500 font-semibold border-l-2 border-transparent px-2 pb-1">
+            <p className="flex items-center gap-1.5 text-[11px] uppercase tracking-wide text-slate-400 dark:text-neutral-500 font-semibold border-l-2 border-transparent px-2 pb-1">
               <User className="w-3.5 h-3.5" strokeWidth={1.7} />
               Account
             </p>
@@ -90,8 +90,8 @@ export function SettingsLayout({ children }: Props) {
               onClick={() => navigate(`/w/${wsSlug}/profile`)}
               className={
                 onProfileSettings
-                  ? "flex items-center gap-1.5 w-full text-left rounded border-l-2 border-blue-500 dark:border-blue-400 px-2 py-1.5 text-sm bg-slate-100 dark:bg-slate-800 font-medium text-slate-900 dark:text-slate-100"
-                  : "flex items-center gap-1.5 w-full text-left rounded border-l-2 border-transparent px-2 py-1.5 text-sm text-slate-700 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                  ? "flex items-center gap-1.5 w-full text-left rounded border-l-2 border-blue-500 dark:border-blue-400 px-2 py-1.5 text-sm bg-slate-100 dark:bg-neutral-800 font-medium text-slate-900 dark:text-neutral-200"
+                  : "flex items-center gap-1.5 w-full text-left rounded border-l-2 border-transparent px-2 py-1.5 text-sm text-slate-700 dark:text-neutral-400 hover:bg-slate-50 dark:hover:bg-neutral-800/50"
               }
             >
               <span className="w-3.5 h-3.5 shrink-0" aria-hidden />
@@ -100,7 +100,7 @@ export function SettingsLayout({ children }: Props) {
           </section>
 
           <section className="space-y-1">
-            <p className="flex items-center gap-1.5 text-[11px] uppercase tracking-wide text-slate-400 dark:text-slate-500 font-semibold border-l-2 border-transparent px-2 pb-1">
+            <p className="flex items-center gap-1.5 text-[11px] uppercase tracking-wide text-slate-400 dark:text-neutral-500 font-semibold border-l-2 border-transparent px-2 pb-1">
               <LayoutGrid className="w-3.5 h-3.5" strokeWidth={1.7} />
               Workspaces
             </p>
@@ -114,8 +114,8 @@ export function SettingsLayout({ children }: Props) {
                   onClick={() => navigate(`/w/${w.slug}/settings`)}
                   className={
                     active
-                      ? "flex items-center gap-1.5 w-full text-left rounded border-l-2 border-blue-500 dark:border-blue-400 px-2 py-1.5 text-sm bg-slate-100 dark:bg-slate-800 font-medium text-slate-900 dark:text-slate-100"
-                      : "flex items-center gap-1.5 w-full text-left rounded border-l-2 border-transparent px-2 py-1.5 text-sm text-slate-700 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                      ? "flex items-center gap-1.5 w-full text-left rounded border-l-2 border-blue-500 dark:border-blue-400 px-2 py-1.5 text-sm bg-slate-100 dark:bg-neutral-800 font-medium text-slate-900 dark:text-neutral-200"
+                      : "flex items-center gap-1.5 w-full text-left rounded border-l-2 border-transparent px-2 py-1.5 text-sm text-slate-700 dark:text-neutral-400 hover:bg-slate-50 dark:hover:bg-neutral-800/50"
                   }
                 >
                   <span className="w-3.5 h-3.5 shrink-0" aria-hidden />
@@ -126,7 +126,7 @@ export function SettingsLayout({ children }: Props) {
             <button
               type="button"
               onClick={() => setNewWsOpen(true)}
-              className="flex items-center gap-1.5 w-full text-left rounded border-l-2 border-transparent px-2 py-1.5 text-sm text-slate-500 dark:text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-slate-200"
+              className="flex items-center gap-1.5 w-full text-left rounded border-l-2 border-transparent px-2 py-1.5 text-sm text-slate-500 dark:text-neutral-500 hover:bg-slate-50 dark:hover:bg-neutral-800/50 hover:text-slate-900 dark:hover:text-neutral-200"
             >
               <span className="w-3.5 h-3.5 flex items-center justify-center shrink-0 text-base leading-none">+</span>
               <span>New Workspace</span>
@@ -135,12 +135,12 @@ export function SettingsLayout({ children }: Props) {
 
           {currentWs && (
             <section className="space-y-1">
-              <p className="flex items-center gap-1.5 text-[11px] uppercase tracking-wide text-slate-400 dark:text-slate-500 font-semibold border-l-2 border-transparent px-2 pb-1">
+              <p className="flex items-center gap-1.5 text-[11px] uppercase tracking-wide text-slate-400 dark:text-neutral-500 font-semibold border-l-2 border-transparent px-2 pb-1">
                 <Folder className="w-3.5 h-3.5" strokeWidth={1.7} />
                 Projects in {currentWs.name}
               </p>
               {projects.length === 0 ? (
-                <p className="px-2 text-xs text-slate-400 dark:text-slate-500">
+                <p className="px-2 text-xs text-slate-400 dark:text-neutral-500">
                   No projects in this workspace.
                 </p>
               ) : (
@@ -155,8 +155,8 @@ export function SettingsLayout({ children }: Props) {
                       }
                       className={
                         active
-                          ? "flex items-center gap-1.5 w-full text-left rounded border-l-2 border-blue-500 dark:border-blue-400 px-2 py-1.5 text-sm bg-slate-100 dark:bg-slate-800 font-medium text-slate-900 dark:text-slate-100"
-                          : "flex items-center gap-1.5 w-full text-left rounded border-l-2 border-transparent px-2 py-1.5 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                          ? "flex items-center gap-1.5 w-full text-left rounded border-l-2 border-blue-500 dark:border-blue-400 px-2 py-1.5 text-sm bg-slate-100 dark:bg-neutral-800 font-medium text-slate-900 dark:text-neutral-200"
+                          : "flex items-center gap-1.5 w-full text-left rounded border-l-2 border-transparent px-2 py-1.5 text-sm text-slate-700 dark:text-neutral-300 hover:bg-slate-50 dark:hover:bg-neutral-800/50"
                       }
                     >
                       <span className="w-3.5 h-3.5 flex items-center justify-center shrink-0">
@@ -192,7 +192,7 @@ export function SettingsLayout({ children }: Props) {
           onClick={() => setNewWsOpen(false)}
         >
           <div
-            className="w-full max-w-md rounded-lg bg-white dark:bg-slate-900 shadow-2xl p-6"
+            className="w-full max-w-md rounded-lg bg-white dark:bg-neutral-900 shadow-2xl p-6"
             onClick={(e) => e.stopPropagation()}
           >
             <h2 className="text-base font-semibold mb-4">New Workspace</h2>
@@ -208,7 +208,7 @@ export function SettingsLayout({ children }: Props) {
                   maxLength={100}
                 />
                 {newWsName.trim() && (
-                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                  <p className="text-xs text-slate-500 dark:text-neutral-400">
                     URL slug:{" "}
                     <span className="font-mono">
                       {slugifyWorkspace(newWsName) || "—"}

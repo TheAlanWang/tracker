@@ -53,7 +53,7 @@ function ModeIcon({ mode }: { mode: Mode }) {
   if (mode === "signin") {
     // Key icon — "let me in"
     return (
-      <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 flex items-center justify-center">
+      <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-neutral-800 text-slate-700 dark:text-neutral-300 flex items-center justify-center">
         <svg
           viewBox="0 0 24 24"
           fill="none"
@@ -212,13 +212,13 @@ export function LoginDialog({
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-sm rounded-2xl bg-white dark:bg-slate-900 shadow-2xl p-6 relative"
+        className="w-full max-w-sm rounded-2xl bg-white dark:bg-neutral-900 shadow-2xl p-6 relative"
       >
         <button
           type="button"
           onClick={onClose}
           aria-label="Close"
-          className="absolute top-3 right-3 w-7 h-7 rounded-md text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center"
+          className="absolute top-3 right-3 w-7 h-7 rounded-md text-slate-400 dark:text-neutral-500 hover:text-slate-700 dark:hover:text-neutral-300 hover:bg-slate-100 dark:hover:bg-neutral-800 flex items-center justify-center"
         >
           <svg viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
             <path
@@ -238,18 +238,18 @@ export function LoginDialog({
               />
             </div>
             <div className="space-y-1">
-              <h2 className="text-xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
+              <h2 className="text-xl font-bold tracking-tight text-slate-900 dark:text-neutral-200">
                 Check your inbox
               </h2>
-              <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
+              <p className="text-sm text-slate-500 dark:text-neutral-400 leading-relaxed">
                 We sent a verification link to{" "}
-                <span className="font-medium text-slate-700 dark:text-slate-300">
+                <span className="font-medium text-slate-700 dark:text-neutral-300">
                   {signupEmailSent}
                 </span>
                 . Click it to finish signing up.
               </p>
             </div>
-            <p className="text-xs text-slate-400 dark:text-slate-500">
+            <p className="text-xs text-slate-400 dark:text-neutral-500">
               Didn't get it? Check spam, or wait a minute and try again.
             </p>
             <Button
@@ -267,14 +267,14 @@ export function LoginDialog({
           <ModeIcon mode={mode} />
           <div className="flex-1 min-w-0">
             <p
-              className={`text-[10px] font-semibold uppercase tracking-[0.12em] ${isSignin ? "text-slate-500 dark:text-slate-400" : "text-emerald-600"}`}
+              className={`text-[10px] font-semibold uppercase tracking-[0.12em] ${isSignin ? "text-slate-500 dark:text-neutral-400" : "text-emerald-600"}`}
             >
               {isSignin ? "Sign in" : "Sign up"}
             </p>
-            <h2 className="mt-0.5 text-xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
+            <h2 className="mt-0.5 text-xl font-bold tracking-tight text-slate-900 dark:text-neutral-200">
               {title}
             </h2>
-            <p className="mt-0.5 text-sm text-slate-500 dark:text-slate-400">{sub}</p>
+            <p className="mt-0.5 text-sm text-slate-500 dark:text-neutral-400">{sub}</p>
           </div>
         </div>
 
@@ -306,10 +306,10 @@ export function LoginDialog({
 
         <div className="relative my-4">
           <div className="absolute inset-0 flex items-center">
-            <span className="w-full border-t border-slate-200 dark:border-slate-800" />
+            <span className="w-full border-t border-slate-200 dark:border-neutral-800" />
           </div>
           <div className="relative flex justify-center text-[11px] uppercase tracking-wide">
-            <span className="bg-white dark:bg-slate-900 px-2 text-slate-400 dark:text-slate-500">Or</span>
+            <span className="bg-white dark:bg-neutral-900 px-2 text-slate-400 dark:text-neutral-500">Or</span>
           </div>
         </div>
 
@@ -350,7 +350,7 @@ export function LoginDialog({
                 <button
                   type="button"
                   onClick={handleForgotPassword}
-                  className="text-xs text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100"
+                  className="text-xs text-slate-500 dark:text-neutral-400 hover:text-slate-900 dark:hover:text-neutral-100"
                 >
                   Forgot password?
                 </button>
@@ -402,20 +402,20 @@ export function LoginDialog({
           </Button>
 
           {!isSignin && (
-            <p className="text-[11px] text-slate-400 dark:text-slate-500 leading-relaxed">
+            <p className="text-[11px] text-slate-400 dark:text-neutral-500 leading-relaxed">
               By creating an account, you agree to our terms and acknowledge
               the privacy policy.
             </p>
           )}
         </form>
 
-        <p className="mt-5 text-center text-sm text-slate-500 dark:text-slate-400">
+        <p className="mt-5 text-center text-sm text-slate-500 dark:text-neutral-400">
           {isSignin ? (
             <>
               Don't have an account?{" "}
               <button
                 type="button"
-                className="font-medium text-slate-900 dark:text-slate-100 hover:underline"
+                className="font-medium text-slate-900 dark:text-neutral-200 hover:underline"
                 onClick={() => switchMode("signup")}
               >
                 Sign up
@@ -426,7 +426,7 @@ export function LoginDialog({
               Already have an account?{" "}
               <button
                 type="button"
-                className="font-medium text-slate-900 dark:text-slate-100 hover:underline"
+                className="font-medium text-slate-900 dark:text-neutral-200 hover:underline"
                 onClick={() => switchMode("signin")}
               >
                 Sign in

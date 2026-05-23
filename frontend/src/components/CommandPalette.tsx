@@ -61,15 +61,15 @@ export function CommandPalette() {
     >
       {/* Custom overlay and centering wrapper */}
       <div className="fixed inset-0 z-50 flex items-start justify-center pt-[20vh] bg-black/30">
-        <div className="w-full max-w-xl rounded-lg bg-white dark:bg-slate-900 shadow-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+        <div className="w-full max-w-xl rounded-lg bg-white dark:bg-neutral-900 shadow-xl border border-slate-200 dark:border-neutral-800 overflow-hidden">
           <Command.Input
             value={query}
             onValueChange={setQuery}
             placeholder="Search projects, tasks, labels…"
-            className="w-full px-4 py-3 text-sm outline-none border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 placeholder:text-slate-400"
+            className="w-full px-4 py-3 text-sm outline-none border-b border-slate-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 placeholder:text-slate-400"
           />
           <Command.List className="max-h-[60vh] overflow-y-auto p-2">
-            <Command.Empty className="py-6 text-center text-sm text-slate-500 dark:text-slate-400">
+            <Command.Empty className="py-6 text-center text-sm text-slate-500 dark:text-neutral-400">
               No results.
             </Command.Empty>
 
@@ -136,11 +136,11 @@ function CommandItem({
     <Command.Item
       value={label}
       onSelect={onSelect}
-      className="flex items-center justify-between rounded px-3 py-2 text-sm cursor-pointer text-slate-900 dark:text-slate-100 data-[selected=true]:bg-slate-100 aria-selected:bg-slate-100"
+      className="flex items-center justify-between rounded px-3 py-2 text-sm cursor-pointer text-slate-900 dark:text-neutral-200 data-[selected=true]:bg-slate-100 aria-selected:bg-slate-100"
     >
       <span className="truncate">{label}</span>
       {sublabel && (
-        <span className="ml-3 shrink-0 text-xs text-slate-400 dark:text-slate-500">{sublabel}</span>
+        <span className="ml-3 shrink-0 text-xs text-slate-400 dark:text-neutral-500">{sublabel}</span>
       )}
     </Command.Item>
   );

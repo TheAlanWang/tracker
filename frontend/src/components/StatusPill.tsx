@@ -54,7 +54,7 @@ export function PriorityPill({
   className?: string;
 }) {
   if (hideNoPriority && priority === "no_priority") {
-    return <span className="text-xs text-slate-300 dark:text-slate-600">—</span>;
+    return <span className="text-xs text-slate-300 dark:text-neutral-600">—</span>;
   }
   const v = PRIORITY[priority];
   return (

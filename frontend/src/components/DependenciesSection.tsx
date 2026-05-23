@@ -50,10 +50,10 @@ function TaskChip({
 }) {
   const borderCls = pending
     ? "border-blue-300 dark:border-blue-700 border-dashed bg-blue-50/40 dark:bg-blue-950/20"
-    : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900";
+    : "border-slate-200 dark:border-neutral-800 bg-white dark:bg-neutral-900";
   return (
     <div
-      className={`group flex items-center gap-2 rounded-md border px-2 py-1.5 hover:border-slate-300 dark:hover:border-slate-700 transition-colors ${borderCls}`}
+      className={`group flex items-center gap-2 rounded-md border px-2 py-1.5 hover:border-slate-300 dark:hover:border-neutral-700 transition-colors ${borderCls}`}
     >
       <button
         type="button"
@@ -61,10 +61,10 @@ function TaskChip({
         disabled={!onOpen}
         className="flex-1 min-w-0 flex items-center gap-2 text-left disabled:cursor-default"
       >
-        <span className="font-mono text-[11px] text-slate-400 dark:text-slate-500 shrink-0">
+        <span className="font-mono text-[11px] text-slate-400 dark:text-neutral-500 shrink-0">
           {task.identifier}
         </span>
-        <span className="text-sm text-slate-800 dark:text-slate-200 truncate">
+        <span className="text-sm text-slate-800 dark:text-neutral-200 truncate">
           {task.title}
         </span>
         <StatusPill status={task.status} size="sm" className="shrink-0" />
@@ -74,7 +74,7 @@ function TaskChip({
           type="button"
           onClick={onRemove}
           aria-label="Remove dependency"
-          className="opacity-0 group-hover:opacity-100 text-slate-400 dark:text-slate-500 hover:text-red-600 text-xs px-1 transition-opacity"
+          className="opacity-0 group-hover:opacity-100 text-slate-400 dark:text-neutral-500 hover:text-red-600 text-xs px-1 transition-opacity"
         >
           ×
         </button>
@@ -157,7 +157,7 @@ function AddDependencyPopover({
       }}
       // z-[60] beats the modal backdrop (z-50) so the popover always
       // floats above whatever container opened it.
-      className="z-[60] rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-xl overflow-hidden flex flex-col"
+      className="z-[60] rounded-lg border border-slate-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 shadow-xl overflow-hidden flex flex-col"
     >
       <input
         ref={inputRef}
@@ -165,11 +165,11 @@ function AddDependencyPopover({
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         placeholder="Search tasks…"
-        className="w-full px-3 py-2 text-sm bg-transparent border-b border-slate-100 dark:border-slate-800 outline-none placeholder:text-slate-400 dark:placeholder:text-slate-500"
+        className="w-full px-3 py-2 text-sm bg-transparent border-b border-slate-100 dark:border-neutral-800 outline-none placeholder:text-slate-400 dark:placeholder:text-neutral-500"
       />
       <div className="flex-1 min-h-0 overflow-y-auto py-1">
         {matches.length === 0 ? (
-          <p className="px-3 py-3 text-xs text-slate-400 dark:text-slate-500 text-center">
+          <p className="px-3 py-3 text-xs text-slate-400 dark:text-neutral-500 text-center">
             No tasks match.
           </p>
         ) : (
@@ -178,12 +178,12 @@ function AddDependencyPopover({
               key={t.id}
               type="button"
               onClick={() => onPick(t)}
-              className="w-full flex items-center gap-2 px-3 py-1.5 hover:bg-slate-50 dark:hover:bg-slate-800/50 text-left"
+              className="w-full flex items-center gap-2 px-3 py-1.5 hover:bg-slate-50 dark:hover:bg-neutral-800/50 text-left"
             >
-              <span className="font-mono text-[11px] text-slate-400 dark:text-slate-500 shrink-0">
+              <span className="font-mono text-[11px] text-slate-400 dark:text-neutral-500 shrink-0">
                 {t.identifier}
               </span>
-              <span className="text-sm text-slate-800 dark:text-slate-200 truncate flex-1">
+              <span className="text-sm text-slate-800 dark:text-neutral-200 truncate flex-1">
                 {t.title}
               </span>
               <StatusPill status={t.status} size="sm" className="shrink-0" />
@@ -271,7 +271,7 @@ function DependencyGroup({
           ref={buttonRef}
           type="button"
           onClick={openPicker}
-          className="inline-flex items-center gap-1 rounded-md border border-dashed border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2 py-1 text-xs text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:border-slate-400 dark:hover:border-slate-600 transition-colors"
+          className="inline-flex items-center gap-1 rounded-md border border-dashed border-slate-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 px-2 py-1 text-xs text-slate-500 dark:text-neutral-400 hover:text-slate-900 dark:hover:text-neutral-100 hover:border-slate-400 dark:hover:border-neutral-600 transition-colors"
         >
           + Add
         </button>

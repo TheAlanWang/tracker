@@ -98,7 +98,7 @@ export function AssigneePicker({
               top: pos.top,
               width: 240,
             }}
-            className="z-50 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xl py-1 max-h-[320px] overflow-y-auto"
+            className="z-50 rounded-lg border border-slate-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-xl py-1 max-h-[320px] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
             <button
@@ -107,18 +107,18 @@ export function AssigneePicker({
                 e.stopPropagation();
                 assign(null);
               }}
-              className={`w-full text-left px-3 py-2 text-sm hover:bg-slate-50 dark:hover:bg-slate-800/50 flex items-center gap-2 ${
-                currentAssigneeId === null ? "bg-slate-50 dark:bg-slate-800/40" : ""
+              className={`w-full text-left px-3 py-2 text-sm hover:bg-slate-50 dark:hover:bg-neutral-800/50 flex items-center gap-2 ${
+                currentAssigneeId === null ? "bg-slate-50 dark:bg-neutral-800/40" : ""
               }`}
             >
-              <div className="w-6 h-6 rounded-full border-2 border-dashed border-slate-300 dark:border-slate-700 shrink-0" />
-              <span className="text-slate-700 dark:text-slate-300">Unassigned</span>
+              <div className="w-6 h-6 rounded-full border-2 border-dashed border-slate-300 dark:border-neutral-700 shrink-0" />
+              <span className="text-slate-700 dark:text-neutral-300">Unassigned</span>
               {currentAssigneeId === null && (
                 <span className="ml-auto text-blue-600 text-xs">✓</span>
               )}
             </button>
             {members.length > 0 && (
-              <div className="my-1 border-t border-slate-100 dark:border-slate-800" />
+              <div className="my-1 border-t border-slate-100 dark:border-neutral-800" />
             )}
             {members.map((m) => {
               const isCurrent = m.user_id === currentAssigneeId;
@@ -131,8 +131,8 @@ export function AssigneePicker({
                     e.stopPropagation();
                     assign(m.user_id);
                   }}
-                  className={`w-full text-left px-3 py-2 text-sm hover:bg-slate-50 dark:hover:bg-slate-800/50 flex items-center gap-2 ${
-                    isCurrent ? "bg-slate-50 dark:bg-slate-800/40" : ""
+                  className={`w-full text-left px-3 py-2 text-sm hover:bg-slate-50 dark:hover:bg-neutral-800/50 flex items-center gap-2 ${
+                    isCurrent ? "bg-slate-50 dark:bg-neutral-800/40" : ""
                   }`}
                 >
                   <Avatar
@@ -143,9 +143,9 @@ export function AssigneePicker({
                     size={24}
                   />
                   <div className="min-w-0 flex-1">
-                    <p className="text-slate-900 dark:text-slate-100 truncate">{label}</p>
+                    <p className="text-slate-900 dark:text-neutral-200 truncate">{label}</p>
                     {m.display_name && m.email && (
-                      <p className="text-xs text-slate-400 dark:text-slate-500 truncate">
+                      <p className="text-xs text-slate-400 dark:text-neutral-500 truncate">
                         {m.email}
                       </p>
                     )}

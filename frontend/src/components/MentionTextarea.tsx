@@ -179,7 +179,7 @@ export const MentionTextarea = forwardRef<HTMLTextAreaElement, Props>(
                 top: pos.top,
                 width: Math.min(pos.width, 280),
               }}
-              className="z-50 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xl py-1"
+              className="z-50 rounded-lg border border-slate-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-xl py-1"
             >
               {candidates.map(({ m, h }, i) => (
                 <button
@@ -193,12 +193,12 @@ export const MentionTextarea = forwardRef<HTMLTextAreaElement, Props>(
                   }}
                   onMouseEnter={() => setHighlighted(i)}
                   className={`w-full text-left px-3 py-1.5 text-sm flex items-baseline gap-2 ${
-                    i === highlighted ? "bg-slate-100 dark:bg-slate-800" : "hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                    i === highlighted ? "bg-slate-100 dark:bg-neutral-800" : "hover:bg-slate-50 dark:hover:bg-neutral-800/50"
                   }`}
                 >
-                  <span className="font-medium text-slate-900 dark:text-slate-100">@{h}</span>
+                  <span className="font-medium text-slate-900 dark:text-neutral-200">@{h}</span>
                   {m.display_name && (
-                    <span className="text-xs text-slate-500 dark:text-slate-400 truncate">
+                    <span className="text-xs text-slate-500 dark:text-neutral-400 truncate">
                       {m.display_name}
                     </span>
                   )}

@@ -46,7 +46,7 @@ const PAD = 32;
 const GOAL_STATUS_STYLE: Record<GoalStatus, string> = {
   active: "bg-blue-50 text-blue-700",
   achieved: "bg-emerald-50 text-emerald-700",
-  paused: "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400",
+  paused: "bg-slate-100 dark:bg-neutral-800 text-slate-600 dark:text-neutral-400",
   dropped: "bg-red-50 text-red-600",
 };
 
@@ -259,7 +259,7 @@ function NodeActionsMenu({
           e.stopPropagation();
           setOpen((v) => !v);
         }}
-        className={`px-1.5 py-0 rounded text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 text-sm leading-none transition-opacity ${
+        className={`px-1.5 py-0 rounded text-slate-400 dark:text-neutral-500 hover:text-slate-700 dark:hover:text-neutral-300 hover:bg-slate-100 dark:hover:bg-neutral-800 text-sm leading-none transition-opacity ${
           forceVisible ? "opacity-100" : "opacity-0 group-hover:opacity-100"
         }`}
         aria-label="Goal actions"
@@ -269,7 +269,7 @@ function NodeActionsMenu({
       {open && (
         <div
           onClick={(e) => e.stopPropagation()}
-          className="absolute right-0 top-6 z-30 w-44 rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-lg py-1 text-sm"
+          className="absolute right-0 top-6 z-30 w-44 rounded-md border border-slate-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-lg py-1 text-sm"
         >
           <button
             type="button"
@@ -280,12 +280,12 @@ function NodeActionsMenu({
                 update.mutate({ title: next.trim() });
               }
             }}
-            className="w-full text-left px-3 py-1.5 hover:bg-slate-50 dark:hover:bg-slate-800/50"
+            className="w-full text-left px-3 py-1.5 hover:bg-slate-50 dark:hover:bg-neutral-800/50"
           >
             Rename
           </button>
-          <div className="border-t border-slate-100 dark:border-slate-800 my-1" />
-          <p className="px-3 py-0.5 text-[10px] uppercase text-slate-400 dark:text-slate-500">
+          <div className="border-t border-slate-100 dark:border-neutral-800 my-1" />
+          <p className="px-3 py-0.5 text-[10px] uppercase text-slate-400 dark:text-neutral-500">
             Status
           </p>
           {(["active", "achieved", "paused", "dropped"] as GoalStatus[]).map(
@@ -297,15 +297,15 @@ function NodeActionsMenu({
                   update.mutate({ status: s });
                   setOpen(false);
                 }}
-                className={`w-full text-left px-3 py-1.5 hover:bg-slate-50 dark:hover:bg-slate-800/50 ${
-                  goal.status === s ? "font-semibold text-slate-900 dark:text-slate-100" : ""
+                className={`w-full text-left px-3 py-1.5 hover:bg-slate-50 dark:hover:bg-neutral-800/50 ${
+                  goal.status === s ? "font-semibold text-slate-900 dark:text-neutral-200" : ""
                 }`}
               >
                 {GOAL_STATUS_LABEL[s]}
               </button>
             ),
           )}
-          <div className="border-t border-slate-100 dark:border-slate-800 my-1" />
+          <div className="border-t border-slate-100 dark:border-neutral-800 my-1" />
           <button
             type="button"
             onClick={async () => {
@@ -369,10 +369,10 @@ function GoalNodeCard({
           onToggle();
         }
       }}
-      className={`group absolute rounded-md border bg-white dark:bg-slate-900 shadow-sm transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 ${
+      className={`group absolute rounded-md border bg-white dark:bg-neutral-900 shadow-sm transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 ${
         expanded && childCount > 0
           ? "border-blue-300"
-          : "border-slate-200 dark:border-slate-800 hover:border-slate-300"
+          : "border-slate-200 dark:border-neutral-800 hover:border-slate-300"
       }`}
       style={{
         width: NODE_W,
@@ -385,7 +385,7 @@ function GoalNodeCard({
             dropdown can spill past the card's bottom edge without being
             clipped. */}
         <div className="flex items-center gap-1.5 min-w-0 pr-7">
-          <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100 truncate flex-1">
+          <h3 className="text-sm font-semibold text-slate-900 dark:text-neutral-200 truncate flex-1">
             {goal.title}
           </h3>
           {goal.status !== "active" && (
@@ -398,18 +398,18 @@ function GoalNodeCard({
         </div>
         {total > 0 ? (
           <div className="mt-1.5 flex items-center gap-2">
-            <div className="h-1 flex-1 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+            <div className="h-1 flex-1 rounded-full bg-slate-100 dark:bg-neutral-800 overflow-hidden">
               <div
                 className="h-full bg-emerald-500"
                 style={{ width: `${pct}%` }}
               />
             </div>
-            <span className="text-[10px] tabular-nums text-slate-500 dark:text-slate-400">
+            <span className="text-[10px] tabular-nums text-slate-500 dark:text-neutral-400">
               {done}/{total}
             </span>
           </div>
         ) : (
-          <p className="mt-1.5 text-[10px] text-slate-400 dark:text-slate-500">No tasks</p>
+          <p className="mt-1.5 text-[10px] text-slate-400 dark:text-neutral-500">No tasks</p>
         )}
         {tasks.length > 0 && (
           <div className="mt-1.5 flex items-center gap-1 flex-wrap overflow-hidden">
@@ -428,7 +428,7 @@ function GoalNodeCard({
               </button>
             ))}
             {tasks.length > 4 && (
-              <span className="text-[10px] text-slate-400 dark:text-slate-500">
+              <span className="text-[10px] text-slate-400 dark:text-neutral-500">
                 +{tasks.length - 4}
               </span>
             )}
@@ -455,7 +455,7 @@ function GoalNodeCard({
         }}
         title="Add sub-goal"
         aria-label="Add sub-goal"
-        className="absolute top-1/2 -translate-y-1/2 -right-3 w-6 h-6 rounded-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50 shadow-sm flex items-center justify-center text-sm leading-none"
+        className="absolute top-1/2 -translate-y-1/2 -right-3 w-6 h-6 rounded-full bg-white dark:bg-neutral-900 border border-slate-300 dark:border-neutral-700 text-slate-500 dark:text-neutral-400 hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50 shadow-sm flex items-center justify-center text-sm leading-none"
       >
         +
       </button>
@@ -521,9 +521,9 @@ function GhostNode({
             onDone();
           }
         }}
-        className="w-full bg-transparent text-sm font-medium text-slate-900 dark:text-slate-100 outline-none placeholder:text-slate-400"
+        className="w-full bg-transparent text-sm font-medium text-slate-900 dark:text-neutral-200 outline-none placeholder:text-slate-400"
       />
-      <p className="mt-1 text-[10px] text-slate-400 dark:text-slate-500">
+      <p className="mt-1 text-[10px] text-slate-400 dark:text-neutral-500">
         Enter to save · Esc to cancel
       </p>
     </div>
@@ -602,8 +602,8 @@ export function GoalMindMap({
 
   if (goals.length === 0 && addingFor !== "root") {
     return (
-      <div className="rounded-lg border border-dashed border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40 p-10 text-center">
-        <p className="text-sm text-slate-500 dark:text-slate-400">
+      <div className="rounded-lg border border-dashed border-slate-200 dark:border-neutral-800 bg-slate-50 dark:bg-neutral-800/40 p-10 text-center">
+        <p className="text-sm text-slate-500 dark:text-neutral-400">
           No goals yet. Start your strategy tree.
         </p>
         <button
@@ -627,12 +627,12 @@ export function GoalMindMap({
   }
 
   return (
-    <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-auto">
-      <div className="flex items-center justify-end px-3 py-1.5 border-b border-slate-100 dark:border-slate-800">
+    <div className="rounded-lg border border-slate-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 overflow-auto">
+      <div className="flex items-center justify-end px-3 py-1.5 border-b border-slate-100 dark:border-neutral-800">
         <button
           type="button"
           onClick={() => setAddingFor("root")}
-          className="text-[11px] text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100"
+          className="text-[11px] text-slate-500 dark:text-neutral-400 hover:text-slate-900 dark:hover:text-neutral-100"
         >
           + New top-level goal
         </button>

@@ -75,8 +75,8 @@ export function ProjectLayout() {
 
   const tabClass = ({ isActive }: { isActive: boolean }) =>
     isActive
-      ? "inline-flex items-center gap-1.5 h-9 border-b-2 border-slate-900 dark:border-slate-100 px-3 text-sm font-medium text-slate-900 dark:text-slate-100"
-      : "inline-flex items-center gap-1.5 h-9 border-b-2 border-transparent px-3 text-sm text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100";
+      ? "inline-flex items-center gap-1.5 h-9 border-b-2 border-slate-900 dark:border-neutral-100 px-3 text-sm font-medium text-slate-900 dark:text-neutral-200"
+      : "inline-flex items-center gap-1.5 h-9 border-b-2 border-transparent px-3 text-sm text-slate-500 dark:text-neutral-400 hover:text-slate-900 dark:hover:text-neutral-100";
 
   return (
     <div>
@@ -88,11 +88,11 @@ export function ProjectLayout() {
               Row 2: project name (large, bold, click → detail popover).
               Workspace *name* lives in the popover breadcrumb only. */}
           <div className="space-y-0.5 min-w-0">
-            <p className="flex items-baseline gap-2 min-w-0 font-mono text-xs text-slate-400 dark:text-slate-500">
+            <p className="flex items-baseline gap-2 min-w-0 font-mono text-xs text-slate-400 dark:text-neutral-500">
               {currentWs && (
                 <>
                   <span className="shrink-0">{currentWs.slug}</span>
-                  <span className="shrink-0 text-slate-300 dark:text-slate-600">
+                  <span className="shrink-0 text-slate-300 dark:text-neutral-600">
                     /
                   </span>
                 </>
@@ -105,7 +105,7 @@ export function ProjectLayout() {
               ref={projectNameRef}
               type="button"
               onClick={() => setProjectDetailOpen(true)}
-              className="text-xl font-semibold text-slate-800 dark:text-slate-100 cursor-pointer text-left rounded -mx-2 px-2 py-0.5 hover:bg-slate-100 dark:hover:bg-slate-800/40 transition-colors truncate min-w-0 block"
+              className="text-xl font-semibold text-slate-800 dark:text-neutral-200 cursor-pointer text-left rounded -mx-2 px-2 py-0.5 hover:bg-slate-100 dark:hover:bg-neutral-800/40 transition-colors truncate min-w-0 block"
             >
               {currentProject.name}
             </button>
@@ -131,7 +131,7 @@ export function ProjectLayout() {
           + New Task
         </Button>
       </div>
-      <nav className="mt-2 flex items-center gap-1 border-b border-slate-200 dark:border-slate-800">
+      <nav className="mt-2 flex items-center gap-1 border-b border-slate-200 dark:border-neutral-800">
         {tabs.map((t) => (
           <NavLink
             key={t.to}
@@ -155,11 +155,11 @@ export function ProjectLayout() {
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-md rounded-lg bg-white dark:bg-slate-900 shadow-xl p-5 space-y-4"
+            className="w-full max-w-md rounded-lg bg-white dark:bg-neutral-900 shadow-xl p-5 space-y-4"
           >
-            <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-neutral-200 flex items-center gap-2">
               <span>New Task in</span>
-              <span className="inline-flex items-center rounded-md bg-slate-100 dark:bg-slate-800 px-2 py-0.5">
+              <span className="inline-flex items-center rounded-md bg-slate-100 dark:bg-neutral-800 px-2 py-0.5">
                 {currentProject.name}
               </span>
             </h2>
@@ -181,14 +181,14 @@ export function ProjectLayout() {
                 <Label htmlFor="new-task-desc">Description (optional)</Label>
                 <textarea
                   id="new-task-desc"
-                  className="w-full rounded border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 p-2 text-sm"
+                  className="w-full rounded border border-slate-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 p-2 text-sm"
                   rows={3}
                   value={taskDesc}
                   onChange={(e) => setTaskDesc(e.target.value)}
                   maxLength={10000}
                 />
               </div>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
+              <p className="text-xs text-slate-500 dark:text-neutral-400">
                 The task lands in <span className="font-medium">Backlog</span> with no
                 priority. Set a priority and drag it to the board when ready.
               </p>

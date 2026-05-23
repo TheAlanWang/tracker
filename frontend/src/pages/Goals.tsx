@@ -42,10 +42,10 @@ export default function Goals() {
     <div className="space-y-3">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-neutral-200">
             Goals
           </h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400">
+          <p className="text-sm text-slate-500 dark:text-neutral-400">
             Plan top-down. Goals organise the <em>why</em>; tasks execute on
             them.
           </p>
@@ -81,10 +81,10 @@ function ViewToggle({
   onChange: (v: View) => void;
 }) {
   const base = "px-3 py-1 text-xs font-medium transition-colors";
-  const active = "bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-sm";
-  const idle = "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100";
+  const active = "bg-white dark:bg-neutral-900 text-slate-900 dark:text-neutral-200 shadow-sm";
+  const idle = "text-slate-500 dark:text-neutral-400 hover:text-slate-900 dark:hover:text-neutral-100";
   return (
-    <div className="inline-flex rounded-md bg-slate-100 dark:bg-slate-800 p-0.5 shrink-0">
+    <div className="inline-flex rounded-md bg-slate-100 dark:bg-neutral-800 p-0.5 shrink-0">
       <button
         type="button"
         onClick={() => onChange("map")}

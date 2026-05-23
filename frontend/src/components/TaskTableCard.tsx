@@ -8,7 +8,7 @@ import type React from "react";
 
 export function TaskTableCard({ children }: { children: React.ReactNode }) {
   return (
-    <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden">
+    <div className="rounded-lg border border-slate-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 overflow-hidden">
       <div className="overflow-x-auto">
         <table className="w-full text-sm table-fixed">{children}</table>
       </div>
@@ -18,7 +18,7 @@ export function TaskTableCard({ children }: { children: React.ReactNode }) {
 
 export function TaskTableHead({ children }: { children: React.ReactNode }) {
   return (
-    <thead className="sticky top-0 z-10 bg-slate-50/70 dark:bg-slate-800/40 backdrop-blur border-b border-slate-200 dark:border-slate-800">
+    <thead className="sticky top-0 z-10 bg-slate-50/70 dark:bg-neutral-800/40 backdrop-blur border-b border-slate-200 dark:border-neutral-800">
       {children}
     </thead>
   );

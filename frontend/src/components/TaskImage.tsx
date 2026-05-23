@@ -58,7 +58,7 @@ export function TaskImage({ src, alt, className, onClick }: Props) {
   if (error) {
     return (
       <span
-        className={`inline-block bg-slate-100 dark:bg-slate-800 text-xs text-slate-500 dark:text-slate-400 px-2 py-1 rounded ${className ?? ""}`}
+        className={`inline-block bg-slate-100 dark:bg-neutral-800 text-xs text-slate-500 dark:text-neutral-400 px-2 py-1 rounded ${className ?? ""}`}
       >
         Image failed to load
       </span>
@@ -67,7 +67,7 @@ export function TaskImage({ src, alt, className, onClick }: Props) {
   if (!resolved) {
     return (
       <span
-        className={`inline-block animate-pulse bg-slate-200 dark:bg-slate-700 rounded ${className ?? ""}`}
+        className={`inline-block animate-pulse bg-slate-200 dark:bg-neutral-700 rounded ${className ?? ""}`}
         aria-label={alt || "loading image"}
       />
     );

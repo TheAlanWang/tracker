@@ -13,9 +13,9 @@ export default function NotFound() {
   const { pathname } = useLocation();
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-white dark:bg-slate-950 p-6">
+    <div className="min-h-screen flex items-center justify-center bg-white dark:bg-neutral-950 p-6">
       <div className="max-w-md w-full text-center space-y-5">
-        <div className="mx-auto w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 flex items-center justify-center">
+        <div className="mx-auto w-12 h-12 rounded-full bg-slate-100 dark:bg-neutral-800 text-slate-500 dark:text-neutral-400 flex items-center justify-center">
           <svg
             viewBox="0 0 24 24"
             fill="none"
@@ -30,15 +30,15 @@ export default function NotFound() {
           </svg>
         </div>
         <div className="space-y-1.5">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400 dark:text-slate-500">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400 dark:text-neutral-500">
             404
           </p>
-          <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">
+          <h1 className="text-2xl font-semibold text-slate-900 dark:text-neutral-200">
             Page not found
           </h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400">
+          <p className="text-sm text-slate-500 dark:text-neutral-400">
             We couldn't find{" "}
-            <code className="font-mono text-slate-700 dark:text-slate-300">
+            <code className="font-mono text-slate-700 dark:text-neutral-300">
               {pathname}
             </code>
             . It may have been moved, or the link is broken.
