@@ -14,6 +14,7 @@ Requires env:
     TRACKLY_API_URL       — optional; defaults to prod
 """
 
+import os
 from typing import Any, Literal
 
 from mcp.server.fastmcp import FastMCP
@@ -21,6 +22,7 @@ from mcp.server.fastmcp import FastMCP
 from .client import (
     TracklyError,
     get_client,
+    resolve_project_identifier,
     resolve_project_key,
     resolve_task_identifier,
     resolve_workspace,
@@ -108,6 +110,119 @@ async def search(workspace_slug: str, query: str) -> list[dict[str, Any]]:
     )
 
 
+@mcp.tool()
+async def list_sprints(project_key_or_id: str) -> list[dict[str, Any]]:
+    """List all sprints in a project, with status (planned / active /
+    completed) and date range. Sprints live under a project, not under
+    a workspace — pass the project key (e.g. 'FRO') or UUID. Use when
+    the user says 'what sprint is active in FRO', 'show all sprints',
+    or implicitly before `move_to_sprint` when the user references
+    'the current sprint' but doesn't supply a UUID. Returns sprint id,
+    name, status, start_date, end_date."""
+    client = get_client()
+    project = await resolve_project_identifier(project_key_or_id)
+    return await client.get(f"/projects/{project['id']}/sprints")
+
+
+@mcp.tool()
+async def list_tasks(
+    workspace_slug: str,
+    project_key: str | None = None,
+    status: Literal[
+        "backlog", "todo", "in_progress", "in_review", "done", "cancelled"
+    ]
+    | None = None,
+    assignee_id: str | None = None,
+) -> list[dict[str, Any]]:
+    """List tasks in a workspace, optionally narrowed. Differs from
+    list_my_tasks in that it returns tasks regardless of assignee
+    (`list_my_tasks` always filters to the current user).
+
+    Use when the user says 'show all tasks in FRO', 'unassigned tasks',
+    'tasks in_progress across the workspace', or any query that isn't
+    'my tasks'. Pass `project_key` to scope to one project, `status`
+    to filter by column, `assignee_id` to filter by assignee. Pass the
+    literal string "me" as `assignee_id` for the current user."""
+    client = get_client()
+    ws = await resolve_workspace(workspace_slug)
+
+    if assignee_id == "me":
+        assignee_id = os.environ["TRACKLY_USER_ID"]
+
+    if project_key:
+        # Project-scoped endpoint supports `status` natively; we do
+        # assignee filtering client-side after fetch.
+        project = await resolve_project_key(ws["id"], project_key)
+        params: dict[str, Any] = {}
+        if status:
+            params["status"] = status
+        tasks = await client.get(
+            f"/projects/{project['id']}/tasks", params=params
+        )
+        if assignee_id is not None:
+            tasks = [t for t in tasks if t.get("assignee_id") == assignee_id]
+        return tasks
+
+    # Workspace-scoped endpoint supports `assignee_id` natively; status
+    # filter is client-side.
+    params = {}
+    if assignee_id is not None:
+        params["assignee_id"] = assignee_id
+    tasks = await client.get(f"/workspaces/{ws['id']}/tasks", params=params)
+    if status:
+        tasks = [t for t in tasks if t.get("status") == status]
+    return tasks
+
+
+@mcp.tool()
+async def list_workspace_members(workspace_slug: str) -> list[dict[str, Any]]:
+    """List the members of a workspace — each member's user_id,
+    display_name, email, avatar_url, and role. Use when the user says
+    'who's in this workspace', or — more importantly — implicitly
+    BEFORE `assign_task` when they reference a teammate by name
+    ('assign FE-23 to Sarah'). Map the name → user_id, then call
+    assign_task with that user_id."""
+    client = get_client()
+    ws = await resolve_workspace(workspace_slug)
+    return await client.get(f"/workspaces/{ws['id']}/members")
+
+
+@mcp.tool()
+async def list_recent_activity(
+    since: str | None = None,
+    limit: int = 50,
+) -> list[dict[str, Any]]:
+    """Recent task changes authored by the current user — what status
+    changes, priority bumps, assignee swaps, comments etc. you've done
+    across all your workspaces. Each entry includes `task_identifier`
+    (e.g. 'TRAC-23') so you can reference tasks by their human handle.
+
+    Use when the user says 'what did I do yesterday', 'morning standup',
+    'recent activity', 'what changed since Monday'. `since` is an ISO
+    8601 datetime (e.g. '2026-05-21T00:00:00Z'); convert relative dates
+    ('yesterday') to absolute before calling. `limit` 1-200 (default
+    50). Results are ordered newest-first."""
+    client = get_client()
+    params: dict[str, Any] = {"limit": limit}
+    if since:
+        params["since"] = since
+    return await client.get("/me/activity", params=params)
+
+
+@mcp.tool()
+async def get_project(project_key_or_id: str) -> dict[str, Any]:
+    """Get full details for a single project — description, color, and
+    `environments` (the list of production / staging / repo / docs URLs
+    attached to the project). Use when the user says 'what's the prod
+    URL for FRO', 'show me the repo for project X', 'what's project X's
+    description'. Accepts a project key (e.g. 'FRO') or a UUID. The
+    returned `environments` array has one entry per link, each with
+    {name, url, type} — filter by `type` ('production' / 'staging' /
+    'repo' / 'docs' / 'design' / 'other') to answer URL questions."""
+    project = await resolve_project_identifier(project_key_or_id)
+    return project
+
+
 # ─── Write tools ────────────────────────────────────────────────────
 
 
@@ -153,6 +268,114 @@ async def update_task_status(
     return await client.patch(
         f"/tasks/{resolved['task_id']}",
         json={"status": status},
+    )
+
+
+@mcp.tool()
+async def update_task_title(
+    task_identifier: str,
+    title: str,
+) -> dict[str, Any]:
+    """Rename a task. Use when the user says 'rename TRAC-7 to ...',
+    'update title of FE-12 to ...', 'change TRAC-7's name'. Returns
+    the updated task."""
+    client = get_client()
+    resolved = await resolve_task_identifier(task_identifier)
+    return await client.patch(
+        f"/tasks/{resolved['task_id']}",
+        json={"title": title},
+    )
+
+
+@mcp.tool()
+async def update_task_description(
+    task_identifier: str,
+    description: str | None,
+) -> dict[str, Any]:
+    """Replace a task's description (markdown body). Pass null/empty to
+    clear. Use when the user says 'update TRAC-7's description with ...',
+    'replace the body of FE-12 with ...'. To APPEND rather than replace,
+    first call `get_task` to read the current description, modify it,
+    then call this tool with the combined body. Returns the updated task."""
+    client = get_client()
+    resolved = await resolve_task_identifier(task_identifier)
+    return await client.patch(
+        f"/tasks/{resolved['task_id']}",
+        json={"description": description},
+    )
+
+
+@mcp.tool()
+async def set_due_date(
+    task_identifier: str,
+    due_date: str | None,
+) -> dict[str, Any]:
+    """Set or clear a task's due date. Use when the user says 'push
+    TRAC-7 to Friday', 'set due date on FE-12 to next Monday', 'clear
+    the deadline on TRAC-7'. `due_date` must be an ISO 8601 calendar
+    date (YYYY-MM-DD), or null to clear. The AI should convert relative
+    dates ('Friday', 'next Monday') to absolute YYYY-MM-DD before
+    calling. Returns the updated task."""
+    client = get_client()
+    resolved = await resolve_task_identifier(task_identifier)
+    return await client.patch(
+        f"/tasks/{resolved['task_id']}",
+        json={"due_date": due_date},
+    )
+
+
+@mcp.tool()
+async def set_priority(
+    task_identifier: str,
+    priority: Literal["urgent", "high", "medium", "low", "no_priority"],
+) -> dict[str, Any]:
+    """Set a task's priority. Use when the user says 'this is urgent',
+    'bump TRAC-7 to high', 'lower priority of FE-12', 'clear priority
+    on TRAC-7' (→ 'no_priority'). Returns the updated task."""
+    client = get_client()
+    resolved = await resolve_task_identifier(task_identifier)
+    return await client.patch(
+        f"/tasks/{resolved['task_id']}",
+        json={"priority": priority},
+    )
+
+
+@mcp.tool()
+async def assign_task(
+    task_identifier: str,
+    assignee_id: str | None,
+) -> dict[str, Any]:
+    """Assign a task to a user, or clear the assignee. Use when the user
+    says 'assign TRAC-7 to me', 'unassign FE-12', 'give TRAC-7 to <uuid>'.
+    Pass the literal string "me" as a shortcut for the current user
+    (resolved from env TRACKLY_USER_ID) — saves Claude an extra lookup.
+    Pass null to unassign. Returns the updated task."""
+    client = get_client()
+    resolved = await resolve_task_identifier(task_identifier)
+    if assignee_id == "me":
+        assignee_id = os.environ["TRACKLY_USER_ID"]
+    return await client.patch(
+        f"/tasks/{resolved['task_id']}",
+        json={"assignee_id": assignee_id},
+    )
+
+
+@mcp.tool()
+async def move_to_sprint(
+    task_identifier: str,
+    sprint_id: str | None,
+) -> dict[str, Any]:
+    """Add a task to a sprint, or pull it out. Use when the user says
+    'add TRAC-7 to the active sprint', 'move FE-12 to sprint <id>',
+    'pull TRAC-7 out of the sprint'. If the user references 'active'
+    or 'current' sprint without a UUID, call `list_sprints` first to
+    find the one whose status is 'active'. Pass null to remove from
+    sprint. Returns the updated task."""
+    client = get_client()
+    resolved = await resolve_task_identifier(task_identifier)
+    return await client.patch(
+        f"/tasks/{resolved['task_id']}",
+        json={"sprint_id": sprint_id},
     )
 
 

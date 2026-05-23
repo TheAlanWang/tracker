@@ -21,3 +21,17 @@ class ActivityResponse(BaseModel):
     action: ActivityAction
     payload: dict
     created_at: datetime
+
+
+class MyActivityResponse(BaseModel):
+    """Enriched activity row for the /me/activity feed. Includes
+    `task_identifier` (e.g. 'TRAC-23') so AI consumers can reference
+    the task by its human handle without a second lookup."""
+
+    id: str
+    task_id: str
+    task_identifier: str | None
+    actor_id: str | None
+    action: ActivityAction
+    payload: dict
+    created_at: datetime

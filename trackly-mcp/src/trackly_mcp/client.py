@@ -125,3 +125,29 @@ async def resolve_project_key(workspace_id: str, key: str) -> dict[str, Any]:
         f"No project with key {key!r} in this workspace. "
         f"Use `list_workspaces` to confirm the workspace + project codes."
     )
+
+
+async def resolve_project_identifier(key_or_id: str) -> dict[str, Any]:
+    """Resolve a project key (e.g. 'FRO') OR a UUID → project row.
+
+    Differs from `resolve_project_key` in that it doesn't need a workspace
+    upfront — useful when a tool only knows the key the user said. Falls
+    back to scanning every workspace the user belongs to.
+    """
+    client = get_client()
+    # Cheap UUID detection: Trackly project ids are uuid4 (36 chars with
+    # dashes at 8/13/18/23). If it looks like a UUID, hit /projects/{id}
+    # directly and skip the workspace scan.
+    if len(key_or_id) == 36 and key_or_id.count("-") == 4:
+        return await client.get(f"/projects/{key_or_id}")
+
+    workspaces = await client.get("/workspaces")
+    for ws in workspaces:
+        projects = await client.get(f"/workspaces/{ws['id']}/projects")
+        for p in projects:
+            if p["key"].upper() == key_or_id.upper():
+                return p
+    raise TracklyError(
+        f"No project with key {key_or_id!r} found in any of your workspaces. "
+        f"Use `list_projects(workspace_slug)` to confirm the project code."
+    )
