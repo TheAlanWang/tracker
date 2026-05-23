@@ -587,7 +587,7 @@ function InvitationsSection({ invitations }: { invitations: Invitation[] }) {
 }
 
 function SignInMethodsSection() {
-  const { identities } = useAuthIdentities();
+  const { identities, refresh: refreshIdentities } = useAuthIdentities();
   const { data: me } = useCurrentUser();
   const [passwordModal, setPasswordModal] = useState<"set" | "change" | null>(
     null,
@@ -651,6 +651,10 @@ function SignInMethodsSection() {
     try {
       const { error } = await supabase.auth.unlinkIdentity(googleIdentity);
       if (error) throw error;
+      // Supabase's unlinkIdentity mutates the server but doesn't emit a
+      // USER_UPDATED event the way linkIdentity / updateUser do, so the
+      // useAuthIdentities hook stays stale unless we refresh by hand.
+      await refreshIdentities();
       toast.success("Google account unlinked.");
     } catch (err) {
       const detail = err instanceof Error ? err.message : "Failed to unlink";
@@ -678,6 +682,7 @@ function SignInMethodsSection() {
     try {
       const { error } = await supabase.auth.unlinkIdentity(githubIdentity);
       if (error) throw error;
+      await refreshIdentities();
       toast.success("GitHub account unlinked.");
     } catch (err) {
       const detail = err instanceof Error ? err.message : "Failed to unlink";
