@@ -592,8 +592,10 @@ function SignInMethodsSection() {
   const [passwordModal, setPasswordModal] = useState<"set" | "change" | null>(
     null,
   );
-  const [linking, setLinking] = useState(false);
-  const [unlinking, setUnlinking] = useState(false);
+  // Per-provider loading state — clicking Link Google shouldn't also gray
+  // out the Link GitHub button, etc.
+  const [linking, setLinking] = useState<"google" | "github" | null>(null);
+  const [unlinking, setUnlinking] = useState<"google" | "github" | null>(null);
 
   // Pre-flight: still fetching the session or the /me payload. Render a
   // placeholder so the section's visual weight is stable when it appears.
@@ -622,11 +624,12 @@ function SignInMethodsSection() {
   // Password is intentionally NOT part of this check — it's an orthogonal
   // sign-in mechanism, not an identity row. Set Password / Change Password
   // is controlled separately via me.has_password.
+  const githubIdentity = identities.find((i) => i.provider === "github");
   const oauthIdentities = identities.filter((i) => i.provider !== "email");
   const wouldLockOut = oauthIdentities.length <= 1;
 
   async function handleLinkGoogle() {
-    setLinking(true);
+    setLinking("google");
     // redirectTo: same page, so the user lands back on /profile and sees
     // the updated identities list. Supabase processes the URL fragment
     // on arrival; onAuthStateChange("USER_UPDATED") fires; the hook
@@ -637,14 +640,14 @@ function SignInMethodsSection() {
     });
     if (error) {
       toast.error(error.message);
-      setLinking(false);
+      setLinking(null);
     }
     // On success the page navigates away to Google; no need to clear state.
   }
 
   async function handleUnlinkGoogle() {
     if (!googleIdentity || wouldLockOut) return;
-    setUnlinking(true);
+    setUnlinking("google");
     try {
       const { error } = await supabase.auth.unlinkIdentity(googleIdentity);
       if (error) throw error;
@@ -653,7 +656,34 @@ function SignInMethodsSection() {
       const detail = err instanceof Error ? err.message : "Failed to unlink";
       toast.error(detail);
     } finally {
-      setUnlinking(false);
+      setUnlinking(null);
+    }
+  }
+
+  async function handleLinkGitHub() {
+    setLinking("github");
+    const { error } = await supabase.auth.linkIdentity({
+      provider: "github",
+      options: { redirectTo: window.location.href },
+    });
+    if (error) {
+      toast.error(error.message);
+      setLinking(null);
+    }
+  }
+
+  async function handleUnlinkGitHub() {
+    if (!githubIdentity || wouldLockOut) return;
+    setUnlinking("github");
+    try {
+      const { error } = await supabase.auth.unlinkIdentity(githubIdentity);
+      if (error) throw error;
+      toast.success("GitHub account unlinked.");
+    } catch (err) {
+      const detail = err instanceof Error ? err.message : "Failed to unlink";
+      toast.error(detail);
+    } finally {
+      setUnlinking(null);
     }
   }
 
@@ -706,27 +736,67 @@ function SignInMethodsSection() {
             <div className="flex justify-end">
               {googleIdentity ? (
                 // Hide Unlink entirely when it would lock the user out —
-                // an action they can't perform is just noise. The "Add a
-                // password to enable unlinking" hint in the description
-                // tells them how to get there.
+                // an action they can't perform is just noise. The hint in
+                // the section header tells the user how to get there
+                // (link a second account first).
                 wouldLockOut ? null : (
                   <Button
                     type="button"
                     className="min-w-[9.5rem]"
-                    disabled={unlinking}
+                    disabled={unlinking === "google"}
                     onClick={handleUnlinkGoogle}
                   >
-                    {unlinking ? "Unlinking…" : "Unlink"}
+                    {unlinking === "google" ? "Unlinking…" : "Unlink"}
                   </Button>
                 )
               ) : (
                 <Button
                   type="button"
                   className="min-w-[9.5rem]"
-                  disabled={linking}
+                  disabled={linking === "google"}
                   onClick={handleLinkGoogle}
                 >
-                  {linking ? "Redirecting…" : "Link Google Account"}
+                  {linking === "google" ? "Redirecting…" : "Link Google Account"}
+                </Button>
+              )}
+            </div>
+          </SettingRow>
+          <SettingRow
+            label="GitHub"
+            description={
+              githubIdentity
+                ? `Linked as ${
+                    (githubIdentity.identity_data?.user_name as
+                      | string
+                      | undefined) ??
+                    (githubIdentity.identity_data?.email as
+                      | string
+                      | undefined) ??
+                    "your GitHub account"
+                  }.`
+                : "Not linked. Connect GitHub for one-click sign-in."
+            }
+          >
+            <div className="flex justify-end">
+              {githubIdentity ? (
+                wouldLockOut ? null : (
+                  <Button
+                    type="button"
+                    className="min-w-[9.5rem]"
+                    disabled={unlinking === "github"}
+                    onClick={handleUnlinkGitHub}
+                  >
+                    {unlinking === "github" ? "Unlinking…" : "Unlink"}
+                  </Button>
+                )
+              ) : (
+                <Button
+                  type="button"
+                  className="min-w-[9.5rem]"
+                  disabled={linking === "github"}
+                  onClick={handleLinkGitHub}
+                >
+                  {linking === "github" ? "Redirecting…" : "Link GitHub Account"}
                 </Button>
               )}
             </div>
