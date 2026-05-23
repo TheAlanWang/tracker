@@ -10,6 +10,12 @@ EnvironmentType = Literal[
 ]
 
 
+# Mirrors the check constraint in 20260522210000_project_notify_urgent.sql.
+# Values cascade — 'high' fires on high + urgent, 'any' fires on every
+# assignment regardless of priority.
+NotifyAssigneeThreshold = Literal["off", "urgent", "high", "any"]
+
+
 class ProjectEnvironment(BaseModel):
     """A named link associated with the project — a production URL, staging
     URL, GitHub repo, design doc, etc. Stored alongside `description` so
@@ -49,6 +55,10 @@ class ProjectUpdate(BaseModel):
     environments: list[ProjectEnvironment] | None = Field(
         default=None, max_length=20
     )
+    # Threshold for sending email notifications on task assignment.
+    # See NotifyAssigneeThreshold; defaults to 'off' at the column level
+    # so existing projects don't start firing emails on deploy.
+    notify_assignee_threshold: NotifyAssigneeThreshold | None = None
 
 
 class ProjectResponse(BaseModel):
@@ -60,5 +70,6 @@ class ProjectResponse(BaseModel):
     description: str | None
     color: str | None = None
     environments: list[ProjectEnvironment] = Field(default_factory=list)
+    notify_assignee_threshold: NotifyAssigneeThreshold = "off"
     created_at: datetime
     updated_at: datetime

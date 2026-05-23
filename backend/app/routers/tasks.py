@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, status
 from supabase import AsyncClient
 
 from app.core.deps import get_current_user_id, get_supabase_admin
@@ -76,12 +76,17 @@ async def list_(
 async def create(
     p_id: str,
     payload: TaskCreate,
+    background_tasks: BackgroundTasks,
     user_id: str = Depends(get_current_user_id),
     supabase: AsyncClient = Depends(get_supabase_admin),
 ):
     try:
         return await create_task(
-            supabase, user_id=user_id, project_id=p_id, payload=payload
+            supabase,
+            user_id=user_id,
+            project_id=p_id,
+            payload=payload,
+            background_tasks=background_tasks,
         )
     except TaskPermissionError as exc:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN) from exc
@@ -107,12 +112,17 @@ async def get(
 async def update(
     t_id: str,
     payload: TaskUpdate,
+    background_tasks: BackgroundTasks,
     user_id: str = Depends(get_current_user_id),
     supabase: AsyncClient = Depends(get_supabase_admin),
 ):
     try:
         return await update_task(
-            supabase, user_id=user_id, task_id=t_id, payload=payload
+            supabase,
+            user_id=user_id,
+            task_id=t_id,
+            payload=payload,
+            background_tasks=background_tasks,
         )
     except TaskPermissionError as exc:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN) from exc

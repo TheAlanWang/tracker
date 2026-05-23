@@ -19,6 +19,15 @@ class Settings(BaseSettings):
     api_host: str = "127.0.0.1"
     api_port: int = 8000
 
+    # Optional — when unset, transactional emails (urgent task assignments)
+    # are silently skipped so local dev / CI works without a real Resend
+    # account. Set in .env.prd to enable real delivery.
+    resend_api_key: str | None = None
+    # Matches the Sender details already configured in Supabase Auth's
+    # custom SMTP (Tracker <noreply_tracker@thealanwang.xyz>), so the
+    # domain is already verified in Resend — no DNS work needed.
+    email_sender: str = "Tracker <noreply_tracker@thealanwang.xyz>"
+
     model_config = SettingsConfigDict(
         env_file=f".env.{APP_ENV}",
         env_file_encoding="utf-8",

@@ -1,7 +1,25 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { type QueryClient, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 import { apiClient } from "@/api/client";
+import type { Member } from "@/features/members/api";
+
+// Fires the "📧 Emailed X about FRO-N" toast when the backend's mutation
+// response carries an email_notified_assignee_id. Resolves the recipient's
+// display name from React Query's members cache — the cache is warm
+// whenever the user has been in any list / board view, which is the path
+// they almost certainly came from. On a cold cache (rare — direct task
+// URL load), falls back to a generic "the assignee" so the toast is still
+// useful.
+function notifyEmailScheduled(qc: QueryClient, task: Task) {
+  if (!task.email_notified_assignee_id) return;
+  const members =
+    qc.getQueryData<Member[]>(["workspaces", task.workspace_id, "members"]) ??
+    [];
+  const m = members.find((x) => x.user_id === task.email_notified_assignee_id);
+  const name = m?.display_name?.trim() || m?.email || "the assignee";
+  toast.success(`Emailed ${name} about ${task.identifier}`, { icon: "📧" });
+}
 
 export type TaskStatus =
   | "backlog"
@@ -36,6 +54,11 @@ export type Task = {
   position: number;
   created_at: string;
   updated_at: string;
+  // Set on create / update responses when the mutation triggered an
+  // assignment-notification email. The mutation hooks use this to toast
+  // "Emailed <name> about <identifier>" so the actor gets immediate
+  // confirmation that an email went out. Always null on GET responses.
+  email_notified_assignee_id?: string | null;
 };
 
 export type TaskCreate = {
@@ -139,8 +162,9 @@ export function useCreateTask(projectId: string) {
       );
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (task) => {
       qc.invalidateQueries({ queryKey: ["projects", projectId, "tasks"] });
+      notifyEmailScheduled(qc, task);
     },
   });
 }
@@ -163,6 +187,7 @@ export function useUpdateTask(taskId: string) {
       });
       // Activity log gets a new row on every UPDATE (via trigger) — refetch
       qc.invalidateQueries({ queryKey: ["tasks", taskId, "activity"] });
+      notifyEmailScheduled(qc, task);
     },
   });
 }

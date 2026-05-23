@@ -32,9 +32,16 @@ export type Project = {
   // docs). Stored as JSONB on the backend so future AI / MCP consumers
   // can filter by type without parsing markdown.
   environments: ProjectEnvironment[];
+  // Priority threshold for emailing assignees on assignment. The backend
+  // emails when the task's priority meets-or-exceeds this threshold; see
+  // services/emails.py for the exact trigger conditions (create / reassign
+  // / priority-bumped-into-threshold). Defaults to "off" — admins opt in.
+  notify_assignee_threshold: NotifyAssigneeThreshold;
   created_at: string;
   updated_at: string;
 };
+
+export type NotifyAssigneeThreshold = "off" | "urgent" | "high" | "any";
 
 export type ProjectCreate = {
   name: string;
@@ -67,6 +74,8 @@ export type ProjectUpdate = {
   // Full replacement of the environments array. Omit = leave untouched;
   // [] = clear all.
   environments?: ProjectEnvironment[];
+  // Priority threshold for emailing assignees on assignment.
+  notify_assignee_threshold?: NotifyAssigneeThreshold;
 };
 
 export function useCreateProject(wsId: string) {

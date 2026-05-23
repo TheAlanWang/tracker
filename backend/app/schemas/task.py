@@ -53,6 +53,11 @@ class TaskResponse(BaseModel):
     position: float
     created_at: datetime
     updated_at: datetime
+    # Set by create_task / update_task when an urgent-assignment email
+    # was scheduled to this user_id, so the frontend can show a toast
+    # confirming the email went out. None on GET endpoints — the field
+    # only carries signal in mutation responses.
+    email_notified_assignee_id: str | None = None
 
 
 class TaskMove(BaseModel):

@@ -13,7 +13,9 @@ import { toast } from "sonner";
 import { SettingsLayout } from "@/components/SettingsLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
 import {
+  type NotifyAssigneeThreshold,
   type Project,
   useDeleteProject,
   useProjects,
@@ -294,6 +296,18 @@ function ProjectSettingsContent({
         </section>
 
         <section className="space-y-4">
+          <h2 className="text-xl font-medium text-slate-900 dark:text-neutral-200">
+            Notifications
+          </h2>
+          <div className="rounded-lg border border-slate-200/80 dark:border-neutral-800 bg-white dark:bg-neutral-900 p-5">
+            <NotificationToggle
+              project={currentProject}
+              updateMutation={updateMutation}
+            />
+          </div>
+        </section>
+
+        <section className="space-y-4">
           <h2 className="text-xl font-medium text-red-700 dark:text-red-400">
             Danger Zone
           </h2>
@@ -322,6 +336,75 @@ function ProjectSettingsContent({
         </section>
       </div>
     </SettingsLayout>
+  );
+}
+
+const THRESHOLD_OPTIONS: {
+  value: NotifyAssigneeThreshold;
+  label: string;
+  hint: string;
+}[] = [
+  { value: "off", label: "Off", hint: "Never email assignees." },
+  {
+    value: "urgent",
+    label: "Urgent only",
+    hint: "Email when an urgent task is assigned.",
+  },
+  {
+    value: "high",
+    label: "High or urgent",
+    hint: "Email when a high- or urgent-priority task is assigned.",
+  },
+  {
+    value: "any",
+    label: "Any priority",
+    hint: "Email on every assignment, regardless of priority.",
+  },
+];
+
+function NotificationToggle({
+  project,
+  updateMutation,
+}: {
+  project: Project;
+  updateMutation: ReturnType<typeof useUpdateProject>;
+}) {
+  const current = project.notify_assignee_threshold;
+  async function setThreshold(next: NotifyAssigneeThreshold) {
+    if (next === current) return;
+    try {
+      await updateMutation.mutateAsync({
+        projectId: project.id,
+        payload: { notify_assignee_threshold: next },
+      });
+      toast.success(
+        next === "off"
+          ? "Assignment emails disabled"
+          : `Assignment emails: ${THRESHOLD_OPTIONS.find((o) => o.value === next)?.label.toLowerCase()}`,
+      );
+    } catch {
+      toast.error("Failed to update notification settings");
+    }
+  }
+  const currentHint = THRESHOLD_OPTIONS.find((o) => o.value === current)?.hint;
+  return (
+    <div className="flex items-start justify-between gap-6">
+      <div className="min-w-0">
+        <div className="font-medium text-slate-900 dark:text-neutral-200">
+          Email assignees when a task is assigned
+        </div>
+        <p className="mt-1 text-sm text-slate-500 dark:text-neutral-400 leading-relaxed">
+          {currentHint} Reassignment and priority-bump-into-threshold
+          also trigger. The actor is never emailed for their own action.
+        </p>
+      </div>
+      <Select
+        value={current}
+        onChange={(next) => setThreshold(next)}
+        options={THRESHOLD_OPTIONS.map((o) => ({ value: o.value, label: o.label }))}
+        className="shrink-0 w-[180px]"
+      />
+    </div>
   );
 }
 
