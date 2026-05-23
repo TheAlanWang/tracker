@@ -59,17 +59,25 @@ export default function WorkspaceSettings() {
   const [inviteEmail, setInviteEmail] = useState("");
   const [wsName, setWsName] = useState("");
   const [wsSlug, setWsSlug] = useState("");
+  // Features draft. Tracked as booleans (not the raw JSONB shape) so the
+  // dirty check compares effective on/off, respecting the default-ON
+  // polarity of sprints (undefined treated as true).
+  const [goalsDraft, setGoalsDraft] = useState(false);
+  const [sprintsDraft, setSprintsDraft] = useState(true);
 
-  // Sync the rename drafts to the current workspace on workspace switch.
-  // Keeping the component mounted (rather than the previous key-remount
-  // pattern) prevents the whole settings pane from flashing "Loading…" each
-  // time the user picks a different workspace in the sidebar — useQuery's
-  // placeholderData keeps the old rows visible while new ones load.
+  // Sync the rename + feature drafts to the current workspace on workspace
+  // switch. Keeping the component mounted (rather than the previous
+  // key-remount pattern) prevents the whole settings pane from flashing
+  // "Loading…" each time the user picks a different workspace in the
+  // sidebar — useQuery's placeholderData keeps the old rows visible while
+  // new ones load.
   /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (currentWs) {
       setWsName(currentWs.name);
       setWsSlug(currentWs.slug);
+      setGoalsDraft(!!currentWs.features?.goals);
+      setSprintsDraft(isSprintsEnabled(currentWs));
     }
   }, [currentWs]);
   /* eslint-enable react-hooks/set-state-in-effect */
@@ -86,6 +94,38 @@ export default function WorkspaceSettings() {
   const nameChanged =
     !!currentWs && wsName.trim() !== currentWs.name && wsName.trim() !== "";
   const dirty = nameChanged || wsSlugChanged;
+
+  // Features card has its own draft / Save flow so toggling Goals or
+  // Sprints doesn't persist on click — matches the General Settings
+  // pattern above and prevents accidental flips.
+  const goalsChanged =
+    !!currentWs && goalsDraft !== !!currentWs.features?.goals;
+  const sprintsChanged =
+    !!currentWs && sprintsDraft !== isSprintsEnabled(currentWs);
+  const featuresDirty = goalsChanged || sprintsChanged;
+
+  async function onSaveFeatures() {
+    if (!currentWs || !featuresDirty) return;
+    try {
+      await updateWsMutation.mutateAsync({
+        wsId: currentWs.id,
+        // Send only the keys that changed. Backend merges into the
+        // existing features JSONB, so other keys aren't disturbed.
+        payload: {
+          features: {
+            ...(goalsChanged ? { goals: goalsDraft } : {}),
+            ...(sprintsChanged ? { sprints: sprintsDraft } : {}),
+          },
+        },
+      });
+      toast.success("Features updated");
+    } catch (err) {
+      const detail =
+        (err as { response?: { data?: { detail?: string } } }).response?.data
+          ?.detail ?? "Failed to update features";
+      toast.error(detail);
+    }
+  }
 
   async function onSaveGeneral(e: React.FormEvent) {
     e.preventDefault();
@@ -308,6 +348,7 @@ export default function WorkspaceSettings() {
                 )}
                 <Button
                   type="submit"
+                  className="min-w-28"
                   disabled={
                     !isOwner ||
                     !dirty ||
@@ -315,7 +356,7 @@ export default function WorkspaceSettings() {
                     (wsSlugChanged && !wsSlugValid)
                   }
                 >
-                  {updateWsMutation.isPending ? "Saving…" : "Save changes"}
+                  {updateWsMutation.isPending ? "Saving…" : "Save"}
                 </Button>
               </div>
             </div>
@@ -495,20 +536,14 @@ export default function WorkspaceSettings() {
           <div className="rounded-lg border border-blue-100 dark:border-blue-900/40 bg-blue-50/40 dark:bg-blue-950/15 divide-y divide-blue-100/70 dark:divide-blue-900/30">
             {/* Each feature row: title + Beta pill + multi-line description
                 on the left (flexes to fill), Toggle switch on the right.
-                List-of-rows pattern matching Linear/Stripe — when we add a
-                second feature, just append another <FeatureRow>. */}
+                Toggles update local draft only — Save footer at the bottom
+                persists. Matches General Settings' draft-then-Save flow. */}
             <FeatureRow
               title="Goals"
               description="Strategic objectives in a workspace-scoped tree. Tasks link to a goal."
-              checked={!!currentWs?.features?.goals}
+              checked={goalsDraft}
               disabled={!isOwner || updateWsMutation.isPending}
-              onChange={(next) => {
-                if (!currentWs) return;
-                updateWsMutation.mutate({
-                  wsId: currentWs.id,
-                  payload: { features: { goals: next } },
-                });
-              }}
+              onChange={setGoalsDraft}
               note={
                 !isOwner
                   ? "Only the workspace owner can toggle features."
@@ -519,21 +554,32 @@ export default function WorkspaceSettings() {
               title="Sprints"
               pill={null}
               description="Time-boxed iterations attached to a project. Tasks roll up into a sprint to track progress and velocity. Disable to hide the Sprints tab, the sprint picker on tasks, and the sprint column on lists."
-              checked={isSprintsEnabled(currentWs)}
+              checked={sprintsDraft}
               disabled={!isOwner || updateWsMutation.isPending}
-              onChange={(next) => {
-                if (!currentWs) return;
-                updateWsMutation.mutate({
-                  wsId: currentWs.id,
-                  payload: { features: { sprints: next } },
-                });
-              }}
+              onChange={setSprintsDraft}
               note={
                 !isOwner
                   ? "Only the workspace owner can toggle features."
                   : undefined
               }
             />
+            <div className="flex items-center justify-end gap-3 px-5 py-3 bg-blue-50/40 dark:bg-blue-950/15">
+              {featuresDirty && (
+                <span className="text-xs text-slate-500 dark:text-neutral-400">
+                  Unsaved changes
+                </span>
+              )}
+              <Button
+                type="button"
+                onClick={onSaveFeatures}
+                className="min-w-28"
+                disabled={
+                  !isOwner || !featuresDirty || updateWsMutation.isPending
+                }
+              >
+                {updateWsMutation.isPending ? "Saving…" : "Save"}
+              </Button>
+            </div>
           </div>
         </section>
 
@@ -562,7 +608,7 @@ export default function WorkspaceSettings() {
                   type="button"
                   onClick={onDeleteWorkspace}
                   disabled={deleteWsMutation.isPending}
-                  className="bg-red-600 hover:bg-red-700 text-white"
+                  className="min-w-28 bg-red-600 hover:bg-red-700 text-white"
                 >
                   {deleteWsMutation.isPending
                     ? "Deleting…"
