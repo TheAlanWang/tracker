@@ -82,23 +82,34 @@ export function ProjectLayout() {
     <div>
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
-          {/* Workspace eyebrow — sits above the project title in a
-              lighter shade so users always know which workspace this
-              project lives in (helpful when the same project name
-              exists across workspaces). */}
-          {currentWs && (
-            <p className="text-xs font-medium text-slate-400 dark:text-slate-500 mb-0.5">
-              {currentWs.name}
+          {/* Two-row project title:
+              Row 1: `<workspace slug> / <project key>` — MCP / URL
+                     identifier path (mono, dim).
+              Row 2: project name (large, bold, click → detail popover).
+              Workspace *name* lives in the popover breadcrumb only. */}
+          <div className="space-y-0.5 min-w-0">
+            <p className="flex items-baseline gap-2 min-w-0 font-mono text-xs text-slate-400 dark:text-slate-500">
+              {currentWs && (
+                <>
+                  <span className="shrink-0">{currentWs.slug}</span>
+                  <span className="shrink-0 text-slate-300 dark:text-slate-600">
+                    /
+                  </span>
+                </>
+              )}
+              <span className="shrink-0 uppercase tracking-wider">
+                {currentProject.key}
+              </span>
             </p>
-          )}
-          <button
-            ref={projectNameRef}
-            type="button"
-            onClick={() => setProjectDetailOpen(true)}
-            className="text-xl font-semibold text-slate-800 dark:text-slate-100 cursor-pointer text-left rounded -mx-2 px-2 py-0.5 hover:bg-slate-100 dark:hover:bg-slate-800/40 transition-colors"
-          >
-            {currentProject.name}
-          </button>
+            <button
+              ref={projectNameRef}
+              type="button"
+              onClick={() => setProjectDetailOpen(true)}
+              className="text-xl font-semibold text-slate-800 dark:text-slate-100 cursor-pointer text-left rounded -mx-2 px-2 py-0.5 hover:bg-slate-100 dark:hover:bg-slate-800/40 transition-colors truncate min-w-0 block"
+            >
+              {currentProject.name}
+            </button>
+          </div>
           {/* Description / environments live in the popover now —
               keeps the header tight and centralizes project context. */}
           <ProjectDetailPopover

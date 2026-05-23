@@ -73,6 +73,11 @@ async def update(
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN) from exc
     except WorkspaceNotFoundError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND) from exc
+    except WorkspaceSlugExistsError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Slug '{exc}' already in use",
+        ) from exc
 
 
 @router.delete("/{ws_id}", status_code=status.HTTP_204_NO_CONTENT)

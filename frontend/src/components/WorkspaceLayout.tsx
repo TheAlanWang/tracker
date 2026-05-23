@@ -728,26 +728,52 @@ export function WorkspaceLayout() {
   const [wsMenuOpen, setWsMenuOpen] = useState(false);
   const [newWsModalOpen, setNewWsModalOpen] = useState(false);
   const [newWsName, setNewWsName] = useState("");
+  const [newWsSlug, setNewWsSlug] = useState("");
+  // `touched` flips on first manual edit of the slug field, after which
+  // we stop auto-syncing it from the name. Otherwise users who refine
+  // the slug then change the name would have their slug clobbered.
+  const [newWsSlugTouched, setNewWsSlugTouched] = useState(false);
   const createWsMutation = useCreateWorkspace();
+
+  // Live-derive slug from name while the user hasn't manually edited the
+  // slug field. Industry-standard "name → slug suggestion" UX.
+  useEffect(() => {
+    if (!newWsSlugTouched) {
+      setNewWsSlug(slugifyWorkspace(newWsName));
+    }
+  }, [newWsName, newWsSlugTouched]);
+
+  // Memory rule: workspace slug = lowercase [a-z0-9-]{3,40}. Backend
+  // schema allows down to 2 chars (looser), frontend enforces strict.
+  const newWsSlugValid = /^[a-z0-9-]{3,40}$/.test(newWsSlug);
 
   async function onCreateWorkspace(e: React.FormEvent) {
     e.preventDefault();
-    const slug = slugifyWorkspace(newWsName);
-    if (slug.length < 2) {
-      toast.error("Workspace name needs at least 2 letters");
+    if (!newWsSlugValid) {
+      toast.error("URL must be 3-40 chars, lowercase letters / numbers / hyphens.");
       return;
     }
     try {
-      const ws = await createWsMutation.mutateAsync({ name: newWsName, slug });
+      const ws = await createWsMutation.mutateAsync({
+        name: newWsName,
+        slug: newWsSlug,
+      });
       toast.success(`Created ${ws.name}`);
       setNewWsModalOpen(false);
       setNewWsName("");
+      setNewWsSlug("");
+      setNewWsSlugTouched(false);
       navigate(`/w/${ws.slug}`);
     } catch (err) {
-      const detail =
-        (err as { response?: { data?: { detail?: string } } }).response?.data
-          ?.detail ?? "Failed to create workspace";
-      toast.error(detail);
+      const status = (err as { response?: { status?: number } }).response?.status;
+      if (status === 409) {
+        toast.error(`URL "${newWsSlug}" is already taken. Try another.`);
+      } else {
+        const detail =
+          (err as { response?: { data?: { detail?: string } } }).response?.data
+            ?.detail ?? "Failed to create workspace";
+        toast.error(detail);
+      }
     }
   }
 
@@ -896,13 +922,18 @@ export function WorkspaceLayout() {
                         }}
                         className={
                           w.id === currentWs?.id
-                            ? "w-full text-left px-3 py-1.5 text-sm bg-slate-50 dark:bg-slate-800/40 font-medium flex items-center justify-between"
-                            : "w-full text-left px-3 py-1.5 text-sm hover:bg-slate-50 dark:hover:bg-slate-800/50 flex items-center justify-between"
+                            ? "w-full text-left px-3 py-1.5 text-sm bg-slate-50 dark:bg-slate-800/40 font-medium flex items-center justify-between gap-2"
+                            : "w-full text-left px-3 py-1.5 text-sm hover:bg-slate-50 dark:hover:bg-slate-800/50 flex items-center justify-between gap-2"
                         }
                       >
-                        <span>{w.name}</span>
+                        <div className="flex items-baseline gap-2 min-w-0">
+                          <span className="truncate">{w.name}</span>
+                          <span className="shrink-0 font-mono text-xs text-slate-400 dark:text-slate-500">
+                            {w.slug}
+                          </span>
+                        </div>
                         {w.id === currentWs?.id && (
-                          <span className="text-slate-400 dark:text-slate-500 text-xs">✓</span>
+                          <span className="shrink-0 text-slate-400 dark:text-slate-500 text-xs">✓</span>
                         )}
                       </button>
                     ))}
@@ -1182,7 +1213,12 @@ export function WorkspaceLayout() {
       {newWsModalOpen && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/30"
-          onClick={() => setNewWsModalOpen(false)}
+          onClick={() => {
+            setNewWsModalOpen(false);
+            setNewWsName("");
+            setNewWsSlug("");
+            setNewWsSlugTouched(false);
+          }}
         >
           <div
             onClick={(e) => e.stopPropagation()}
@@ -1203,20 +1239,49 @@ export function WorkspaceLayout() {
                   autoFocus
                 />
               </div>
+              <div className="space-y-1">
+                <Label htmlFor="modal-ws-slug">URL</Label>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-sm text-slate-500 dark:text-slate-400 whitespace-nowrap font-mono">
+                    /w/
+                  </span>
+                  <Input
+                    id="modal-ws-slug"
+                    value={newWsSlug}
+                    onChange={(e) => {
+                      setNewWsSlugTouched(true);
+                      const v = e.target.value
+                        .toLowerCase()
+                        .replace(/[^a-z0-9-]/g, "")
+                        .slice(0, 40);
+                      setNewWsSlug(v);
+                    }}
+                    minLength={3}
+                    maxLength={40}
+                    placeholder="my-workspace"
+                    className="font-mono"
+                  />
+                </div>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  3–40 characters · lowercase letters, numbers, and hyphens. Used in URLs and MCP tool calls.
+                </p>
+              </div>
               <div className="flex justify-end gap-2 pt-2">
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => setNewWsModalOpen(false)}
+                  onClick={() => {
+                    setNewWsModalOpen(false);
+                    setNewWsName("");
+                    setNewWsSlug("");
+                    setNewWsSlugTouched(false);
+                  }}
                 >
                   Cancel
                 </Button>
                 <Button
                   type="submit"
-                  disabled={
-                    createWsMutation.isPending ||
-                    slugifyWorkspace(newWsName).length < 2
-                  }
+                  disabled={createWsMutation.isPending || !newWsSlugValid}
                 >
                   {createWsMutation.isPending ? "Creating…" : "Create"}
                 </Button>
@@ -1628,7 +1693,12 @@ function SidebarNav({
                 style={{ backgroundColor: dotColor }}
               />
               {!collapsed && (
-                <span className="truncate min-w-0 flex-1">{p.name}</span>
+                <div className="flex items-baseline gap-2 min-w-0 flex-1">
+                  <span className="truncate min-w-0">{p.name}</span>
+                  <span className="shrink-0 font-mono text-[10px] uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                    {p.key}
+                  </span>
+                </div>
               )}
               {!collapsed && (
               <button

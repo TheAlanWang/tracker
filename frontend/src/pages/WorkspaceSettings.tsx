@@ -38,11 +38,11 @@ import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 
 export default function WorkspaceSettings() {
   useDocumentTitle("Workspace Settings");
-  const { wsSlug } = useParams();
+  const { wsSlug: routeWsSlug } = useParams();
   const navigate = useNavigate();
   const { data: workspaces = [] } = useWorkspaces();
   const { data: me } = useCurrentUser();
-  const currentWs = workspaces.find((w) => w.slug === wsSlug);
+  const currentWs = workspaces.find((w) => w.slug === routeWsSlug);
   const wsId = currentWs?.id ?? "";
   const isOwner = !!me && currentWs?.owner_id === me.id;
 
@@ -58,32 +58,86 @@ export default function WorkspaceSettings() {
 
   const [inviteEmail, setInviteEmail] = useState("");
   const [wsName, setWsName] = useState("");
+  const [wsSlug, setWsSlug] = useState("");
 
-  // Sync the rename draft to the current workspace name on workspace switch.
+  // Sync the rename drafts to the current workspace on workspace switch.
   // Keeping the component mounted (rather than the previous key-remount
   // pattern) prevents the whole settings pane from flashing "Loading…" each
   // time the user picks a different workspace in the sidebar — useQuery's
   // placeholderData keeps the old rows visible while new ones load.
   /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
-    if (currentWs) setWsName(currentWs.name);
+    if (currentWs) {
+      setWsName(currentWs.name);
+      setWsSlug(currentWs.slug);
+    }
   }, [currentWs]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
-  async function onRenameWorkspace(e: React.FormEvent) {
+  // Slug validation: lowercase letters / digits / hyphens, 3-40 chars.
+  // Same rule as create-time per memory's identifier case conventions.
+  const wsSlugValid = /^[a-z0-9-]{3,40}$/.test(wsSlug);
+  const wsSlugChanged = !!currentWs && wsSlug !== currentWs.slug;
+
+  // Dirty tracking for the General Settings card: any field differs from
+  // saved → enable Save. Name rename is benign; slug rename triggers an
+  // additional confirm dialog inside onSave because it breaks external
+  // URLs (bookmarks / MCP configs).
+  const nameChanged =
+    !!currentWs && wsName.trim() !== currentWs.name && wsName.trim() !== "";
+  const dirty = nameChanged || wsSlugChanged;
+
+  async function onSaveGeneral(e: React.FormEvent) {
     e.preventDefault();
-    if (!currentWs || !wsName.trim() || wsName === currentWs.name) return;
+    if (!currentWs || !dirty) return;
+    if (wsSlugChanged && !wsSlugValid) {
+      toast.error("URL must be 3-40 chars, lowercase letters / numbers / hyphens.");
+      return;
+    }
+
+    // Slug rename = highest-impact action on this page. List concrete
+    // breakages so the user sees scope, not vague boilerplate.
+    if (wsSlugChanged) {
+      const ok = confirm(
+        `Change workspace URL from /w/${currentWs.slug}/ to /w/${wsSlug}/ ?\n\n` +
+          `This will BREAK:\n` +
+          `  • Every bookmark to any page in this workspace\n` +
+          `  • Shared links in Slack, email, docs, anywhere\n` +
+          `  • MCP client configs referencing "${currentWs.slug}"\n` +
+          `  • Any external integration with this workspace\n\n` +
+          `Old URLs return 404 immediately. No redirect.\n\n` +
+          `Continue?`,
+      );
+      if (!ok) return;
+    }
+
     try {
-      await updateWsMutation.mutateAsync({
+      const updated = await updateWsMutation.mutateAsync({
         wsId: currentWs.id,
-        payload: { name: wsName.trim() },
+        payload: {
+          ...(nameChanged ? { name: wsName.trim() } : {}),
+          ...(wsSlugChanged ? { slug: wsSlug } : {}),
+        },
       });
-      toast.success("Workspace renamed");
+      toast.success(
+        wsSlugChanged
+          ? `URL changed to /w/${updated.slug}/`
+          : "Workspace renamed",
+      );
+      // Current page URL is now stale if slug changed — navigate forward.
+      if (wsSlugChanged) {
+        navigate(`/w/${updated.slug}/settings`, { replace: true });
+      }
     } catch (err) {
-      const detail =
-        (err as { response?: { data?: { detail?: string } } }).response?.data
-          ?.detail ?? "Failed to rename";
-      toast.error(detail);
+      const status = (err as { response?: { status?: number } }).response?.status;
+      if (status === 409 && wsSlugChanged) {
+        toast.error(`URL "${wsSlug}" is already taken. Try another.`);
+      } else {
+        const detail =
+          (err as { response?: { data?: { detail?: string } } }).response?.data
+            ?.detail ?? "Failed to save changes";
+        toast.error(detail);
+      }
     }
   }
 
@@ -168,16 +222,12 @@ export default function WorkspaceSettings() {
   return (
     <SettingsLayout>
       <header className="mb-10">
-        <h1 className="text-3xl font-semibold text-slate-900 dark:text-slate-100">
-          Workspace Settings
-        </h1>
-        <p className="mt-2 text-slate-500 dark:text-slate-400">
-          General configuration, members, and lifecycle for{" "}
-          <span className="font-medium text-slate-700 dark:text-slate-300">
-            {currentWs?.name ?? "this workspace"}
-          </span>
-          .
+        <p className="text-xs font-mono uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-0.5">
+          Workspace
         </p>
+        <h1 className="text-3xl font-semibold text-slate-900 dark:text-slate-100">
+          {currentWs?.name ?? "—"}
+        </h1>
       </header>
 
       <div className="space-y-10 min-w-0">
@@ -185,39 +235,89 @@ export default function WorkspaceSettings() {
           <h2 className="text-xl font-medium text-slate-900 dark:text-slate-100 dark:text-slate-100">
             General Settings
           </h2>
-          <form onSubmit={onRenameWorkspace}>
-            <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
+          <form onSubmit={onSaveGeneral}>
+            <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 divide-y divide-slate-100 dark:divide-slate-800">
               <SettingRow
                 label="Workspace Name"
-                description="Displayed throughout the app."
+                description="Shown throughout the app."
               >
-                <div className="flex items-center justify-end gap-3 w-full">
-                  <Input
-                    value={wsName}
-                    onChange={(e) => setWsName(e.target.value)}
-                    maxLength={100}
-                    disabled={!isOwner}
-                    className="w-64"
-                  />
-                  <Button
-                    type="submit"
-                    className="shrink-0 min-w-28"
-                    disabled={
-                      !isOwner ||
-                      updateWsMutation.isPending ||
-                      !wsName.trim() ||
-                      wsName === currentWs?.name
-                    }
-                  >
-                    {updateWsMutation.isPending ? "Saving…" : "Save"}
-                  </Button>
-                </div>
+                <Input
+                  value={wsName}
+                  onChange={(e) => setWsName(e.target.value)}
+                  maxLength={100}
+                  disabled={!isOwner}
+                  className="max-w-md"
+                />
                 {!isOwner && (
                   <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
                     Only the workspace owner can rename.
                   </p>
                 )}
               </SettingRow>
+              <SettingRow
+                label="Workspace URL"
+                description="The slug used in URLs and MCP tool calls."
+              >
+                <div className="space-y-2 max-w-md">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-sm text-slate-500 dark:text-slate-400 whitespace-nowrap font-mono">
+                      /w/
+                    </span>
+                    <Input
+                      value={wsSlug}
+                      onChange={(e) => {
+                        const v = e.target.value
+                          .toLowerCase()
+                          .replace(/[^a-z0-9-]/g, "")
+                          .slice(0, 40);
+                        setWsSlug(v);
+                      }}
+                      minLength={3}
+                      maxLength={40}
+                      disabled={!isOwner}
+                      className="font-mono"
+                    />
+                  </div>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    3–40 characters · lowercase letters, numbers, and hyphens
+                  </p>
+                  {wsSlugChanged && isOwner && (
+                    <div className="rounded-md border border-amber-200 dark:border-amber-900/40 bg-amber-50 dark:bg-amber-950/20 px-3 py-2 text-xs text-amber-800 dark:text-amber-300">
+                      <span className="font-medium">Heads up:</span> changing
+                      the URL breaks every bookmark, shared link, and MCP
+                      config pointing to{" "}
+                      <span className="font-mono">/w/{currentWs?.slug}/</span>.
+                      Old URLs return 404 — no redirect.
+                    </div>
+                  )}
+                  {!isOwner && (
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      Only the workspace owner can change the URL.
+                    </p>
+                  )}
+                </div>
+              </SettingRow>
+              {/* Footer bar — bg-slate-50 dark:bg-slate-800/40 reads as a
+                  "form footer" separate from data rows. Single Save fires
+                  the whole General-Settings dirty payload at once. */}
+              <div className="flex items-center justify-end gap-3 px-5 py-3 bg-slate-50/50 dark:bg-slate-800/30">
+                {dirty && (
+                  <span className="text-xs text-slate-500 dark:text-slate-400">
+                    Unsaved changes
+                  </span>
+                )}
+                <Button
+                  type="submit"
+                  disabled={
+                    !isOwner ||
+                    !dirty ||
+                    updateWsMutation.isPending ||
+                    (wsSlugChanged && !wsSlugValid)
+                  }
+                >
+                  {updateWsMutation.isPending ? "Saving…" : "Save changes"}
+                </Button>
+              </div>
             </div>
           </form>
         </section>

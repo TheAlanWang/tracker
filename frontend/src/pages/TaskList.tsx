@@ -283,16 +283,16 @@ function TaskListContent() {
           onFiltersChange={setFilters}
           trailing={
             <div className="flex items-center gap-2">
+              <ColumnVisibilityMenu
+                columns={columns}
+                hidden={hiddenColumns}
+                onToggle={toggleColumn}
+              />
               <ExportTasksButton
                 tasks={displayedTasks}
                 members={members}
                 sprints={sprintsEnabled ? sprints : []}
                 filename={`${currentProject.name} tasks`}
-              />
-              <ColumnVisibilityMenu
-                columns={columns}
-                hidden={hiddenColumns}
-                onToggle={toggleColumn}
               />
             </div>
           }

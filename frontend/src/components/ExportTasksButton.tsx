@@ -81,7 +81,6 @@ export function ExportTasksButton({
   return (
     <Button
       type="button"
-      variant="outline"
       onClick={onClick}
       disabled={tasks.length === 0}
       className={className}

@@ -232,23 +232,25 @@ function BacklogContent() {
   if (!currentProject) return null;
 
   return (
-    <div className="space-y-4">
-      <FilterBar
-        filters={filters}
-        onFiltersChange={setFilters}
-        // Status is always "backlog" on this page — no need to expose.
-        availableFilterFields={["priority", "due"]}
-        trailing={
-          <div className="flex items-center gap-2">
-            <ExportTasksButton
-              tasks={displayedTasks}
-              members={members}
-              filename={`${currentProject.name} backlog`}
-            />
-            <ColumnVisibilityMenu hidden={hiddenColumns} onToggle={toggleColumn} />
-          </div>
-        }
-      />
+    <div>
+      <div className="mb-2">
+        <FilterBar
+          filters={filters}
+          onFiltersChange={setFilters}
+          // Status is always "backlog" on this page — no need to expose.
+          availableFilterFields={["priority", "due"]}
+          trailing={
+            <div className="flex items-center gap-2">
+              <ColumnVisibilityMenu hidden={hiddenColumns} onToggle={toggleColumn} />
+              <ExportTasksButton
+                tasks={displayedTasks}
+                members={members}
+                filename={`${currentProject.name} backlog`}
+              />
+            </div>
+          }
+        />
+      </div>
 
       {isLoading && <InlineSpinner />}
 

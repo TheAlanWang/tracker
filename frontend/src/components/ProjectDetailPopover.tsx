@@ -22,6 +22,7 @@ import {
   type ProjectEnvironmentType,
   useUpdateProject,
 } from "@/features/projects/api";
+import { useWorkspaces } from "@/features/workspaces/api";
 import { markdownUrlTransform } from "@/lib/resolveTaskImageUrl";
 
 // Short display labels — DB keeps the full enum ("production" etc.) for
@@ -78,6 +79,10 @@ export function ProjectDetailPopover({
   const [draft, setDraft] = useState<ProjectEnvironment[]>(project.environments);
   const [descDraft, setDescDraft] = useState(project.description ?? "");
   const updateProject = useUpdateProject(project.workspace_id);
+  // Workspace name for the "YDX / Frontend" breadcrumb in the popover
+  // header — already cached by the layout, cheap selector.
+  const { data: workspaces = [] } = useWorkspaces();
+  const workspace = workspaces.find((w) => w.id === project.workspace_id);
 
   // Reset drafts + exit edit mode whenever the popover opens or the project
   // changes underneath (switching projects in the sidebar while popover open).
@@ -219,30 +224,61 @@ export function ProjectDetailPopover({
       }}
       className="z-50 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xl overflow-y-auto"
     >
-      <div className="px-5 pt-5 pb-5 space-y-3">
-        {/* Description */}
-        <section className="space-y-1">
-          {/* [Edit] [Close] live on the same baseline as the section
-              label — tight section toolbar. -my-1 keeps the icon
-              buttons from pushing the header row taller than the
-              label itself. */}
-          <div className="flex items-center justify-between">
-            <h3 className="flex items-center gap-1.5 text-sm font-medium text-slate-600 dark:text-slate-400">
-              <AlignLeft className="w-3.5 h-3.5" aria-hidden />
-              <span>Description</span>
-            </h3>
-            <div className="flex items-center gap-1 -my-1">
-              {!editing && (
-                <button
-                  type="button"
-                  onClick={() => setEditing(true)}
-                  title="Edit"
-                  aria-label="Edit project details"
-                  className="text-slate-400 dark:text-slate-500 hover:text-slate-900 dark:hover:text-slate-100 p-1 rounded transition-colors"
-                >
-                  <SquarePen className="w-3.5 h-3.5" />
-                </button>
-              )}
+      {/* Top bar — 2-row `[LABEL] [name]` grid identity + actions.
+          Reads like a definition list: row 1 is workspace context,
+          row 2 is project (the focal entity). Labels align into a
+          left column; names align into a right column. Buttons sit
+          in the top-right corner (items-start, not centered). */}
+      <div className="flex items-start justify-between px-5 pt-4 pb-3 gap-3">
+        <div className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-0.5 items-baseline min-w-0">
+          <span className="font-mono text-xs uppercase tracking-wider text-slate-400 dark:text-slate-500">
+            Workspace
+          </span>
+          <span className="text-sm font-medium text-slate-700 dark:text-slate-300 truncate">
+            {workspace?.name ?? "—"}
+          </span>
+          <span className="font-mono text-xs uppercase tracking-wider text-slate-400 dark:text-slate-500">
+            Project
+          </span>
+          <span className="text-base font-semibold text-slate-900 dark:text-slate-100 truncate">
+            {project.name}
+          </span>
+        </div>
+        <div className="flex items-center gap-1 shrink-0 -my-1">
+          {editing ? (
+            // Edit mode — Save / Cancel here at the top, replacing the
+            // [edit][X] cluster of view mode. Footer cluster removed
+            // → top-right is the single source of "commit / discard".
+            <>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={cancel}
+                disabled={updateProject.isPending}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                onClick={save}
+                disabled={!dirty || updateProject.isPending}
+              >
+                {updateProject.isPending ? "Saving…" : "Save"}
+              </Button>
+            </>
+          ) : (
+            <>
+              <button
+                type="button"
+                onClick={() => setEditing(true)}
+                title="Edit"
+                aria-label="Edit project details"
+                className="text-slate-400 dark:text-slate-500 hover:text-slate-900 dark:hover:text-slate-100 p-1 rounded transition-colors"
+              >
+                <SquarePen className="w-3.5 h-3.5" />
+              </button>
               <button
                 type="button"
                 onClick={onClose}
@@ -252,7 +288,22 @@ export function ProjectDetailPopover({
               >
                 <X className="w-4 h-4" />
               </button>
-            </div>
+            </>
+          )}
+        </div>
+      </div>
+
+      <div className="px-5 pt-2 pb-5 space-y-4">
+        {/* Description */}
+        <section className="space-y-2">
+          <div>
+            <h3 className="flex items-center gap-1.5 text-sm font-medium text-slate-600 dark:text-slate-400">
+              <AlignLeft className="w-3.5 h-3.5" aria-hidden />
+              <span>Description</span>
+            </h3>
+            {/* Hairline directly below section label — reads as
+                "title underline" rather than "inter-section divider". */}
+            <div className="h-px bg-slate-100 dark:bg-slate-800 mt-2" />
           </div>
           {editing ? (
             <textarea
@@ -279,14 +330,15 @@ export function ProjectDetailPopover({
           )}
         </section>
 
-        <div className="h-px bg-slate-100 dark:bg-slate-800" />
-
         {/* Environments */}
         <section className="space-y-2">
-          <h3 className="flex items-center gap-1.5 text-sm font-medium text-slate-600 dark:text-slate-400">
-            <Link2 className="w-3.5 h-3.5" aria-hidden />
-            <span>Environments</span>
-          </h3>
+          <div>
+            <h3 className="flex items-center gap-1.5 text-sm font-medium text-slate-600 dark:text-slate-400">
+              <Link2 className="w-3.5 h-3.5" aria-hidden />
+              <span>Environments</span>
+            </h3>
+            <div className="h-px bg-slate-100 dark:bg-slate-800 mt-2" />
+          </div>
 
           {!editing ? (
             // View mode
@@ -411,25 +463,6 @@ export function ProjectDetailPopover({
                 <Plus className="w-3 h-3" />
                 Add environment
               </button>
-              <div className="flex items-center justify-end gap-2 pt-3">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={cancel}
-                  disabled={updateProject.isPending}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  onClick={save}
-                  disabled={!dirty || updateProject.isPending}
-                >
-                  {updateProject.isPending ? "Saving…" : "Save"}
-                </Button>
-              </div>
             </div>
           )}
         </section>

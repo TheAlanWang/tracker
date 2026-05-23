@@ -31,6 +31,9 @@ export type Workspace = {
 export type WorkspaceCreate = { name: string; slug: string };
 export type WorkspaceUpdate = {
   name?: string;
+  // Renaming the slug rewrites every URL in the workspace and breaks
+  // external bookmarks / MCP configs. Gate in UI with a confirm dialog.
+  slug?: string;
   // Partial merge — only keys you send are changed.
   features?: WorkspaceFeatures;
 };

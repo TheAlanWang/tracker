@@ -10,6 +10,12 @@ class WorkspaceCreate(BaseModel):
 
 class WorkspaceUpdate(BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=100)
+    # Renaming the slug rewrites every URL in this workspace
+    # (/w/<slug>/...). External bookmarks / shared links / MCP configs
+    # all break. Frontend gates this behind a confirm dialog.
+    slug: str | None = Field(
+        default=None, min_length=2, max_length=50, pattern=r"^[a-z0-9-]+$"
+    )
     # Partial merge of feature flags. Only keys present in the payload are
     # changed; unspecified keys preserve whatever was stored. Currently
     # known keys: "goals" (bool).

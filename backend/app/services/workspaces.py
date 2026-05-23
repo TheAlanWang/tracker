@@ -138,12 +138,20 @@ async def update_workspace(
         existing = row.get("features") or {}
         updates["features"] = {**existing, **updates["features"]}
 
-    updated = (
-        await supabase.table("workspaces")
-        .update(updates)
-        .eq("id", workspace_id)
-        .execute()
-    ).data[0]
+    try:
+        updated = (
+            await supabase.table("workspaces")
+            .update(updates)
+            .eq("id", workspace_id)
+            .execute()
+        ).data[0]
+    except APIError as exc:
+        # Unique constraint on slug — translate to a typed error so the
+        # router can return 409 with a useful message. Same pattern as
+        # create_workspace.
+        if exc.code == "23505":
+            raise WorkspaceSlugExistsError(updates.get("slug", "")) from exc
+        raise
     return WorkspaceResponse(**updated)
 
 
