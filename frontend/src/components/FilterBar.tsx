@@ -108,7 +108,7 @@ function FilterChip({
 
   return (
     <>
-      <div className="inline-flex items-center rounded-full border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs">
+      <div className="inline-flex h-7 items-center rounded-full border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs">
         <button
           ref={triggerRef}
           type="button"
@@ -283,7 +283,7 @@ function AddFilterButton({
         ref={triggerRef}
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="inline-flex items-center gap-1 rounded-full border border-dashed border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2.5 py-1 text-xs text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:border-slate-400"
+        className="inline-flex h-7 items-center gap-1 rounded-full border border-dashed border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2.5 text-xs text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:border-slate-400"
       >
         <span>+ Filter</span>
         <svg viewBox="0 0 20 20" fill="currentColor" className="w-3 h-3">

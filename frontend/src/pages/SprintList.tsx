@@ -366,7 +366,7 @@ function NewSprintModal({
         onClick={(e) => e.stopPropagation()}
         className="w-full max-w-md rounded-lg bg-white dark:bg-slate-900 shadow-xl p-5 space-y-4"
       >
-        <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">New sprint</h2>
+        <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">New Sprint</h2>
         <form onSubmit={onSubmit} className="space-y-3">
           <div className="space-y-1">
             <Label htmlFor="sprint-name">Name</Label>
@@ -494,7 +494,7 @@ export default function SprintList() {
   return (
     <div className="space-y-8">
       {/* Active section: header + "+ New sprint" share a single row. */}
-      <section className="space-y-3">
+      <section className="space-y-2">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <h2 className="text-sm font-semibold uppercase tracking-[0.08em] text-slate-500 dark:text-slate-400">
@@ -504,7 +504,13 @@ export default function SprintList() {
               {active.length}
             </span>
           </div>
-          <Button onClick={() => setNewOpen(true)}>+ New sprint</Button>
+          <Button
+            size="sm"
+            className="rounded-full"
+            onClick={() => setNewOpen(true)}
+          >
+            + New Sprint
+          </Button>
         </div>
 
         {isLoading && <InlineSpinner />}
@@ -528,7 +534,7 @@ export default function SprintList() {
       </section>
 
       {planned.length > 0 && (
-        <section className="space-y-3">
+        <section className="space-y-2">
           <div className="flex items-center gap-2">
             <h2 className="text-sm font-semibold uppercase tracking-[0.08em] text-slate-500 dark:text-slate-400">
               Planned
@@ -560,7 +566,7 @@ export default function SprintList() {
       )}
 
       {completed.length > 0 && (
-        <section className="space-y-3">
+        <section className="space-y-2">
           <div className="flex items-center gap-2">
             <h2 className="text-sm font-semibold uppercase tracking-[0.08em] text-slate-500 dark:text-slate-400">
               Completed

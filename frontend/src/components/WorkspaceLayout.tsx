@@ -1687,8 +1687,8 @@ function SidebarNav({
               <span
                 className={
                   collapsed
-                    ? "w-2 h-2 rounded-full shrink-0"
-                    : "w-1.5 h-1.5 rounded-full shrink-0"
+                    ? "w-2.5 h-2.5 rounded-full shrink-0"
+                    : "w-2 h-2 rounded-full shrink-0"
                 }
                 style={{ backgroundColor: dotColor }}
               />

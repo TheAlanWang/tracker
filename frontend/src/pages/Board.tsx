@@ -163,7 +163,7 @@ function ColumnVisibilityMenu({
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="inline-flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md px-2.5 py-1 transition-colors"
+        className="inline-flex h-7 items-center gap-1.5 text-xs text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 rounded-full px-2.5 transition-colors"
       >
         <ColumnsIcon />
         <span>Columns</span>
@@ -495,7 +495,7 @@ function Column({
       ref={setNodeRef}
       className={`group rounded-lg p-2 min-h-[120px] flex flex-col transition-colors ${
         highlight
-          ? "bg-blue-50 ring-2 ring-blue-300"
+          ? "bg-blue-50 ring-2 ring-inset ring-blue-300"
           : "bg-slate-100 dark:bg-slate-800"
       }`}
     >
@@ -709,7 +709,7 @@ export default function Board() {
         onDragCancel={onDragCancel}
         autoScroll={{ acceleration: 1000, threshold: { x: 0.2, y: 0.2 } }}
       >
-        <div className="overflow-x-auto scrollbar-hide p-1 pb-2">
+        <div className="overflow-x-auto scrollbar-hide px-1 pb-2">
           <div
             className="grid gap-3"
             style={{

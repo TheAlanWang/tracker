@@ -81,9 +81,10 @@ export function ExportTasksButton({
   return (
     <Button
       type="button"
+      size="sm"
       onClick={onClick}
       disabled={tasks.length === 0}
-      className={className}
+      className={`rounded-full ${className ?? ""}`}
       title={
         tasks.length === 0
           ? "No tasks to export"

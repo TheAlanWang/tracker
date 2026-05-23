@@ -144,7 +144,7 @@ export function ProjectLayout() {
           </NavLink>
         ))}
       </nav>
-      <div className="pt-2">
+      <div className="pt-4">
         <Outlet />
       </div>
 

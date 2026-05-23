@@ -289,8 +289,8 @@ function MyIssuesContent() {
               onClick={() => setView("assigned")}
               className={`px-3 py-1 rounded transition-colors ${
                 view === "assigned"
-                  ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 font-medium shadow-sm"
-                  : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100"
+                  ? "bg-blue-600 text-white font-medium shadow-sm"
+                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100"
               }`}
             >
               Assigned to me
@@ -300,18 +300,13 @@ function MyIssuesContent() {
               onClick={() => setView("watching")}
               className={`px-3 py-1 rounded transition-colors ${
                 view === "watching"
-                  ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 font-medium shadow-sm"
-                  : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100"
+                  ? "bg-blue-600 text-white font-medium shadow-sm"
+                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100"
               }`}
             >
               Watching
             </button>
           </div>
-          <ExportTasksButton
-            tasks={displayedTasks}
-            members={members}
-            filename="My tasks"
-          />
         </div>
       </div>
 
@@ -324,10 +319,17 @@ function MyIssuesContent() {
         availableFilterFields={["project", "status", "priority", "due"]}
         projectOptions={projects.map((p) => ({ id: p.id, name: p.name }))}
         trailing={
-          <ColumnVisibilityMenu
-            hidden={hiddenColumns}
-            onToggle={toggleColumn}
-          />
+          <div className="flex items-center gap-2">
+            <ColumnVisibilityMenu
+              hidden={hiddenColumns}
+              onToggle={toggleColumn}
+            />
+            <ExportTasksButton
+              tasks={displayedTasks}
+              members={members}
+              filename="My tasks"
+            />
+          </div>
         }
       />
 

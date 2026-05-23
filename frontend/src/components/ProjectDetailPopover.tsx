@@ -230,7 +230,11 @@ export function ProjectDetailPopover({
           left column; names align into a right column. Buttons sit
           in the top-right corner (items-start, not centered). */}
       <div className="flex items-start justify-between px-5 pt-4 pb-3 gap-3">
-        <div className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-0.5 items-baseline min-w-0">
+        {/* 4-column grid: LABEL | NAME | ID-LABEL | IDENTIFIER.
+            Name column (col 2) flex-grows to push the SLUG/KEY pair to
+            the right edge — spreads the identity across the available
+            width rather than clumping at the left. */}
+        <div className="grid grid-cols-[auto_minmax(0,1fr)_auto_minmax(0,1fr)] gap-x-3 gap-y-0.5 items-baseline min-w-0 flex-1">
           <span className="font-mono text-xs uppercase tracking-wider text-slate-400 dark:text-slate-500">
             Workspace
           </span>
@@ -238,10 +242,23 @@ export function ProjectDetailPopover({
             {workspace?.name ?? "—"}
           </span>
           <span className="font-mono text-xs uppercase tracking-wider text-slate-400 dark:text-slate-500">
+            Slug
+          </span>
+          <span className="font-mono text-xs text-slate-500 dark:text-slate-400 truncate">
+            {workspace?.slug ?? ""}
+          </span>
+
+          <span className="font-mono text-xs uppercase tracking-wider text-slate-400 dark:text-slate-500">
             Project
           </span>
           <span className="text-base font-semibold text-slate-900 dark:text-slate-100 truncate">
             {project.name}
+          </span>
+          <span className="font-mono text-xs uppercase tracking-wider text-slate-400 dark:text-slate-500">
+            Key
+          </span>
+          <span className="font-mono text-xs uppercase tracking-wider text-slate-700 dark:text-slate-300 truncate">
+            {project.key}
           </span>
         </div>
         <div className="flex items-center gap-1 shrink-0 -my-1">
