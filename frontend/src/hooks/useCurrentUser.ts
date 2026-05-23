@@ -8,6 +8,13 @@ export type Me = {
   display_name: string | null;
   avatar_url: string | null;
   avatar_color: string | null;
+  // True if auth.users.encrypted_password is set. Source of truth for
+  // "should the Profile Settings password row say Set or Change". DON'T
+  // use the identities array for this — Supabase doesn't add an email
+  // identity when an OAuth user calls updateUser({ password }), so an
+  // identities-based check stays stuck on "Set" forever after a password
+  // is added.
+  has_password: boolean;
   workspaces: { id: string; slug: string; name: string }[];
 };
 

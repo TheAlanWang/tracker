@@ -53,14 +53,32 @@ async def get_me(
         WorkspaceSummary(id=w.id, slug=w.slug, name=w.name) for w in workspaces
     ]
 
+    has_password = await _has_password(supabase, user_id)
+
     return MeResponse(
         id=user_id,
         email=email,
         display_name=display_name,
         avatar_url=avatar_url,
         avatar_color=avatar_color,
+        has_password=has_password,
         workspaces=workspace_summaries,
     )
+
+
+async def _has_password(supabase: AsyncClient, user_id: str) -> bool:
+    """Whether auth.users.encrypted_password is set for this user.
+
+    Calls the user_has_password() RPC defined in
+    20260523080000_user_has_password_fn.sql. On any RPC failure, defaults
+    to False — better to show "Set Password" once than to crash /me.
+    """
+    try:
+        result = await supabase.rpc("user_has_password", {"uid": user_id}).execute()
+        return bool(result.data)
+    except Exception:  # noqa: BLE001
+        logger.exception("user_has_password RPC failed for %s", user_id)
+        return False
 
 
 @router.patch("/me/profile", response_model=MeResponse)
@@ -125,12 +143,15 @@ async def update_profile(
         WorkspaceSummary(id=w.id, slug=w.slug, name=w.name) for w in workspaces
     ]
 
+    has_password = await _has_password(supabase, user_id)
+
     return MeResponse(
         id=user_id,
         email=email,
         display_name=display_name,
         avatar_url=avatar_url,
         avatar_color=avatar_color,
+        has_password=has_password,
         workspaces=workspace_summaries,
     )
 

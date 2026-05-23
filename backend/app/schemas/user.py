@@ -18,6 +18,12 @@ class MeResponse(BaseModel):
     # Hex color the user picked for the initial-letter fallback (e.g.
     # "#3b82f6"). When null the frontend derives a hue from the email hash.
     avatar_color: str | None = None
+    # True if auth.users.encrypted_password is set — i.e. the user can sign
+    # in with email + password. Computed by the user_has_password() RPC.
+    # The frontend uses this (NOT auth.identities) to decide between
+    # "Set Password" and "Change Password" buttons, because Supabase doesn't
+    # add an email identity when a password is set on an OAuth-first user.
+    has_password: bool = False
     workspaces: list[WorkspaceSummary] = []
 
 

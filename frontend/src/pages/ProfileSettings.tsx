@@ -19,6 +19,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Camera, Pencil, Trash2 } from "lucide-react";
 
@@ -587,15 +588,16 @@ function InvitationsSection({ invitations }: { invitations: Invitation[] }) {
 
 function SignInMethodsSection() {
   const { identities } = useAuthIdentities();
+  const { data: me } = useCurrentUser();
   const [passwordModal, setPasswordModal] = useState<"set" | "change" | null>(
     null,
   );
   const [linking, setLinking] = useState(false);
   const [unlinking, setUnlinking] = useState(false);
 
-  // Pre-flight: still fetching the session. Render a placeholder so the
-  // section's visual weight is stable when it appears.
-  if (!identities) {
+  // Pre-flight: still fetching the session or the /me payload. Render a
+  // placeholder so the section's visual weight is stable when it appears.
+  if (!identities || !me) {
     return (
       <section className="space-y-4">
         <h2 className="text-xl font-medium text-slate-900 dark:text-neutral-200">
@@ -608,12 +610,16 @@ function SignInMethodsSection() {
     );
   }
 
-  const emailIdentity = identities.find((i) => i.provider === "email");
   const googleIdentity = identities.find((i) => i.provider === "google");
   // Last-method guard: never let a user remove their only way to sign in.
-  // Currently the only removable identity is Google; password is changed
-  // rather than removed, so this check only gates the unlink button.
-  const wouldLockOut = !emailIdentity;
+  // Trackly's only removable identity is Google; the password row only
+  // toggles between Set/Change, not removal. So "would unlinking Google
+  // lock me out?" reduces to "do I have a password set?".
+  // NOTE: don't proxy this through identities.find(provider === 'email').
+  // Supabase doesn't add an email identity when an OAuth user calls
+  // updateUser({ password }), so that check stays stuck on false even
+  // after the password is set. me.has_password is the real signal.
+  const wouldLockOut = !me.has_password;
 
   async function handleLinkGoogle() {
     setLinking(true);
@@ -664,7 +670,7 @@ function SignInMethodsSection() {
           <SettingRow
             label="Password"
             description={
-              emailIdentity
+              me.has_password
                 ? "Sign in with email and password."
                 : "Not set. Add a password to sign in without Google."
             }
@@ -674,10 +680,10 @@ function SignInMethodsSection() {
                 type="button"
                 className="min-w-[9.5rem]"
                 onClick={() =>
-                  setPasswordModal(emailIdentity ? "change" : "set")
+                  setPasswordModal(me.has_password ? "change" : "set")
                 }
               >
-                {emailIdentity ? "Change Password" : "Set Password"}
+                {me.has_password ? "Change Password" : "Set Password"}
               </Button>
             </div>
           </SettingRow>
@@ -740,6 +746,7 @@ function PasswordModal({
   mode: "set" | "change";
   onClose: () => void;
 }) {
+  const qc = useQueryClient();
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -755,12 +762,18 @@ function PasswordModal({
     if (!canSubmit) return;
     setSubmitting(true);
     try {
-      // updateUser({ password }) works for both cases:
-      //   - OAuth-only user: adds the email-provider identity (Supabase
-      //     uses the existing user.email as the credential's email)
-      //   - User who already has password: rotates it
+      // updateUser({ password }) sets auth.users.encrypted_password. It does
+      // NOT add a provider='email' row to auth.identities — that's why we
+      // can't use the identities array to gate the Set/Change button.
+      // The backend's me.has_password (computed from encrypted_password IS
+      // NOT NULL via the user_has_password() SQL function) is the signal.
+      // Invalidate ["me"] below so the Password row flips immediately.
       const { error } = await supabase.auth.updateUser({ password });
       if (error) throw error;
+      // Force a /me refetch so me.has_password reflects the new state.
+      // The auth state change event from supabase-js refreshes identities
+      // automatically but doesn't touch our React Query cache for /me.
+      await qc.invalidateQueries({ queryKey: ["me"] });
       toast.success(mode === "set" ? "Password set." : "Password updated.");
       onClose();
     } catch (err) {
