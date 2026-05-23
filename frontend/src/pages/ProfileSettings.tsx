@@ -611,15 +611,19 @@ function SignInMethodsSection() {
   }
 
   const googleIdentity = identities.find((i) => i.provider === "google");
-  // Last-method guard: never let a user remove their only way to sign in.
-  // Trackly's only removable identity is Google; the password row only
-  // toggles between Set/Change, not removal. So "would unlinking Google
-  // lock me out?" reduces to "do I have a password set?".
-  // NOTE: don't proxy this through identities.find(provider === 'email').
-  // Supabase doesn't add an email identity when an OAuth user calls
-  // updateUser({ password }), so that check stays stuck on false even
-  // after the password is set. me.has_password is the real signal.
-  const wouldLockOut = !me.has_password;
+  // Unlink guard: Supabase's unlinkIdentity refuses when it would leave
+  // the user with zero rows in auth.identities. Even though
+  // signInWithPassword doesn't consult identities at all (it only checks
+  // auth.users.encrypted_password), the unlink rule is strict. Match
+  // that reality in the UI — only allow unlinking an OAuth provider
+  // when there's another OAuth identity to fall back on. Adding GitHub
+  // / Discord / etc. later will automatically unblock Unlink Google.
+  //
+  // Password is intentionally NOT part of this check — it's an orthogonal
+  // sign-in mechanism, not an identity row. Set Password / Change Password
+  // is controlled separately via me.has_password.
+  const oauthIdentities = identities.filter((i) => i.provider !== "email");
+  const wouldLockOut = oauthIdentities.length <= 1;
 
   async function handleLinkGoogle() {
     setLinking(true);
@@ -664,7 +668,8 @@ function SignInMethodsSection() {
             description stay self-contained (Password explains password,
             Google explains Google — neither references the other). */}
         <p className="-mt-2 text-sm text-slate-500 dark:text-neutral-400">
-          You need at least one active sign-in method.
+          Link a second account to enable unlinking. You can always sign in
+          with your password.
         </p>
         <div className="rounded-lg border border-slate-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 divide-y divide-slate-200 dark:divide-neutral-800">
           <SettingRow
