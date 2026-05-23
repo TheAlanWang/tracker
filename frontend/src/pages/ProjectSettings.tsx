@@ -58,7 +58,13 @@ function ProjectSettingsContent({
   wsSlug: string;
 }) {
   const navigate = useNavigate();
+  // Two independent useUpdateProject instances so that General-card and
+  // Notifications-card Save buttons have separate isPending states —
+  // sharing one mutation makes both buttons flip to "Saving…" whichever
+  // is clicked, which looks like the two cards are coupled when they're
+  // not.
   const updateMutation = useUpdateProject(wsId);
+  const notifyMutation = useUpdateProject(wsId);
   const deleteMutation = useDeleteProject(wsId);
 
   const [name, setName] = useState(currentProject.name);
@@ -288,7 +294,7 @@ function ProjectSettingsContent({
                   type="submit"
                   disabled={!dirty || updateMutation.isPending}
                 >
-                  {updateMutation.isPending ? "Saving…" : "Save changes"}
+                  {updateMutation.isPending ? "Saving…" : "Save"}
                 </Button>
               </div>
             </div>
@@ -302,7 +308,7 @@ function ProjectSettingsContent({
           <div className="rounded-lg border border-slate-200/80 dark:border-neutral-800 bg-white dark:bg-neutral-900 p-5">
             <NotificationToggle
               project={currentProject}
-              updateMutation={updateMutation}
+              updateMutation={notifyMutation}
             />
           </div>
         </section>
@@ -369,41 +375,64 @@ function NotificationToggle({
   project: Project;
   updateMutation: ReturnType<typeof useUpdateProject>;
 }) {
+  // Draft + Save pattern to match the General Settings card above —
+  // picking a new threshold doesn't persist until the user explicitly
+  // confirms. Avoids the confusing "did the General Save button just
+  // change my notifications too?" state when the two cards live on the
+  // same page.
   const current = project.notify_assignee_threshold;
-  async function setThreshold(next: NotifyAssigneeThreshold) {
-    if (next === current) return;
+  const [draft, setDraft] = useState<NotifyAssigneeThreshold>(current);
+  const dirty = draft !== current;
+  const draftHint = THRESHOLD_OPTIONS.find((o) => o.value === draft)?.hint;
+
+  async function onSave() {
+    if (!dirty) return;
     try {
       await updateMutation.mutateAsync({
         projectId: project.id,
-        payload: { notify_assignee_threshold: next },
+        payload: { notify_assignee_threshold: draft },
       });
       toast.success(
-        next === "off"
+        draft === "off"
           ? "Assignment emails disabled"
-          : `Assignment emails: ${THRESHOLD_OPTIONS.find((o) => o.value === next)?.label.toLowerCase()}`,
+          : `Assignment emails: ${THRESHOLD_OPTIONS.find((o) => o.value === draft)?.label.toLowerCase()}`,
       );
     } catch {
       toast.error("Failed to update notification settings");
     }
   }
-  const currentHint = THRESHOLD_OPTIONS.find((o) => o.value === current)?.hint;
+
   return (
-    <div className="flex items-start justify-between gap-6">
-      <div className="min-w-0">
-        <div className="font-medium text-slate-900 dark:text-neutral-200">
-          Email assignees when a task is assigned
+    <div className="space-y-4">
+      <div className="flex items-start justify-between gap-6">
+        <div className="min-w-0">
+          <div className="font-medium text-slate-900 dark:text-neutral-200">
+            Email assignees when a task is assigned
+          </div>
+          <p className="mt-1 text-sm text-slate-500 dark:text-neutral-400 leading-relaxed">
+            {draftHint} Reassignment and priority-bump-into-threshold
+            also trigger. The actor is never emailed for their own action.
+          </p>
         </div>
-        <p className="mt-1 text-sm text-slate-500 dark:text-neutral-400 leading-relaxed">
-          {currentHint} Reassignment and priority-bump-into-threshold
-          also trigger. The actor is never emailed for their own action.
-        </p>
+        <Select
+          value={draft}
+          onChange={setDraft}
+          options={THRESHOLD_OPTIONS.map((o) => ({
+            value: o.value,
+            label: o.label,
+          }))}
+          className="shrink-0 w-[180px]"
+        />
       </div>
-      <Select
-        value={current}
-        onChange={(next) => setThreshold(next)}
-        options={THRESHOLD_OPTIONS.map((o) => ({ value: o.value, label: o.label }))}
-        className="shrink-0 w-[180px]"
-      />
+      <div className="flex justify-end">
+        <Button
+          type="button"
+          onClick={onSave}
+          disabled={!dirty || updateMutation.isPending}
+        >
+          {updateMutation.isPending ? "Saving…" : "Save"}
+        </Button>
+      </div>
     </div>
   );
 }
