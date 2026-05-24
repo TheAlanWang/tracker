@@ -43,6 +43,7 @@ htmlcov/
 test-results/
 playwright-report/
 playwright/.cache/
+.playwright-mcp/
 
 # Internal design docs / planning artifacts — kept locally for reference
 # but not part of the repo public surface.
