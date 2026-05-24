@@ -47,7 +47,7 @@ export default function WorkspaceSettings() {
       { id: "ws-general", label: "General" },
       { id: "ws-members", label: "Members" },
       { id: "ws-features", label: "Features" },
-      { id: "ws-danger", label: "Danger Zone", danger: true },
+      { id: "ws-danger", label: "Danger Zone" },
     ],
   });
   const { wsSlug: routeWsSlug } = useParams();

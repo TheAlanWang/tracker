@@ -37,7 +37,7 @@ export default function ProjectSettings() {
     sections: [
       { id: "proj-general", label: "General" },
       { id: "proj-notifications", label: "Notifications" },
-      { id: "proj-danger", label: "Danger Zone", danger: true },
+      { id: "proj-danger", label: "Danger Zone" },
     ],
   });
   const { wsSlug, pKey } = useParams();

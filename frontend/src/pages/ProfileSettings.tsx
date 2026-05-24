@@ -68,7 +68,7 @@ export default function ProfileSettings() {
       ...(invitations.length > 0
         ? [{ id: "profile-invitations", label: "Invitations" }]
         : []),
-      { id: "profile-danger", label: "Danger Zone", danger: true },
+      { id: "profile-danger", label: "Danger Zone" },
     ],
   });
 

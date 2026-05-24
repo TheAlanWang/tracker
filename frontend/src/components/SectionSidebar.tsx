@@ -57,12 +57,11 @@ export function SectionSidebar({
           // SettingsSidebar uses pl-7 because its section labels have
           // a 14px icon + 6px gap before the text; this rail's title has
           // no icon, so items only need a modest indent to read as
-          // subordinate.
-          className={`flex items-center w-full text-left rounded-md pl-4 pr-2 py-1.5 text-sm font-normal tracking-tight transition-colors ${
-            s.danger
-              ? "text-red-700/70 dark:text-red-400/70 hover:bg-red-50 dark:hover:bg-red-950/20 hover:text-red-700 dark:hover:text-red-300"
-              : "text-slate-600 dark:text-neutral-400 hover:text-slate-900 dark:hover:text-neutral-100 hover:bg-slate-100 dark:hover:bg-neutral-800"
-          }`}
+          // subordinate. All items share the same neutral styling — the
+          // section's own <h2> already colors "Danger Zone" red in the
+          // main content area, so the sub-nav doesn't need to repeat it
+          // (less visual noise; consistent rhythm in the rail).
+          className="flex items-center w-full text-left rounded-md pl-4 pr-2 py-1.5 text-sm font-normal tracking-tight transition-colors text-slate-600 dark:text-neutral-400 hover:text-slate-900 dark:hover:text-neutral-100 hover:bg-slate-100 dark:hover:bg-neutral-800"
         >
           {s.label}
         </button>

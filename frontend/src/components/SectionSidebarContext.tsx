@@ -15,9 +15,6 @@ import { createContext, useMemo, useState } from "react";
 export type SectionLink = {
   id: string;
   label: string;
-  // Tints the row red so a Danger Zone link reads distinct from the
-  // rest even before hover.
-  danger?: boolean;
 };
 
 export type SectionSidebarConfig = {
