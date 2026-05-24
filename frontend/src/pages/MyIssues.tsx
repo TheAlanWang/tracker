@@ -6,6 +6,7 @@ import { FilterBar } from "@/components/FilterBar";
 import { InlineSpinner } from "@/components/PageSpinner";
 import { useMembers } from "@/features/members/api";
 import { projectDotColor } from "@/lib/projectColor";
+import { useTheme } from "@/hooks/useTheme";
 import { SortableHeader } from "@/components/SortableHeader";
 import { TaskDetailModal } from "@/components/TaskDetailModal";
 import { useProjects } from "@/features/projects/api";
@@ -198,6 +199,8 @@ type View = "assigned" | "watching";
 function MyIssuesContent() {
   const { wsSlug } = useParams();
   const [openTaskId, setOpenTaskId] = useState<string | null>(null);
+  const { resolved: theme } = useTheme();
+  const isDark = theme === "dark";
   // View toggle: "assigned" = tasks where I'm the current assignee, "watching"
   // = tasks I've subscribed to (auto-includes anything I created or have
   // ever been assigned to). Scoped to the current workspace.
@@ -443,6 +446,7 @@ function MyIssuesContent() {
                                   backgroundColor: projectDotColor({
                                     key: project.key,
                                     color: project.color,
+                                    dark: isDark,
                                   }),
                                 }}
                               />

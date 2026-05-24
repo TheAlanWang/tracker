@@ -3,17 +3,17 @@
 // Renders three regions:
 //   1. Top bar — workspace switcher (dropdown), command palette trigger,
 //      bell icon (inbox popover with task notifications + pending workspace
-//      invitations), and avatar menu (Profile Settings / Workspace Settings
-//      / Project Settings / Sign out).
+//      invitations), and avatar menu (Settings / theme switcher / Sign out).
 //   2. Sidebar (SidebarNav, below) — Dashboard / My Tasks at the top,
 //      then a Projects section listing every project in the workspace with
 //      a "+" to create a new one. Each row has a stable per-key dot color
 //      (hash → hue) and an on-hover gear that opens project settings.
 //   3. <Outlet /> — the routed page content.
 //
-// State note: `hideSidebar` collapses the sidebar on Workspace Settings,
-// Profile Settings, and Project Settings — those pages bring their own
-// SettingsLayout sidebar so showing both would be confusing.
+// State note: `onSettingsPage` swaps the global SidebarNav for
+// SettingsSidebar (same frame, different content) on Workspace / Profile /
+// Project Settings routes. Pages that register sections via
+// useSectionSidebar also get a tier-2 SectionSidebar overlay beside it.
 
 import { Outlet, useLocation, useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
@@ -22,6 +22,9 @@ import { createPortal } from "react-dom";
 
 import { Button } from "@/components/ui/button";
 import { CommandPalette } from "@/components/CommandPalette";
+import { SettingsSidebar } from "@/components/SettingsSidebar";
+import { SectionSidebar } from "@/components/SectionSidebar";
+import { SectionSidebarProvider } from "@/components/SectionSidebarContext";
 import { Avatar } from "@/components/Avatar";
 import { TaskDetailModal } from "@/components/TaskDetailModal";
 import { Input } from "@/components/ui/input";
@@ -705,12 +708,14 @@ function InboxPopover({
 }
 
 export function WorkspaceLayout() {
-  const { wsSlug, pKey } = useParams();
+  const { wsSlug } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
-  // Hide the left sidebar on settings/profile pages — Settings has its own
-  // left nav (workspaces + projects). Avoids two competing left rails.
-  const hideSidebar =
+  // Swap the global SidebarNav for SettingsSidebar on settings/profile
+  // pages — same frame and tokens, different content (Account / Workspaces
+  // / Projects). The flag also flips the top-left workspace-name button
+  // from "switch workspace" dropdown into a "back to workspace" link.
+  const onSettingsPage =
     location.pathname === `/w/${wsSlug}/settings` ||
     location.pathname === `/w/${wsSlug}/profile` ||
     /^\/w\/[^/]+\/p\/[^/]+\/settings$/.test(location.pathname);
@@ -869,20 +874,20 @@ export function WorkspaceLayout() {
               <button
                 type="button"
                 onClick={() => {
-                  if (hideSidebar) {
+                  if (onSettingsPage) {
                     navigate(`/w/${wsSlug}`);
                   } else {
                     setWsMenuOpen((v) => !v);
                   }
                 }}
                 className="flex items-center gap-1 font-semibold text-slate-900 dark:text-neutral-200 hover:text-slate-700 dark:hover:text-neutral-300"
-                title={hideSidebar ? `Back to ${currentWs?.name}` : "Switch workspace"}
+                title={onSettingsPage ? `Back to ${currentWs?.name}` : "Switch workspace"}
               >
                 {currentWs?.name ?? "tracker"}
-                {!hideSidebar && <span className="text-slate-400 dark:text-neutral-500 text-xs">▾</span>}
-                {hideSidebar && <span className="text-slate-400 dark:text-neutral-500 text-xs">↩</span>}
+                {!onSettingsPage && <span className="text-slate-400 dark:text-neutral-500 text-xs">▾</span>}
+                {onSettingsPage && <span className="text-slate-400 dark:text-neutral-500 text-xs">↩</span>}
               </button>
-              {!hideSidebar && wsMenuOpen && (
+              {!onSettingsPage && wsMenuOpen && (
                 <div className="absolute left-0 top-full mt-1 w-56 rounded-md border border-slate-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-lg z-20 py-1">
                   <button
                     type="button"
@@ -1067,7 +1072,12 @@ export function WorkspaceLayout() {
                     </div>
                   </div>
 
-                  {/* Settings group */}
+                  {/* Single Settings entry — lands on Profile Settings;
+                      from there, SettingsSidebar lets the user pick
+                      Workspace / Project settings without leaving the
+                      settings space. Replaces three menu items (Profile /
+                      Workspace / Project Settings) that did the same job
+                      with more chrome. */}
                   <div className="py-1">
                     <ProfileMenuItem
                       onClick={() => {
@@ -1084,67 +1094,12 @@ export function WorkspaceLayout() {
                           strokeLinejoin="round"
                           className="w-4 h-4"
                         >
-                          <circle cx="12" cy="8" r="3.5" />
-                          <path d="M4 20a8 8 0 0 1 16 0" />
+                          <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
+                          <circle cx="12" cy="12" r="3" />
                         </svg>
                       }
                     >
-                      Profile Settings
-                    </ProfileMenuItem>
-                    <ProfileMenuItem
-                      onClick={() => {
-                        setProfileMenuOpen(false);
-                        navigate(`/w/${wsSlug}/settings`);
-                      }}
-                      icon={
-                        <svg
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth={1.7}
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          className="w-4 h-4"
-                        >
-                          <rect x="4" y="3" width="16" height="18" rx="1.5" />
-                          <line x1="8" y1="8" x2="16" y2="8" />
-                          <line x1="8" y1="12" x2="16" y2="12" />
-                          <line x1="8" y1="16" x2="12" y2="16" />
-                        </svg>
-                      }
-                    >
-                      Workspace Settings
-                    </ProfileMenuItem>
-                    {/* Always visible. Without a current project context
-                        (pKey is undefined when the user is on Dashboard /
-                        Backlog / Profile / etc.), route to workspace
-                        settings so the SettingsLayout sidebar can serve
-                        as a project picker — beats hiding the menu item
-                        and making users wonder where it went. */}
-                    <ProfileMenuItem
-                      onClick={() => {
-                        setProfileMenuOpen(false);
-                        navigate(
-                          pKey
-                            ? `/w/${wsSlug}/p/${pKey}/settings`
-                            : `/w/${wsSlug}/settings`,
-                        );
-                      }}
-                      icon={
-                        <svg
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth={1.7}
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          className="w-4 h-4"
-                        >
-                          <path d="M3 7a2 2 0 0 1 2-2h4l2 2.5h8a2 2 0 0 1 2 2V18a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7Z" />
-                        </svg>
-                      }
-                    >
-                      Project Settings
+                      Settings
                     </ProfileMenuItem>
                   </div>
 
@@ -1189,26 +1144,43 @@ export function WorkspaceLayout() {
         </div>
       </header>
 
-      <div className="flex flex-1 min-h-0">
-        {!hideSidebar && (
-          <SidebarNav
-            wsSlug={wsSlug ?? ""}
-            currentWsId={currentWs?.id ?? ""}
-            goalsEnabled={!!currentWs?.features?.goals}
-            collapsed={sidebarCollapsed}
-            onToggle={() => setSidebarCollapsed((v) => !v)}
-          />
-        )}
+      <SectionSidebarProvider>
+        {/* `relative` is the positioning context for the absolute
+            SectionSidebar overlay below — letting it float over <main>
+            without pushing it right. */}
+        <div className="flex flex-1 min-h-0 relative">
+          {onSettingsPage ? (
+            <SettingsSidebar
+              collapsed={sidebarCollapsed}
+              onToggle={() => setSidebarCollapsed((v) => !v)}
+            />
+          ) : (
+            <SidebarNav
+              wsSlug={wsSlug ?? ""}
+              currentWsId={currentWs?.id ?? ""}
+              goalsEnabled={!!currentWs?.features?.goals}
+              collapsed={sidebarCollapsed}
+              onToggle={() => setSidebarCollapsed((v) => !v)}
+            />
+          )}
 
-        {/* Reserve a scrollbar gutter even when content fits. Without this,
-            navigating between long pages (Workspace Settings with many
-            members) and shorter ones (a different workspace with fewer)
-            shows / hides a vertical scrollbar inside <main>, shifting the
-            inner mx-auto-centered content horizontally by ~15px. */}
-        <main className="flex-1 p-8 overflow-y-auto overflow-x-hidden bg-white dark:bg-neutral-950 text-slate-900 dark:text-neutral-200 [scrollbar-gutter:stable]">
-          <Outlet />
-        </main>
-      </div>
+          {/* Tier-2 sub-rail. Absolutely positioned (NOT a flex item)
+              so it overlays the left edge of <main> instead of shifting
+              it right. Renders only when the current page has registered
+              in-page sections via useSectionSidebar. */}
+          <SectionSidebar siblingCollapsed={sidebarCollapsed} />
+
+          {/* Reserve a scrollbar gutter even when content fits. Without
+              this, navigating between long pages (Workspace Settings with
+              many members) and shorter ones (a different workspace with
+              fewer) shows / hides a vertical scrollbar inside <main>,
+              shifting the inner mx-auto-centered content horizontally by
+              ~15px. */}
+          <main className="flex-1 p-8 overflow-y-auto overflow-x-hidden bg-white dark:bg-neutral-950 text-slate-900 dark:text-neutral-200 [scrollbar-gutter:stable]">
+            <Outlet />
+          </main>
+        </div>
+      </SectionSidebarProvider>
 
       {newWsModalOpen && (
         <div
@@ -1331,6 +1303,8 @@ function SidebarNav({
   const { pKey: activePKey } = useParams();
   const { data: projects = [] } = useProjects(currentWsId);
   const createMutation = useCreateProject(currentWsId);
+  const { resolved: theme } = useTheme();
+  const isDark = theme === "dark";
 
   const [showModal, setShowModal] = useState(false);
   const [name, setName] = useState("");
@@ -1661,7 +1635,11 @@ function SidebarNav({
           const isActive = p.key === activePKey;
           // User-set color when present; falls back to a hash-derived hue
           // so projects without an explicit color still look distinct.
-          const dotColor = projectDotColor({ key: p.key, color: p.color });
+          const dotColor = projectDotColor({
+            key: p.key,
+            color: p.color,
+            dark: isDark,
+          });
           return (
             <div
               key={p.id}
@@ -1685,11 +1663,7 @@ function SidebarNav({
               }
             >
               <span
-                className={
-                  collapsed
-                    ? "w-2.5 h-2.5 rounded-full shrink-0"
-                    : "w-2 h-2 rounded-full shrink-0"
-                }
+                className="w-2.5 h-2.5 rounded-full shrink-0"
                 style={{ backgroundColor: dotColor }}
               />
               {!collapsed && (

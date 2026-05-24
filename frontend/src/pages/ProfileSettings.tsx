@@ -28,6 +28,7 @@ import { isUploadedAvatar } from "@/lib/avatar";
 import { AVATAR_COLORS } from "@/lib/avatarColors";
 import { InlineSpinner } from "@/components/PageSpinner";
 import { SettingsLayout } from "@/components/SettingsLayout";
+import { useSectionSidebar } from "@/hooks/useSectionSidebar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -54,6 +55,22 @@ export default function ProfileSettings() {
   useDocumentTitle("Profile Settings");
   const { data: me } = useCurrentUser();
   const { data: invitations = [] } = useMyInvitations();
+
+  // Register tier-2 in-page sub-nav for the profile page. Sections appear
+  // in WorkspaceLayout's left rail beside SettingsSidebar; clicking one
+  // smooth-scrolls to the matching <section id=...> on this page.
+  // Invitations only listed when there's actually something to scroll to.
+  useSectionSidebar({
+    title: "Profile",
+    sections: [
+      { id: "profile-general", label: "General" },
+      { id: "profile-signin", label: "Sign-In Methods" },
+      ...(invitations.length > 0
+        ? [{ id: "profile-invitations", label: "Invitations" }]
+        : []),
+      { id: "profile-danger", label: "Danger Zone", danger: true },
+    ],
+  });
 
   if (!me) {
     return (
@@ -188,7 +205,7 @@ function ProfileSettingsContent({
           </p>
         </header>
 
-      <section className="space-y-4">
+      <section id="profile-general" className="space-y-4 scroll-mt-4">
         <h2 className="text-xl font-medium text-slate-900 dark:text-neutral-200 dark:text-neutral-200">General Settings</h2>
         <form onSubmit={onSave}>
           <div className="rounded-lg border border-slate-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 divide-y divide-slate-200 dark:divide-neutral-800">
@@ -386,7 +403,7 @@ function DangerZoneSection({ me }: { me: Me }) {
 
   return (
     <>
-      <section className="space-y-4">
+      <section id="profile-danger" className="space-y-4 scroll-mt-4">
         <h2 className="text-xl font-medium text-red-700 dark:text-red-400">Danger Zone</h2>
         {/* Stacked block, not a SettingRow: the description is long enough
             that splitting it into a narrow label column made it wrap badly.
@@ -520,7 +537,7 @@ function InvitationsSection({ invitations }: { invitations: Invitation[] }) {
   }
 
   return (
-    <section className="space-y-4">
+    <section id="profile-invitations" className="space-y-4 scroll-mt-4">
       <div className="flex items-baseline gap-2">
         <h2 className="text-xl font-medium text-slate-900 dark:text-neutral-200 dark:text-neutral-200">
           Workspace invitations
@@ -601,7 +618,7 @@ function SignInMethodsSection() {
   // placeholder so the section's visual weight is stable when it appears.
   if (!identities || !me) {
     return (
-      <section className="space-y-4">
+      <section id="profile-signin" className="space-y-4 scroll-mt-4">
         <h2 className="text-xl font-medium text-slate-900 dark:text-neutral-200">
           Sign-In Methods
         </h2>
@@ -694,7 +711,7 @@ function SignInMethodsSection() {
 
   return (
     <>
-      <section className="space-y-4">
+      <section id="profile-signin" className="space-y-4 scroll-mt-4">
         <h2 className="text-xl font-medium text-slate-900 dark:text-neutral-200">
           Sign-In Methods
         </h2>

@@ -35,9 +35,21 @@ import {
 } from "@/features/workspaces/api";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
+import { useSectionSidebar } from "@/hooks/useSectionSidebar";
 
 export default function WorkspaceSettings() {
   useDocumentTitle("Workspace Settings");
+  // Tier-2 in-page sub-nav (overlay rail beside SettingsSidebar). Clicks
+  // smooth-scroll to the matching <section id=...> on this page.
+  useSectionSidebar({
+    title: "Workspace",
+    sections: [
+      { id: "ws-general", label: "General" },
+      { id: "ws-members", label: "Members" },
+      { id: "ws-features", label: "Features" },
+      { id: "ws-danger", label: "Danger Zone", danger: true },
+    ],
+  });
   const { wsSlug: routeWsSlug } = useParams();
   const navigate = useNavigate();
   const { data: workspaces = [] } = useWorkspaces();
@@ -271,7 +283,7 @@ export default function WorkspaceSettings() {
       </header>
 
       <div className="space-y-10 min-w-0">
-        <section className="space-y-4">
+        <section id="ws-general" className="space-y-4 scroll-mt-4">
           <h2 className="text-xl font-medium text-slate-900 dark:text-neutral-200 dark:text-neutral-200">
             General Settings
           </h2>
@@ -363,7 +375,7 @@ export default function WorkspaceSettings() {
           </form>
         </section>
 
-        <section className="space-y-4">
+        <section id="ws-members" className="space-y-4 scroll-mt-4">
           <h2 className="text-xl font-medium text-slate-900 dark:text-neutral-200 dark:text-neutral-200">Members</h2>
           <div className="rounded-lg border border-slate-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 overflow-hidden">
             {/* Header zone — WHITE background. Title + summary on the
@@ -531,7 +543,7 @@ export default function WorkspaceSettings() {
           </div>
         </section>
 
-        <section className="space-y-4">
+        <section id="ws-features" className="space-y-4 scroll-mt-4">
           <h2 className="text-xl font-medium text-slate-900 dark:text-neutral-200 dark:text-neutral-200">Features</h2>
           <div className="rounded-lg border border-blue-100 dark:border-blue-900/40 bg-blue-50/40 dark:bg-blue-950/15 divide-y divide-blue-100/70 dark:divide-blue-900/30">
             {/* Each feature row: title + Beta pill + multi-line description
@@ -583,7 +595,7 @@ export default function WorkspaceSettings() {
           </div>
         </section>
 
-        <section className="space-y-4">
+        <section id="ws-danger" className="space-y-4 scroll-mt-4">
           <h2 className="text-xl font-medium text-red-700 dark:text-red-400">Danger Zone</h2>
           {/* Stacked block (same shape as Profile Settings' Danger zone):
               title → full-width prose → action button at bottom-right.
