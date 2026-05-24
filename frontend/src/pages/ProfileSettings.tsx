@@ -734,7 +734,7 @@ function SignInMethodsSection() {
             <div className="flex justify-end">
               <Button
                 type="button"
-                className="min-w-28"
+                className="min-w-40"
                 onClick={() =>
                   setPasswordModal(me.has_password ? "change" : "set")
                 }
@@ -773,7 +773,7 @@ function SignInMethodsSection() {
               ) : (
                 <Button
                   type="button"
-                  className="min-w-28"
+                  className="min-w-40"
                   disabled={linking === "google"}
                   onClick={handleLinkGoogle}
                 >
@@ -813,7 +813,7 @@ function SignInMethodsSection() {
               ) : (
                 <Button
                   type="button"
-                  className="min-w-28"
+                  className="min-w-40"
                   disabled={linking === "github"}
                   onClick={handleLinkGitHub}
                 >
