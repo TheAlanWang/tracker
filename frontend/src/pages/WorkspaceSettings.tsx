@@ -273,7 +273,7 @@ export default function WorkspaceSettings() {
 
   return (
     <SettingsLayout>
-      <header className="mb-10">
+      <header className="mb-6">
         <p className="text-xs font-mono uppercase tracking-wider text-slate-400 dark:text-neutral-500 mb-0.5">
           Workspace
         </p>

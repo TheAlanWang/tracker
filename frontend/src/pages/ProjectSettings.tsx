@@ -171,7 +171,7 @@ function ProjectSettingsContent({
 
   return (
     <SettingsLayout>
-      <header className="mb-10">
+      <header className="mb-6">
         <h1 className="text-3xl font-semibold text-slate-900 dark:text-neutral-200">
           Project Settings
         </h1>
@@ -310,6 +310,7 @@ function ProjectSettingsContent({
                 )}
                 <Button
                   type="submit"
+                  className="min-w-28"
                   disabled={!dirty || updateMutation.isPending}
                 >
                   {updateMutation.isPending ? "Saving…" : "Save"}
@@ -446,6 +447,7 @@ function NotificationToggle({
         <Button
           type="button"
           onClick={onSave}
+          className="min-w-28"
           disabled={!dirty || updateMutation.isPending}
         >
           {updateMutation.isPending ? "Saving…" : "Save"}

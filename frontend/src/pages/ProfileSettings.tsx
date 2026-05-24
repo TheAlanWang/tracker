@@ -197,14 +197,13 @@ function ProfileSettingsContent({
 
   return (
     <SettingsLayout>
+      <header className="mb-6">
+        <h1 className="text-3xl font-semibold text-slate-900 dark:text-neutral-200">Profile Settings</h1>
+        <p className="mt-2 text-slate-500 dark:text-neutral-400">
+          Your personal account info — display name and email.
+        </p>
+      </header>
       <div className="space-y-10">
-        <header>
-          <h1 className="text-3xl font-semibold text-slate-900 dark:text-neutral-200">Profile Settings</h1>
-          <p className="mt-2 text-slate-500 dark:text-neutral-400">
-            Your personal account info — display name and email.
-          </p>
-        </header>
-
       <section id="profile-general" className="space-y-4 scroll-mt-4">
         <h2 className="text-xl font-medium text-slate-900 dark:text-neutral-200 dark:text-neutral-200">General Settings</h2>
         <form onSubmit={onSave}>
@@ -353,7 +352,7 @@ function ProfileSettingsContent({
             <div className="flex justify-end p-4">
               <Button
                 type="submit"
-                className="min-w-[9.5rem]"
+                className="min-w-28"
                 disabled={!dirty || updateMutation.isPending}
               >
                 {updateMutation.isPending ? "Saving…" : "Save"}
@@ -735,7 +734,7 @@ function SignInMethodsSection() {
             <div className="flex justify-end">
               <Button
                 type="button"
-                className="min-w-[9.5rem]"
+                className="min-w-28"
                 onClick={() =>
                   setPasswordModal(me.has_password ? "change" : "set")
                 }
@@ -764,7 +763,7 @@ function SignInMethodsSection() {
                 wouldLockOut ? null : (
                   <Button
                     type="button"
-                    className="min-w-[9.5rem]"
+                    className="min-w-28"
                     disabled={unlinking === "google"}
                     onClick={handleUnlinkGoogle}
                   >
@@ -774,7 +773,7 @@ function SignInMethodsSection() {
               ) : (
                 <Button
                   type="button"
-                  className="min-w-[9.5rem]"
+                  className="min-w-28"
                   disabled={linking === "google"}
                   onClick={handleLinkGoogle}
                 >
@@ -804,7 +803,7 @@ function SignInMethodsSection() {
                 wouldLockOut ? null : (
                   <Button
                     type="button"
-                    className="min-w-[9.5rem]"
+                    className="min-w-28"
                     disabled={unlinking === "github"}
                     onClick={handleUnlinkGitHub}
                   >
@@ -814,7 +813,7 @@ function SignInMethodsSection() {
               ) : (
                 <Button
                   type="button"
-                  className="min-w-[9.5rem]"
+                  className="min-w-28"
                   disabled={linking === "github"}
                   onClick={handleLinkGitHub}
                 >

@@ -156,7 +156,7 @@ export function SettingsSidebar({
                     title={w.name}
                     aria-label={w.name}
                   >
-                    <span className="inline-flex items-center justify-center w-5 h-5 rounded text-[10px] font-semibold bg-slate-200 dark:bg-neutral-800 text-slate-700 dark:text-neutral-300">
+                    <span className="inline-flex items-center justify-center w-5 h-5 rounded text-[10px] font-semibold bg-slate-100 dark:bg-neutral-800 text-slate-700 dark:text-neutral-300">
                       {initial}
                     </span>
                   </button>
