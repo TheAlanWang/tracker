@@ -33,6 +33,7 @@ import {
   useUpdateWorkspace,
   useWorkspaces,
 } from "@/features/workspaces/api";
+import { PLAN_LABEL, PLAN_LIMITS } from "@/features/billing/planLimits";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import { useSectionSidebar } from "@/hooks/useSectionSidebar";
@@ -47,6 +48,7 @@ export default function WorkspaceSettings() {
       { id: "ws-general", label: "General" },
       { id: "ws-members", label: "Members" },
       { id: "ws-features", label: "Features" },
+      { id: "ws-plan", label: "Plan" },
       { id: "ws-danger", label: "Danger Zone" },
     ],
   });
@@ -595,6 +597,88 @@ export default function WorkspaceSettings() {
           </div>
         </section>
 
+        {/* Plan section — current subscription tier + per-cap usage.
+            v1: members is the only enforced cap; emails / storage / MCP
+            show "—" placeholders until those backend counters exist. Pro
+            tier is activated out-of-band (SQL today, Stripe webhook later). */}
+        <section id="ws-plan" className="space-y-4 scroll-mt-4">
+          <h2 className="text-xl font-medium text-slate-900 dark:text-neutral-200">Plan</h2>
+          {currentWs && (() => {
+            const plan = currentWs.plan;
+            const limits = PLAN_LIMITS[plan];
+            const pendingCount = invitations.filter((i) => i.status === "pending").length;
+            const usedSeats = members.length + pendingCount;
+            // Over-cap state: only reachable today via manual SQL downgrade
+            // (no self-serve plan change). v2 Stripe flow will pre-empt
+            // this by blocking downgrades that violate the cap — but we
+            // still need the visual signal in case of out-of-band changes
+            // (admin SQL, support tooling, etc.).
+            const overBy = usedSeats - limits.members;
+            const overCap = overBy > 0;
+            return (
+              <div className="rounded-lg border border-slate-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 divide-y divide-slate-200 dark:divide-neutral-800">
+                {/* Top row — current plan + status text. The badge color
+                    is the only thing tying this section to "billing"
+                    visually; the rest matches the neutral General style. */}
+                <div className="flex items-center justify-between px-5 py-4">
+                  <div className="space-y-1">
+                    <h3 className="text-base font-medium text-slate-900 dark:text-neutral-200">
+                      Current plan
+                    </h3>
+                    <p className="text-xs text-slate-500 dark:text-neutral-400">
+                      Pro plan is in development. Contact support to upgrade.
+                    </p>
+                  </div>
+                  <span
+                    className={
+                      plan === "pro"
+                        ? "inline-flex items-center rounded-full bg-violet-100 dark:bg-violet-950/40 px-3 py-1 text-xs font-medium uppercase tracking-wider text-violet-800 dark:text-violet-300"
+                        : "inline-flex items-center rounded-full bg-slate-100 dark:bg-neutral-800 px-3 py-1 text-xs font-medium uppercase tracking-wider text-slate-700 dark:text-neutral-300"
+                    }
+                  >
+                    {PLAN_LABEL[plan]}
+                  </span>
+                </div>
+                {/* Usage panel — one row per cap. Members has live count;
+                    the rest are "—" until backend counters land. */}
+                <div className="divide-y divide-slate-200 dark:divide-neutral-800">
+                  <UsageRow
+                    label="Members"
+                    used={String(usedSeats)}
+                    cap={String(limits.members)}
+                    isOver={overCap}
+                    note={
+                      pendingCount > 0
+                        ? `${members.length} active + ${pendingCount} pending`
+                        : undefined
+                    }
+                    warning={
+                      overCap
+                        ? `Over plan limit — remove ${overBy} member${overBy === 1 ? "" : "s"} to invite new ones.`
+                        : undefined
+                    }
+                  />
+                  <UsageRow
+                    label="Emails this month"
+                    used="—"
+                    cap={String(limits.emails_per_month)}
+                  />
+                  <UsageRow
+                    label="Storage"
+                    used="—"
+                    cap={`${limits.storage_gb} GB`}
+                  />
+                  <UsageRow
+                    label="MCP calls today"
+                    used="—"
+                    cap={String(limits.mcp_calls_per_day)}
+                  />
+                </div>
+              </div>
+            );
+          })()}
+        </section>
+
         <section id="ws-danger" className="space-y-4 scroll-mt-4">
           <h2 className="text-xl font-medium text-red-700 dark:text-red-400">Danger Zone</h2>
           {/* Stacked block (same shape as Profile Settings' Danger zone):
@@ -665,6 +749,54 @@ function SettingRow({
 // full left column (no narrow constraint like SettingRow), Toggle sits
 // vertically centered on the right. Optional `note` shows under the row
 // content (used for the "only owner can toggle" message).
+// One row in the Plan section's usage panel: `Label    used / cap`.
+// Tabular feel (font-mono on the numbers) so the eye scans the right
+// column quickly. `isOver=true` flips the used number red and renders
+// `warning` as a red sub-line — used when a workspace was downgraded
+// while it had more members than the target plan allows.
+function UsageRow({
+  label,
+  used,
+  cap,
+  note,
+  warning,
+  isOver,
+}: {
+  label: string;
+  used: string;
+  cap: string;
+  note?: string;
+  warning?: string;
+  isOver?: boolean;
+}) {
+  return (
+    <div className="flex items-center justify-between px-5 py-3">
+      <div className="space-y-0.5">
+        <p className="text-sm text-slate-700 dark:text-neutral-300">{label}</p>
+        {note && (
+          <p className="text-xs text-slate-500 dark:text-neutral-400">{note}</p>
+        )}
+        {warning && (
+          <p className="text-xs text-red-700 dark:text-red-400">{warning}</p>
+        )}
+      </div>
+      <p className="font-mono text-sm tabular-nums">
+        <span
+          className={
+            isOver
+              ? "font-medium text-red-700 dark:text-red-400"
+              : "font-medium text-slate-900 dark:text-neutral-200"
+          }
+        >
+          {used}
+        </span>
+        <span className="text-slate-400 dark:text-neutral-500"> / {cap}</span>
+      </p>
+    </div>
+  );
+}
+
+
 function FeatureRow({
   title,
   description,

@@ -22,6 +22,7 @@ from datetime import datetime, timezone
 
 from supabase import AsyncClient
 
+from app.core.plan_limits import Plan, get_limit
 from app.schemas.invitation import InvitationResponse
 
 logger = logging.getLogger(__name__)
@@ -51,6 +52,16 @@ class AlreadyMemberError(InvitationError):
     pass
 
 
+class MemberCapReachedError(InvitationError):
+    def __init__(self, plan: str, cap: int):
+        self.plan = plan
+        self.cap = cap
+        super().__init__(
+            f"{plan.capitalize()} plan is limited to {cap} members. "
+            "Upgrade to add more."
+        )
+
+
 class InvitationNotPendingError(InvitationError):
     pass
 
@@ -70,6 +81,19 @@ async def _get_caller_role(
         .execute()
     ).data
     return rows[0]["role"] if rows else None
+
+
+async def _get_workspace_plan(
+    supabase: AsyncClient, workspace_id: str
+) -> Plan:
+    row = (
+        await supabase.table("workspaces")
+        .select("plan")
+        .eq("id", workspace_id)
+        .single()
+        .execute()
+    ).data
+    return row["plan"] if row else "free"
 
 
 async def _lookup_users(
@@ -183,6 +207,27 @@ async def create_invitation(
     ).data
     if existing_pending:
         raise InvitationAlreadyExistsError(normalized)
+
+    # Member-cap gate. Count active members + pending invitations as
+    # "used seats" — otherwise a free-tier workspace could send 5 pending
+    # invites that all accept and blow past the cap simultaneously.
+    plan = await _get_workspace_plan(supabase, workspace_id)
+    member_count = (
+        await supabase.table("workspace_members")
+        .select("user_id", count="exact")
+        .eq("workspace_id", workspace_id)
+        .execute()
+    ).count or 0
+    pending_count = (
+        await supabase.table("workspace_invitations")
+        .select("id", count="exact")
+        .eq("workspace_id", workspace_id)
+        .eq("status", "pending")
+        .execute()
+    ).count or 0
+    cap = get_limit(plan, "members")
+    if member_count + pending_count >= cap:
+        raise MemberCapReachedError(plan=plan, cap=cap)
 
     row = (
         await supabase.table("workspace_invitations")
