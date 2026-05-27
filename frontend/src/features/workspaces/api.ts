@@ -24,6 +24,7 @@ export type Workspace = {
   slug: string;
   owner_id: string;
   features: WorkspaceFeatures;
+  plan: "free" | "pro";
   created_at: string;
   updated_at: string;
 };
