@@ -24,7 +24,7 @@ import ReactMarkdown from "react-markdown";
 import rehypeHighlight from "rehype-highlight";
 import remarkGfm from "remark-gfm";
 import { toast } from "sonner";
-import { Activity as ActivityIcon, AlignLeft, ChevronRight, MessageSquare, Trash2 } from "lucide-react";
+import { Activity as ActivityIcon, AlignLeft, ChevronRight, Mail, MessageSquare, Trash2 } from "lucide-react";
 
 import { Avatar } from "@/components/Avatar";
 import { PageSpinner } from "@/components/PageSpinner";
@@ -66,6 +66,8 @@ import {
   useResolveIdentifier,
   useUpdateTask,
 } from "@/features/tasks/api";
+import { wouldEmailOnSave } from "@/features/tasks/wouldEmailOnSave";
+import { useProjects } from "@/features/projects/api";
 import { useMembers } from "@/features/members/api";
 import { useSprints } from "@/features/sprints/api";
 import {
@@ -525,6 +527,8 @@ export function TaskDetailContent({
 
   const { data: sprints = [] } = useSprints(task?.project_id ?? "");
   const { data: members = [] } = useMembers(task?.workspace_id ?? "");
+  const { data: projects = [] } = useProjects(task?.workspace_id ?? "");
+  const project = projects.find((p) => p.id === task?.project_id);
   const { data: goals = [] } = useGoals(task?.workspace_id ?? "");
   // Goals is opt-in per workspace. When the owner hasn't enabled it,
   // suppress the Goal picker in the aside entirely — otherwise users
@@ -692,6 +696,37 @@ export function TaskDetailContent({
       goalDraft !== task.goal_id ||
       pendingDepAdds.length > 0 ||
       pendingDepRemoveIds.size > 0);
+
+  // Pre-save prediction: would clicking Save right now trigger an
+  // assignment email? Mirrors backend should_email_assignment so the
+  // banner below the title row never lies. If they ever diverge the
+  // backend is authoritative — see features/tasks/wouldEmailOnSave.ts.
+  const wouldEmail = useMemo(() => {
+    if (!task || !project || !isEditing) return false;
+    return wouldEmailOnSave({
+      oldPriority: task.priority,
+      newPriority: priorityDraft,
+      oldAssignee: task.assignee_id,
+      newAssignee: assigneeDraft,
+      newStatus: statusDraft,
+      actorId: me?.id ?? null,
+      threshold: project.notify_assignee_threshold,
+    });
+  }, [
+    task,
+    project,
+    isEditing,
+    priorityDraft,
+    assigneeDraft,
+    statusDraft,
+    me?.id,
+  ]);
+
+  const emailRecipientName = useMemo(() => {
+    if (!wouldEmail || !assigneeDraft) return null;
+    const m = members.find((mb) => mb.user_id === assigneeDraft);
+    return m?.display_name?.trim() || m?.email || "the assignee";
+  }, [wouldEmail, assigneeDraft, members]);
 
   const { data: comments = [] } = useComments(task?.id ?? "");
   const createCommentMutation = useCreateComment(task?.id ?? "");
@@ -1063,6 +1098,14 @@ export function TaskDetailContent({
               />
             </div>
           </div>
+          {isEditing && wouldEmail && emailRecipientName && (
+            <div className="rounded-md border border-amber-200 dark:border-amber-900/40 bg-amber-50 dark:bg-amber-950/20 px-3 py-2 text-xs text-amber-800 dark:text-amber-300 flex items-center justify-center gap-2">
+              <Mail className="w-3.5 h-3.5 shrink-0" aria-hidden />
+              <span>
+                Saving will email <strong>{emailRecipientName}</strong>
+              </span>
+            </div>
+          )}
           {isEditing ? (
             <textarea
               ref={titleTextareaRef}
