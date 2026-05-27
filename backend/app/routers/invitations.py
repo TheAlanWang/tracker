@@ -9,6 +9,7 @@ from app.services.invitations import (
     InvitationNotFoundError,
     InvitationNotPendingError,
     InvitationPermissionError,
+    MemberCapReachedError,
     UserEmailMismatchError,
     accept_invitation,
     create_invitation,
@@ -56,6 +57,11 @@ async def create_(
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="An invitation for this email is already pending",
+        ) from exc
+    except MemberCapReachedError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=str(exc),
         ) from exc
 
 

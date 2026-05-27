@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
@@ -28,5 +29,8 @@ class WorkspaceResponse(BaseModel):
     slug: str
     owner_id: str
     features: dict[str, bool] = Field(default_factory=dict)
+    # Subscription tier. Flipped via SQL today; Stripe webhook later.
+    # Client cannot mutate this through WorkspaceUpdate.
+    plan: Literal["free", "pro"] = "free"
     created_at: datetime
     updated_at: datetime
