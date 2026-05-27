@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useParams } from "react-router-dom";
 
 import { Avatar } from "@/components/Avatar";
@@ -99,6 +100,57 @@ function ColumnsIcon() {
   );
 }
 
+// Width of the Columns dropdown. Kept in a constant so the anchor calc
+// and the rendered popover can't drift apart (the original w-48 utility
+// has been replaced by an inline `width: COLUMNS_DROPDOWN_WIDTH`).
+const COLUMNS_DROPDOWN_WIDTH = 192;
+
+// Compute fixed-position coords that right-align the popover to the
+// trigger's right edge. Mirrors the left-aligned helper in FilterBar.tsx;
+// the codebase already has 2 local copies of this shape (FilterBar,
+// AssigneePicker), so a third one here is consistent rather than novel.
+function usePortalAnchor(
+  open: boolean,
+  triggerRef: React.RefObject<HTMLElement | null>,
+) {
+  const [pos, setPos] = useState({ left: 0, top: 0 });
+  useEffect(() => {
+    if (!open) return;
+    const el = triggerRef.current;
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    setPos({ left: r.right - COLUMNS_DROPDOWN_WIDTH, top: r.bottom + 4 });
+  }, [open, triggerRef]);
+  return pos;
+}
+
+// Close-on-outside-click + Escape. Accepts the trigger and popover refs
+// so clicks inside either are ignored (otherwise clicking the button to
+// toggle would immediately close via the document handler).
+function useDismiss(
+  open: boolean,
+  onClose: () => void,
+  refs: React.RefObject<HTMLElement | null>[],
+) {
+  useEffect(() => {
+    if (!open) return;
+    const onClick = (e: MouseEvent) => {
+      const target = e.target as Node;
+      if (refs.some((r) => r.current?.contains(target))) return;
+      onClose();
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("mousedown", onClick);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onClick);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open, onClose, refs]);
+}
+
 function ColumnVisibilityMenu({
   columns,
   hidden,
@@ -112,27 +164,15 @@ function ColumnVisibilityMenu({
   onToggle: (key: ColKey) => void;
 }) {
   const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (!open) return;
-    const onClick = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
-    };
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpen(false);
-    };
-    document.addEventListener("mousedown", onClick);
-    document.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("mousedown", onClick);
-      document.removeEventListener("keydown", onKey);
-    };
-  }, [open]);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const popoverRef = useRef<HTMLDivElement>(null);
+  const pos = usePortalAnchor(open, triggerRef);
+  useDismiss(open, () => setOpen(false), [triggerRef, popoverRef]);
+
   return (
-    <div ref={ref} className="relative">
+    <>
       <button
+        ref={triggerRef}
         type="button"
         onClick={() => setOpen((v) => !v)}
         className="inline-flex h-7 items-center gap-1.5 text-xs text-slate-600 dark:text-neutral-400 hover:text-slate-900 dark:hover:text-neutral-100 border border-slate-200 dark:border-neutral-700 hover:border-slate-300 dark:hover:border-neutral-600 rounded-full px-2.5 transition-colors"
@@ -140,25 +180,36 @@ function ColumnVisibilityMenu({
         <ColumnsIcon />
         <span>Columns</span>
       </button>
-      {open && (
-        <div className="absolute right-0 mt-1 w-48 bg-white dark:bg-neutral-900 rounded-md border border-slate-200 dark:border-neutral-800 shadow-lg z-10 py-1">
-          {columns.map((c) => (
-            <label
-              key={c.key}
-              className="flex items-center gap-2 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.08em] text-slate-600 dark:text-neutral-400 hover:bg-slate-50 dark:hover:bg-neutral-800/50 cursor-pointer select-none"
-            >
-              <input
-                type="checkbox"
-                checked={!hidden.has(c.key)}
-                onChange={() => onToggle(c.key)}
-                className="rounded border-slate-300 dark:border-neutral-700"
-              />
-              <span>{c.label}</span>
-            </label>
-          ))}
-        </div>
-      )}
-    </div>
+      {open &&
+        createPortal(
+          <div
+            ref={popoverRef}
+            style={{
+              position: "fixed",
+              left: pos.left,
+              top: pos.top,
+              width: COLUMNS_DROPDOWN_WIDTH,
+            }}
+            className="z-50 bg-white dark:bg-neutral-900 rounded-md border border-slate-200 dark:border-neutral-800 shadow-lg py-1"
+          >
+            {columns.map((c) => (
+              <label
+                key={c.key}
+                className="flex items-center gap-2 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.08em] text-slate-600 dark:text-neutral-400 hover:bg-slate-50 dark:hover:bg-neutral-800/50 cursor-pointer select-none"
+              >
+                <input
+                  type="checkbox"
+                  checked={!hidden.has(c.key)}
+                  onChange={() => onToggle(c.key)}
+                  className="rounded border-slate-300 dark:border-neutral-700"
+                />
+                <span>{c.label}</span>
+              </label>
+            ))}
+          </div>,
+          document.body,
+        )}
+    </>
   );
 }
 
