@@ -5,6 +5,8 @@ Membership against the project's workspace is verified explicitly before
 any write. RLS is defense-in-depth.
 """
 
+from datetime import datetime, timezone
+
 from fastapi import BackgroundTasks
 from supabase import AsyncClient
 
@@ -167,6 +169,7 @@ async def list_tasks(
     project_id: str,
     status: str | None = None,
     sprint: str | None = None,
+    archived: bool = False,
 ) -> list[TaskResponse]:
     project = await _fetch_project(supabase, project_id)
     if not project:
@@ -181,6 +184,13 @@ async def list_tasks(
         .select("*")
         .eq("project_id", project_id)
     )
+    # Archive filter — default to active tasks. The Archive view passes
+    # archived=true to flip this. Both flavours of the query are cached
+    # independently in React Query via a queryKey that includes archived.
+    if archived:
+        query = query.not_.is_("archived_at", "null")
+    else:
+        query = query.is_("archived_at", "null")
     if status:
         query = query.eq("status", status)
     if sprint == "null":
@@ -227,6 +237,14 @@ async def update_task(
     updates = payload.model_dump(exclude_unset=True)
     if "due_date" in updates and updates["due_date"] is not None:
         updates["due_date"] = updates["due_date"].isoformat()
+    # Translate the `archived` boolean flag from the client into an
+    # archived_at timestamp (or null for unarchive). Done server-side so
+    # clients can't backdate archives by supplying an arbitrary timestamp.
+    if "archived" in updates:
+        archived = updates.pop("archived")
+        updates["archived_at"] = (
+            datetime.now(timezone.utc).isoformat() if archived else None
+        )
     if not updates:
         return await get_task(supabase, user_id=user_id, task_id=task_id)
 
@@ -293,6 +311,9 @@ async def list_workspace_tasks(
         supabase.table("tasks")
         .select("*")
         .eq("workspace_id", workspace_id)
+        # Workspace-level list (My Tasks etc.) only ever wants active tasks.
+        # Archive viewing is project-scoped via the project's Archive tab.
+        .is_("archived_at", "null")
     )
     if assignee_id:
         query = query.eq("assignee_id", assignee_id)

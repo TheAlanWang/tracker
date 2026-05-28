@@ -7,6 +7,7 @@ import { ProjectLayout } from "@/components/ProjectLayout";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { WorkspaceLayout } from "@/components/WorkspaceLayout";
 import { useAuth } from "@/lib/auth";
+import Archive from "@/pages/Archive";
 import AuthCallback from "@/pages/AuthCallback";
 import Backlog from "@/pages/Backlog";
 import Board from "@/pages/Board";
@@ -88,6 +89,7 @@ export default function App() {
             <Route path="backlog" element={<Backlog />} />
             <Route path="sprints" element={<SprintList />} />
             <Route path="sprints/:sprintId" element={<SprintDetail />} />
+            <Route path="archive" element={<Archive />} />
           </Route>
         </Route>
         <Route path="*" element={<NotFound />} />
