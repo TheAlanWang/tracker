@@ -238,7 +238,18 @@ export function SettingsSidebar({
                       : itemIdle
                 }
               >
-                <span className="truncate">{w.name}</span>
+                <span className="flex items-center gap-1.5 min-w-0">
+                  <span className="truncate">{w.name}</span>
+                  {w.plan === "pro" && (
+                    <span
+                      className="shrink-0 text-sm leading-none text-[#C9A227] dark:text-[#E8C766]"
+                      title="Pro"
+                      aria-label="Pro plan"
+                    >
+                      ✦
+                    </span>
+                  )}
+                </span>
               </button>
             );
           })}

@@ -34,6 +34,7 @@ import {
   useWorkspaces,
 } from "@/features/workspaces/api";
 import { PLAN_LABEL, PLAN_LIMITS } from "@/features/billing/planLimits";
+import { ProBadge } from "@/components/ProBadge";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import { useSectionSidebar } from "@/hooks/useSectionSidebar";
@@ -629,15 +630,13 @@ export default function WorkspaceSettings() {
                       Pro plan is in development. Contact support to upgrade.
                     </p>
                   </div>
-                  <span
-                    className={
-                      plan === "pro"
-                        ? "inline-flex items-center rounded-full bg-violet-100 dark:bg-violet-950/40 px-3 py-1 text-xs font-medium uppercase tracking-wider text-violet-800 dark:text-violet-300"
-                        : "inline-flex items-center rounded-full bg-slate-100 dark:bg-neutral-800 px-3 py-1 text-xs font-medium uppercase tracking-wider text-slate-700 dark:text-neutral-300"
-                    }
-                  >
-                    {PLAN_LABEL[plan]}
-                  </span>
+                  {plan === "pro" ? (
+                    <ProBadge size="md" />
+                  ) : (
+                    <span className="inline-flex items-center rounded-full bg-slate-100 dark:bg-neutral-800 px-3 py-1 text-xs font-medium uppercase tracking-wider text-slate-700 dark:text-neutral-300">
+                      {PLAN_LABEL[plan]}
+                    </span>
+                  )}
                 </div>
                 {/* Usage panel — one row per cap. Members has live count;
                     the rest are "—" until backend counters land. */}

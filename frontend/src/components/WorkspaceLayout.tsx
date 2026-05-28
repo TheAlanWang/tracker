@@ -26,6 +26,7 @@ import { SettingsSidebar } from "@/components/SettingsSidebar";
 import { SectionSidebar } from "@/components/SectionSidebar";
 import { SectionSidebarProvider } from "@/components/SectionSidebarContext";
 import { Avatar } from "@/components/Avatar";
+import { ProBadge } from "@/components/ProBadge";
 import { TaskDetailModal } from "@/components/TaskDetailModal";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -880,10 +881,11 @@ export function WorkspaceLayout() {
                     setWsMenuOpen((v) => !v);
                   }
                 }}
-                className="flex items-center gap-1 font-semibold text-slate-900 dark:text-neutral-200 hover:text-slate-700 dark:hover:text-neutral-300"
+                className="flex items-center gap-1.5 font-semibold text-slate-900 dark:text-neutral-200 hover:text-slate-700 dark:hover:text-neutral-300"
                 title={onSettingsPage ? `Back to ${currentWs?.name}` : "Switch workspace"}
               >
                 {currentWs?.name ?? "tracker"}
+                {currentWs?.plan === "pro" && <ProBadge />}
                 {!onSettingsPage && <span className="text-slate-400 dark:text-neutral-500 text-xs">▾</span>}
                 {onSettingsPage && <span className="text-slate-400 dark:text-neutral-500 text-xs">↩</span>}
               </button>
