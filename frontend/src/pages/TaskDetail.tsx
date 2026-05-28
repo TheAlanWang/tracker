@@ -98,9 +98,15 @@ const STATUSES: { value: TaskStatus; label: string }[] = STATUS_ORDER.map(
 // menu is always available (edit-mode-independent) because Delete is a
 // task-level action, not a save-flow action.
 function TaskActionsMenu({
+  onArchive,
+  archiveDisabled,
+  archived,
   onDelete,
   deleteDisabled,
 }: {
+  onArchive: () => void;
+  archiveDisabled: boolean;
+  archived: boolean;
   onDelete: () => void;
   deleteDisabled: boolean;
 }) {
@@ -136,6 +142,17 @@ function TaskActionsMenu({
       </Button>
       {open && (
         <div className="absolute right-0 top-full mt-1 z-20 w-44 rounded-md border border-slate-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-lg py-1 text-sm">
+          <button
+            type="button"
+            onClick={() => {
+              setOpen(false);
+              onArchive();
+            }}
+            disabled={archiveDisabled}
+            className="w-full text-left px-3 py-1.5 text-slate-700 dark:text-neutral-300 hover:bg-slate-50 dark:hover:bg-neutral-800/50 disabled:opacity-50 disabled:hover:bg-transparent"
+          >
+            {archived ? "Unarchive" : "Archive"}
+          </button>
           <button
             type="button"
             onClick={() => {
@@ -183,6 +200,7 @@ const FIELD_LABEL: Record<string, string> = {
   assignee_id: "assignee",
   sprint_id: "sprint",
   due_date: "due date",
+  archived_at: "archive",
 };
 
 // Free-text fields whose old → new values are too long to inline in an
@@ -346,7 +364,12 @@ function renderActivityLine(
         const f = fields[0];
         const label = FIELD_LABEL[f] ?? f;
         const c = p[f];
-        if (c.updated || FREE_TEXT_FIELDS.has(f)) {
+        // archived_at toggle reads as a verb ("archived" / "unarchived"),
+        // not a "from — to <ISO timestamp>" diff. The raw timestamp is
+        // already in the activity row's own `time` suffix (created_at).
+        if (f === "archived_at") {
+          body = <>{c.to ? "archived this task" : "unarchived this task"}</>;
+        } else if (c.updated || FREE_TEXT_FIELDS.has(f)) {
           body = <>edited <FieldLabel>{label}</FieldLabel></>;
         } else {
           body = (
@@ -1006,6 +1029,20 @@ export function TaskDetailContent({
     }
   }
 
+  async function onToggleArchive() {
+    if (!task) return;
+    const shouldArchive = task.archived_at == null;
+    try {
+      await updateMutation.mutateAsync({ archived: shouldArchive });
+      toast.success(shouldArchive ? "Task archived" : "Task unarchived");
+    } catch (err) {
+      const detail =
+        (err as { response?: { data?: { detail?: string } } }).response?.data
+          ?.detail ?? (shouldArchive ? "Failed to archive" : "Failed to unarchive");
+      toast.error(detail);
+    }
+  }
+
   if (taskError) {
     return (
       <p className="text-slate-700 dark:text-neutral-300">
@@ -1031,9 +1068,16 @@ export function TaskDetailContent({
         <div className="space-y-2">
           <div className="flex items-center justify-between gap-4 min-h-[36px]">
             {task ? (
-              <p className="font-mono text-xs text-slate-500 dark:text-neutral-400 tracking-wide select-all">
-                {task.identifier}
-              </p>
+              <div className="flex items-center gap-2 min-w-0">
+                <p className="font-mono text-xs text-slate-500 dark:text-neutral-400 tracking-wide select-all">
+                  {task.identifier}
+                </p>
+                {task.archived_at && (
+                  <span className="inline-flex items-center rounded-full bg-slate-100 dark:bg-neutral-800 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-slate-600 dark:text-neutral-400">
+                    Archived
+                  </span>
+                )}
+              </div>
             ) : (
               <span />
             )}
@@ -1093,6 +1137,9 @@ export function TaskDetailContent({
                 </Button>
               )}
               <TaskActionsMenu
+                onArchive={onToggleArchive}
+                archiveDisabled={updateMutation.isPending}
+                archived={!!task?.archived_at}
                 onDelete={onDelete}
                 deleteDisabled={deleteMutation.isPending}
               />

@@ -64,8 +64,8 @@ const COL_SORT_FIELD: Partial<Record<ColKey, SortField>> = {
   created: "created_at",
 };
 
-function useHiddenColumns(projectId: string) {
-  const key = projectId ? `tracker.list.hidden.${projectId}` : "";
+function useHiddenColumns(projectId: string, ns: string = "list") {
+  const key = projectId ? `tracker.${ns}.hidden.${projectId}` : "";
   const [hidden, setHidden] = useState<Set<ColKey>>(() => {
     if (!key) return new Set();
     try {
@@ -244,7 +244,11 @@ export default function TaskList() {
   return <TaskListContent key={pKey ?? ""} />;
 }
 
-function TaskListContent() {
+// Exported so the Archive page can render the same layout with
+// `archived={true}`. The two views share filter / sort / column-visibility
+// logic but their data sets are independent (different React Query cache
+// keys via the `archived` opt on useTasks).
+export function TaskListContent({ archived = false }: { archived?: boolean } = {}) {
   const { wsSlug, pKey } = useParams();
   const [openTaskId, setOpenTaskId] = useState<string | null>(null);
 
@@ -255,11 +259,14 @@ function TaskListContent() {
   const currentProject = projects.find((p) => p.key === pKey);
   useProjectTasksRealtime(currentProject?.id);
 
+  // Distinct localStorage namespaces so Archive's filters / sort / hidden
+  // columns don't leak into the List view (and vice versa).
+  const ns = archived ? "archive" : "list";
   const filterKey = currentProject?.id
-    ? `tracker.list.filters.${currentProject.id}`
+    ? `tracker.${ns}.filters.${currentProject.id}`
     : "";
   const sortKey = currentProject?.id
-    ? `tracker.list.sort.${currentProject.id}`
+    ? `tracker.${ns}.sort.${currentProject.id}`
     : "";
   const [filters, setFilters] = useState<Filter[]>(() =>
     filterKey ? loadFilters(filterKey) : [],
@@ -274,7 +281,9 @@ function TaskListContent() {
     if (sortKey) saveSort(sortKey, sort);
   }, [sortKey, sort]);
 
-  const { data: tasks = [], isLoading } = useTasks(currentProject?.id ?? "");
+  const { data: tasks = [], isLoading } = useTasks(currentProject?.id ?? "", {
+    archived,
+  });
   const { data: members = [] } = useMembers(currentWs?.id ?? "");
   const { data: sprints = [] } = useSprints(currentProject?.id ?? "");
 
@@ -299,6 +308,7 @@ function TaskListContent() {
 
   const [hiddenColumns, setHiddenColumns] = useHiddenColumns(
     currentProject?.id ?? "",
+    ns,
   );
   const toggleColumn = (key: ColKey) => {
     const next = new Set(hiddenColumns);
@@ -357,11 +367,21 @@ function TaskListContent() {
       {isLoading && <InlineSpinner />}
       {!isLoading && displayedTasks.length === 0 && (
         <EmptyState
-          title={filters.length > 0 ? "No tasks match" : "No tasks yet"}
+          title={
+            filters.length > 0
+              ? archived
+                ? "No archived tasks match"
+                : "No tasks match"
+              : archived
+                ? "No archived tasks yet"
+                : "No tasks yet"
+          }
           description={
             filters.length > 0
               ? "Adjust the filters above, or clear them to see all tasks."
-              : "Create your first task to get started."
+              : archived
+                ? "Use the Archive action on a task to send it here."
+                : "Create your first task to get started."
           }
         />
       )}

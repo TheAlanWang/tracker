@@ -54,13 +54,14 @@ async def list_(
     # avoiding the shadow with the FastAPI `status` module.
     status_filter: TaskStatus | None = Query(None, alias="status"),
     sprint: str | None = Query(None),
+    archived: bool = Query(False),
     user_id: str = Depends(get_current_user_id),
     supabase: AsyncClient = Depends(get_supabase_admin),
 ):
     try:
         return await list_tasks(
             supabase, user_id=user_id, project_id=p_id,
-            status=status_filter, sprint=sprint,
+            status=status_filter, sprint=sprint, archived=archived,
         )
     except TaskPermissionError as exc:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN) from exc

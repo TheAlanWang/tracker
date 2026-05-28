@@ -52,6 +52,10 @@ export type Task = {
   reporter_id: string | null;
   due_date: string | null; // ISO date
   position: number;
+  // ISO timestamp when the task was archived (hidden from main views).
+  // null = active. Independent of status — a `done` task can be either
+  // archived or active, and only archived ones appear in the Archive tab.
+  archived_at: string | null;
   created_at: string;
   updated_at: string;
   // Set on create / update responses when the mutation triggered an
@@ -79,6 +83,9 @@ export type TaskUpdate = Partial<{
   due_date: string | null;
   sprint_id: string | null;
   goal_id: string | null;
+  // Boolean flag; backend translates true → archived_at = now(),
+  // false → archived_at = null. Don't send a raw archived_at value.
+  archived: boolean;
 }>;
 
 export function useWorkspaceTasks(
@@ -102,7 +109,14 @@ export function useWorkspaceTasks(
 
 export function useTasks(
   projectId: string,
-  opts: { status?: TaskStatus; sprint?: string | "null" } = {},
+  opts: {
+    status?: TaskStatus;
+    sprint?: string | "null";
+    // Default false (active). Archive tab passes true to request the
+    // complement set. The queryKey includes opts, so React Query keeps
+    // active and archived flavours cached independently.
+    archived?: boolean;
+  } = {},
 ) {
   return useQuery<Task[]>({
     queryKey: ["projects", projectId, "tasks", opts],
@@ -110,6 +124,7 @@ export function useTasks(
       const params = new URLSearchParams();
       if (opts.status) params.set("status", opts.status);
       if (opts.sprint) params.set("sprint", opts.sprint);
+      if (opts.archived) params.set("archived", "true");
       const qs = params.toString();
       const { data } = await apiClient.get<Task[]>(
         `/projects/${projectId}/tasks${qs ? `?${qs}` : ""}`,
