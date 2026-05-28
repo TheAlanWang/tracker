@@ -176,6 +176,36 @@ async def delete_me(
     NULL), so collaborators don't lose work; their attribution just becomes
     "Someone".
     """
+    # Guard: deleting the account cascades workspaces.owner_id, which would
+    # wipe any workspace this user owns — including ones with other active
+    # members. Block deletion while they still own a multi-member workspace
+    # and tell them to transfer ownership first. Solo-owner workspaces
+    # (just themselves) fall through — the cascade only affects them.
+    owned = (
+        await supabase.table("workspaces")
+        .select("id, name")
+        .eq("owner_id", user_id)
+        .execute()
+    ).data or []
+    blocking: list[str] = []
+    for ws in owned:
+        count = (
+            await supabase.table("workspace_members")
+            .select("user_id", count="exact")
+            .eq("workspace_id", ws["id"])
+            .execute()
+        ).count or 0
+        if count > 1:
+            blocking.append(ws["name"])
+    if blocking:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=(
+                f"Transfer ownership of {', '.join(blocking)} before deleting "
+                "your account, or remove the other members first."
+            ),
+        )
+
     try:
         await supabase.auth.admin.delete_user(user_id)
     except Exception as exc:

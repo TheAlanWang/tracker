@@ -10,6 +10,7 @@ NotificationType = Literal[
     "status_changed",
     "invitation_accepted",
     "invitation_declined",
+    "ownership_transferred",
     "unblocked",
 ]
 

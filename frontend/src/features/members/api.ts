@@ -67,3 +67,20 @@ export function useRemoveMember(wsId: string) {
     },
   });
 }
+
+export function useTransferOwnership(wsId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (userId: string) => {
+      await apiClient.post(
+        `/workspaces/${wsId}/members/${userId}/transfer-ownership`,
+      );
+    },
+    onSuccess: () => {
+      // members: roles changed. workspaces: owner_id changed, so the
+      // caller's isOwner (and owner-only UI) must recompute everywhere.
+      qc.invalidateQueries({ queryKey: ["workspaces", wsId, "members"] });
+      qc.invalidateQueries({ queryKey: ["workspaces"] });
+    },
+  });
+}

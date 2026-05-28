@@ -17,9 +17,11 @@ import { SettingsLayout } from "@/components/SettingsLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
+  type Member,
   type WorkspaceRole,
   useMembers,
   useRemoveMember,
+  useTransferOwnership,
   useUpdateMemberRole,
 } from "@/features/members/api";
 import {
@@ -69,6 +71,8 @@ export default function WorkspaceSettings() {
   const revokeMutation = useRevokeInvitation(wsId);
   const updateRoleMutation = useUpdateMemberRole(wsId);
   const removeMutation = useRemoveMember(wsId);
+  const transferMutation = useTransferOwnership(wsId);
+  const [transferOpen, setTransferOpen] = useState(false);
 
   const updateWsMutation = useUpdateWorkspace();
   const deleteWsMutation = useDeleteWorkspace();
@@ -439,7 +443,17 @@ export default function WorkspaceSettings() {
               <InlineSpinner />
             ) : (
               <div className="divide-y divide-slate-100 dark:divide-neutral-800 dark:divide-neutral-800">
-                {members.map((m) => {
+                {[...members]
+                  .sort((a, b) => {
+                    // Owner first, then admin, then member; alphabetical
+                    // within a role so the list reads stably.
+                    const rank = { owner: 0, admin: 1, member: 2 };
+                    const byRole =
+                      (rank[a.role] ?? 9) - (rank[b.role] ?? 9);
+                    if (byRole !== 0) return byRole;
+                    return (a.email ?? "").localeCompare(b.email ?? "");
+                  })
+                  .map((m) => {
                   const display = m.email ?? m.user_id;
                   const memberIsOwner = m.role === "owner";
                   const isMe = me?.id === m.user_id;
@@ -491,6 +505,17 @@ export default function WorkspaceSettings() {
                           disabled={removeMutation.isPending}
                         >
                           Remove
+                        </button>
+                      ) : memberIsOwner && isMe && members.length > 1 ? (
+                        // Owner's own row: a deliberate "Transfer" entry
+                        // (always visible, not hover-gated). Hidden when
+                        // there's no one else to transfer to.
+                        <button
+                          type="button"
+                          className="text-xs text-slate-400 dark:text-neutral-500 hover:text-slate-900 dark:hover:text-neutral-100 justify-self-end"
+                          onClick={() => setTransferOpen(true)}
+                        >
+                          Transfer
                         </button>
                       ) : (
                         <span />
@@ -722,6 +747,25 @@ export default function WorkspaceSettings() {
           </div>
         </section>
       </div>
+      {transferOpen && (
+        <TransferOwnershipModal
+          members={members.filter((m) => m.role !== "owner")}
+          isPending={transferMutation.isPending}
+          onClose={() => setTransferOpen(false)}
+          onTransfer={async (userId, display) => {
+            try {
+              await transferMutation.mutateAsync(userId);
+              toast.success(`${display} is now the owner`);
+              setTransferOpen(false);
+            } catch (err) {
+              const detail =
+                (err as { response?: { data?: { detail?: string } } }).response
+                  ?.data?.detail ?? "Failed to transfer ownership";
+              toast.error(detail);
+            }
+          }}
+        />
+      )}
     </SettingsLayout>
   );
 }
@@ -752,6 +796,96 @@ function SettingRow({
 // full left column (no narrow constraint like SettingRow), Toggle sits
 // vertically centered on the right. Optional `note` shows under the row
 // content (used for the "only owner can toggle" message).
+// Transfer-ownership picker. Deliberate, dangerous action: lists the
+// other members, requires picking one, warns that the current owner is
+// demoted to admin. Follows the PasswordModal overlay pattern.
+function TransferOwnershipModal({
+  members,
+  isPending,
+  onClose,
+  onTransfer,
+}: {
+  members: Member[];
+  isPending: boolean;
+  onClose: () => void;
+  onTransfer: (userId: string, display: string) => void;
+}) {
+  const [selected, setSelected] = useState<string | null>(null);
+  const selectedMember = members.find((m) => m.user_id === selected);
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4"
+      onClick={() => !isPending && onClose()}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-md rounded-xl bg-white dark:bg-neutral-900 shadow-2xl p-6 space-y-4"
+      >
+        <div>
+          <h2 className="text-lg font-semibold text-slate-900 dark:text-neutral-200">
+            Transfer ownership
+          </h2>
+          <p className="mt-1 text-sm text-slate-600 dark:text-neutral-400">
+            You'll become an admin and lose owner-only powers (delete
+            workspace, manage plan, transfer ownership). Only the new owner
+            can transfer it back.
+          </p>
+        </div>
+        <div className="max-h-64 overflow-y-auto rounded-lg border border-slate-200 dark:border-neutral-800 divide-y divide-slate-100 dark:divide-neutral-800">
+          {members.map((m) => {
+            const display = m.display_name?.trim() || m.email || m.user_id;
+            return (
+              <label
+                key={m.user_id}
+                className="flex items-center gap-3 px-4 py-2.5 cursor-pointer hover:bg-slate-50 dark:hover:bg-neutral-800/50"
+              >
+                <input
+                  type="radio"
+                  name="new-owner"
+                  value={m.user_id}
+                  checked={selected === m.user_id}
+                  onChange={() => setSelected(m.user_id)}
+                  disabled={isPending}
+                />
+                <span className="text-sm text-slate-800 dark:text-neutral-200 truncate">
+                  {display}
+                </span>
+                <span className="ml-auto text-xs text-slate-400 dark:text-neutral-500 capitalize">
+                  {m.role}
+                </span>
+              </label>
+            );
+          })}
+        </div>
+        <div className="flex justify-end gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onClose}
+            disabled={isPending}
+          >
+            Cancel
+          </Button>
+          <Button
+            type="button"
+            disabled={!selected || isPending}
+            onClick={() => {
+              if (!selectedMember) return;
+              const display =
+                selectedMember.display_name?.trim() ||
+                selectedMember.email ||
+                selectedMember.user_id;
+              onTransfer(selectedMember.user_id, display);
+            }}
+          >
+            {isPending ? "Transferring…" : "Transfer ownership"}
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // Human-readable byte size. Picks MB under 1 GB, else GB — so small
 // usage reads "5 MB" rather than "0.00 GB" next to a "100 GB" cap.
 function formatBytes(bytes: number): string {

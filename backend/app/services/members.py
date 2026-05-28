@@ -10,10 +10,14 @@ Permissions enforced at the service layer (workspace_members.role check):
 - remove_member: owner only (intentionally tighter than role updates).
 """
 
+import logging
+
 from supabase import AsyncClient
 
 from app.schemas.member import MemberResponse
 from app.services._user_profiles import user_profile_from_auth
+
+logger = logging.getLogger(__name__)
 
 
 class MemberError(Exception):
@@ -37,6 +41,10 @@ class AlreadyMemberError(MemberError):
 
 
 class CannotModifyOwnerError(MemberError):
+    pass
+
+
+class CannotTransferError(MemberError):
     pass
 
 
@@ -153,6 +161,75 @@ async def update_member_role(
     ).data[0]
     email_map = await _lookup_user_emails(supabase, [target_user_id])
     return MemberResponse(**row, email=email_map.get(target_user_id))
+
+
+async def transfer_ownership(
+    supabase: AsyncClient,
+    *,
+    user_id: str,
+    workspace_id: str,
+    target_user_id: str,
+) -> None:
+    """Transfer workspace ownership to another member. Caller must be the
+    CURRENT owner (checked against workspaces.owner_id, the source of truth,
+    not the role string). The target must be an existing member; they become
+    owner and the caller is demoted to admin. The actual 3-row swap is done
+    atomically by the transfer_workspace_ownership RPC."""
+    ws = (
+        await supabase.table("workspaces")
+        .select("owner_id")
+        .eq("id", workspace_id)
+        .single()
+        .execute()
+    ).data
+    if not ws:
+        raise NotAMemberError(workspace_id)
+    if ws["owner_id"] != user_id:
+        raise MemberPermissionError(
+            "Only the workspace owner can transfer ownership"
+        )
+    if target_user_id == user_id:
+        raise CannotTransferError("You are already the owner")
+    if not await _get_caller_role(
+        supabase, user_id=target_user_id, workspace_id=workspace_id
+    ):
+        raise NotAMemberError(target_user_id)
+
+    await supabase.rpc(
+        "transfer_workspace_ownership",
+        {"p_workspace_id": workspace_id, "p_new_owner": target_user_id},
+    ).execute()
+
+    # Notify the new owner. Workspace-scoped notification (no task_id);
+    # payload carries the workspace name like invitation_accepted does.
+    # Best-effort — a notification failure must not fail the transfer.
+    try:
+        ws_row = (
+            await supabase.table("workspaces")
+            .select("name")
+            .eq("id", workspace_id)
+            .single()
+            .execute()
+        ).data
+        await supabase.table("notifications").insert(
+            {
+                "user_id": target_user_id,
+                "type": "ownership_transferred",
+                "actor_id": user_id,
+                "task_id": None,
+                "payload": {
+                    "workspace_id": workspace_id,
+                    "workspace_name": (ws_row or {}).get("name"),
+                },
+            }
+        ).execute()
+    except Exception:
+        logger.exception(
+            "Failed to insert ownership_transferred notification "
+            "(workspace=%s, new_owner=%s)",
+            workspace_id,
+            target_user_id,
+        )
 
 
 async def remove_member(
