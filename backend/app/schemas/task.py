@@ -33,6 +33,10 @@ class TaskUpdate(BaseModel):
     due_date: date | None = None
     sprint_id: str | None = None
     goal_id: str | None = None
+    # Boolean flag instead of raw archived_at: server-side translates
+    # true → now(), false → null. Keeps the client API clean ("archive me"
+    # rather than "set this exact timestamp") and prevents backdating.
+    archived: bool | None = None
 
 
 class TaskResponse(BaseModel):
@@ -51,6 +55,7 @@ class TaskResponse(BaseModel):
     reporter_id: str | None
     due_date: date | None
     position: float
+    archived_at: datetime | None = None
     created_at: datetime
     updated_at: datetime
     # Set by create_task / update_task when an urgent-assignment email

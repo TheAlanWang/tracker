@@ -1,6 +1,6 @@
 import { NavLink, Outlet, useNavigate, useParams } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
-import { Inbox, Kanban, List as ListIcon, Zap } from "lucide-react";
+import { Archive, Inbox, Kanban, List as ListIcon, Zap } from "lucide-react";
 import { toast } from "sonner";
 
 import { ProjectDetailPopover } from "@/components/ProjectDetailPopover";
@@ -15,6 +15,7 @@ const TABS = [
   { to: "board", label: "Board", Icon: Kanban },
   { to: "list", label: "List", Icon: ListIcon },
   { to: "backlog", label: "Backlog", Icon: Inbox },
+  { to: "archive", label: "Archive", Icon: Archive },
   { to: "sprints", label: "Sprints", Icon: Zap },
 ] as const;
 

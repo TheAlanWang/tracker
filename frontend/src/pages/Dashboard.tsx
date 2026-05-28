@@ -48,6 +48,7 @@ const FIELD_LABEL: Record<string, string> = {
   assignee_id: "assignee",
   sprint_id: "sprint",
   due_date: "due date",
+  archived_at: "archive",
 };
 
 // Renders activity-log field names (status / assignee / etc.) as small
@@ -852,6 +853,11 @@ function formatActivityAction(a: DashboardActivity): React.ReactNode {
         const f = fields[0];
         const label = FIELD_LABEL[f] ?? f;
         const c = p[f];
+        // Archive toggle reads as a verb on the cross-task feed
+        // ("archived FRO-23" vs "changed ARCHIVE of FRO-23").
+        if (f === "archived_at") {
+          return <>{c.to ? "archived" : "unarchived"}</>;
+        }
         if (c.updated) return <>updated <FieldLabel>{label}</FieldLabel> of</>;
         return <>changed <FieldLabel>{label}</FieldLabel> of</>;
       }
