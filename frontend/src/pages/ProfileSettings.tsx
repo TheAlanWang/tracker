@@ -763,11 +763,11 @@ function SignInMethodsSection() {
                 wouldLockOut ? null : (
                   <Button
                     type="button"
-                    className="min-w-28"
+                    className="min-w-40"
                     disabled={unlinking === "google"}
                     onClick={handleUnlinkGoogle}
                   >
-                    {unlinking === "google" ? "Unlinking…" : "Unlink"}
+                    {unlinking === "google" ? "Unlinking…" : "Unlink Google"}
                   </Button>
                 )
               ) : (
@@ -777,7 +777,7 @@ function SignInMethodsSection() {
                   disabled={linking === "google"}
                   onClick={handleLinkGoogle}
                 >
-                  {linking === "google" ? "Redirecting…" : "Link Google Account"}
+                  {linking === "google" ? "Redirecting…" : "Link Google"}
                 </Button>
               )}
             </div>
@@ -803,11 +803,11 @@ function SignInMethodsSection() {
                 wouldLockOut ? null : (
                   <Button
                     type="button"
-                    className="min-w-28"
+                    className="min-w-40"
                     disabled={unlinking === "github"}
                     onClick={handleUnlinkGitHub}
                   >
-                    {unlinking === "github" ? "Unlinking…" : "Unlink"}
+                    {unlinking === "github" ? "Unlinking…" : "Unlink GitHub"}
                   </Button>
                 )
               ) : (
@@ -817,7 +817,7 @@ function SignInMethodsSection() {
                   disabled={linking === "github"}
                   onClick={handleLinkGitHub}
                 >
-                  {linking === "github" ? "Redirecting…" : "Link GitHub Account"}
+                  {linking === "github" ? "Redirecting…" : "Link GitHub"}
                 </Button>
               )}
             </div>
