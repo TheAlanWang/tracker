@@ -17,7 +17,7 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { SquarePen } from "lucide-react";
 import { toast } from "sonner";
 import { useParams } from "react-router-dom";
@@ -475,12 +475,21 @@ function SortableCard({
   );
 }
 
+// Subtle insertion indicator shown in the gap where the dragged task will
+// land. A thin, soft-blue hairline; negative margins keep it inside the
+// space-y gap so it doesn't push cards around.
+function DropLine() {
+  return <div className="h-0.5 -my-1 bg-blue-400/40 rounded-full" />;
+}
+
 function Column({
   col,
   items,
   memberById,
   members,
   isDropTarget,
+  overId,
+  draggedId,
   onOpen,
   projectId,
 }: {
@@ -489,11 +498,18 @@ function Column({
   memberById: Map<string, Member>;
   members: Member[];
   isDropTarget: boolean;
+  // Current drop target (card id or column status), null when not dragging.
+  overId: string | null;
+  draggedId: string | null;
   onOpen: (taskId: string) => void;
   projectId: string;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: col.status });
   const highlight = isOver || isDropTarget;
+  // Insertion line shows above the hovered card, or at the column end when
+  // the column itself is the drop target. Suppressed for the dragged card's
+  // own slot (dropping onto itself is a no-op in onDragEnd).
+  const lineAtEnd = overId === col.status && items.length > 0;
 
   return (
     <div
@@ -526,18 +542,21 @@ function Column({
           >
             <div className="space-y-2 min-h-[40px]">
               {items.map((task) => (
-                <SortableCard
-                  key={task.id}
-                  task={task}
-                  assignee={
-                    task.assignee_id
-                      ? memberById.get(task.assignee_id)
-                      : undefined
-                  }
-                  members={members}
-                  onOpen={onOpen}
-                />
+                <Fragment key={task.id}>
+                  {overId === task.id && task.id !== draggedId && <DropLine />}
+                  <SortableCard
+                    task={task}
+                    assignee={
+                      task.assignee_id
+                        ? memberById.get(task.assignee_id)
+                        : undefined
+                    }
+                    members={members}
+                    onOpen={onOpen}
+                  />
+                </Fragment>
               ))}
+              {lineAtEnd && <DropLine />}
             </div>
           </SortableContext>
           <div className="mt-2">
@@ -574,6 +593,11 @@ export default function Board() {
 
   const [activeTask, setActiveTask] = useState<Task | null>(null);
   const [activeColumn, setActiveColumn] = useState<TaskStatus | null>(null);
+  // The current drop target (a card id or a column status). The insertion
+  // line mirrors this exactly — onDragEnd lands the task above the over
+  // card, or at the column end when over is the column — so the line and
+  // the actual landing spot can't disagree.
+  const [overId, setOverId] = useState<string | null>(null);
   const [openTaskId, setOpenTaskId] = useState<string | null>(null);
   const [hiddenColumns, setHiddenColumns] = useHiddenColumns(
     currentProject?.id ?? "",
@@ -616,13 +640,15 @@ export default function Board() {
   function onDragOver(e: { over: { id: string | number } | null }) {
     if (!e.over) {
       setActiveColumn(null);
+      setOverId(null);
       return;
     }
-    const overId = String(e.over.id);
-    if (COLUMNS.some((c) => c.status === overId)) {
-      setActiveColumn(overId as TaskStatus);
+    const id = String(e.over.id);
+    setOverId(id);
+    if (COLUMNS.some((c) => c.status === id)) {
+      setActiveColumn(id as TaskStatus);
     } else {
-      const t = findTask(overId);
+      const t = findTask(id);
       if (t) setActiveColumn(t.status);
     }
   }
@@ -630,6 +656,7 @@ export default function Board() {
   function onDragEnd(e: DragEndEvent) {
     setActiveTask(null);
     setActiveColumn(null);
+    setOverId(null);
     const { active, over } = e;
     if (!over) return;
 
@@ -696,6 +723,7 @@ export default function Board() {
   function onDragCancel() {
     setActiveTask(null);
     setActiveColumn(null);
+    setOverId(null);
   }
 
   if (!currentProject) return null;
@@ -732,6 +760,8 @@ export default function Board() {
                   activeColumn === col.status &&
                   activeTask?.status !== col.status
                 }
+                overId={activeTask ? overId : null}
+                draggedId={activeTask?.id ?? null}
                 onOpen={setOpenTaskId}
                 projectId={currentProject.id}
               />
