@@ -710,6 +710,13 @@ function InboxPopover({
 
 export function WorkspaceLayout() {
   const { wsSlug } = useParams();
+  // Scroll the main pane back to the top when the workspace changes —
+  // otherwise switching from (say) the Plan section at the bottom lands
+  // you mid-page in the new workspace, which reads as disorienting.
+  const mainRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    mainRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+  }, [wsSlug]);
   const navigate = useNavigate();
   const location = useLocation();
   // Swap the global SidebarNav for SettingsSidebar on settings/profile
@@ -1187,7 +1194,7 @@ export function WorkspaceLayout() {
               fewer) shows / hides a vertical scrollbar inside <main>,
               shifting the inner mx-auto-centered content horizontally by
               ~15px. */}
-          <main className="flex-1 p-8 overflow-y-auto overflow-x-hidden bg-white dark:bg-neutral-950 text-slate-900 dark:text-neutral-200 [scrollbar-gutter:stable]">
+          <main ref={mainRef} className="flex-1 p-8 overflow-y-auto overflow-x-hidden bg-white dark:bg-neutral-950 text-slate-900 dark:text-neutral-200 [scrollbar-gutter:stable]">
             <Outlet />
           </main>
         </div>
