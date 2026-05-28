@@ -9,6 +9,7 @@ export type NotificationType =
   | "status_changed"
   | "invitation_accepted"
   | "invitation_declined"
+  | "ownership_transferred"
   | "unblocked";
 
 export type Notification = {

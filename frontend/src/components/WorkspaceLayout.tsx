@@ -199,6 +199,8 @@ function notificationLabel(type: Notification["type"]): string {
       return "accepted your invitation";
     case "invitation_declined":
       return "declined your invitation";
+    case "ownership_transferred":
+      return "made you the owner of";
     case "unblocked":
       return "Unblocked";
     default:
@@ -322,6 +324,14 @@ function NotificationTypeIcon({ type }: { type: Notification["type"] }) {
         >
           <path d="M5 5l10 10M15 5L5 15" />
         </svg>
+      </div>
+    );
+  }
+  if (type === "ownership_transferred") {
+    // Gold star to echo the Pro / ownership = premium-status cue.
+    return (
+      <div className={`${base} bg-[#C9A227] text-white`}>
+        <span className="text-[8px] leading-none">★</span>
       </div>
     );
   }
@@ -458,6 +468,10 @@ function InboxPopover({
     const actor = n.actor_display_name || n.actor_email || "Someone";
     const isInvitationOutcome =
       n.type === "invitation_accepted" || n.type === "invitation_declined";
+    // Workspace-scoped notifications have no task to open; they render a
+    // workspace-name body instead of a task body.
+    const isWorkspaceNotif =
+      isInvitationOutcome || n.type === "ownership_transferred";
 
     return (
       <li key={n.id}>
@@ -466,7 +480,7 @@ function InboxPopover({
           onClick={() => handleClick(n)}
           className={`w-full text-left px-4 py-3 hover:bg-slate-50 dark:hover:bg-neutral-800/50 flex items-start gap-3 transition-colors ${
             isUnread ? "bg-blue-50/40" : ""
-          } ${isInvitationOutcome ? "cursor-default" : ""}`}
+          } ${isWorkspaceNotif ? "cursor-default" : ""}`}
         >
           <div className="relative shrink-0">
             <Avatar
@@ -492,8 +506,8 @@ function InboxPopover({
                 {timeAgo(n.created_at)}
               </span>
             </div>
-            {isInvitationOutcome
-              ? renderInvitationBody(n)
+            {isWorkspaceNotif
+              ? renderWorkspaceBody(n)
               : renderTaskBody(n)}
           </div>
           {isUnread && (
@@ -523,10 +537,14 @@ function InboxPopover({
     );
   }
 
-  function renderInvitationBody(n: Notification) {
+  function renderWorkspaceBody(n: Notification) {
     const wsName = (n.payload["workspace_name"] as string) ?? "your workspace";
     const verb =
-      n.type === "invitation_accepted" ? "Joined" : "Declined invite to";
+      n.type === "invitation_accepted"
+        ? "Joined"
+        : n.type === "invitation_declined"
+          ? "Declined invite to"
+          : "Now the owner of";
     return (
       <p className="mt-0.5 text-sm text-slate-800 dark:text-neutral-200 truncate">
         {verb} <span className="font-medium text-slate-900 dark:text-neutral-200">{wsName}</span>
