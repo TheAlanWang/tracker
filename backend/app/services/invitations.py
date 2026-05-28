@@ -20,10 +20,12 @@ import logging
 import os
 from datetime import datetime, timezone
 
+from fastapi import BackgroundTasks
 from supabase import AsyncClient
 
 from app.core.plan_limits import Plan, get_limit
 from app.schemas.invitation import InvitationResponse
+from app.services.emails import send_workspace_invite_email
 
 logger = logging.getLogger(__name__)
 
@@ -165,6 +167,7 @@ async def create_invitation(
     workspace_id: str,
     email: str,
     role: str = "member",
+    background_tasks: BackgroundTasks | None = None,
 ) -> InvitationResponse:
     """Create a pending invitation. Caller must be owner or admin."""
     caller_role = await _get_caller_role(
@@ -242,11 +245,12 @@ async def create_invitation(
         .execute()
     ).data[0]
 
-    # New user → send Supabase's invite email so they sign up and land in
-    # the in-app accept flow. Existing users skip this (the API doesn't have a
-    # "notify-only" path); they'll see the invitation panel on next /me load,
-    # which is enough as long as they revisit the app.
+    inviter_map = await _lookup_users(supabase, user_ids=[user_id])
+    workspace_map = await _lookup_workspaces(supabase, ids=[workspace_id])
+
     if target is None:
+        # New user → Supabase's signup invite email so they create an
+        # account and land in the in-app accept flow.
         try:
             await supabase.auth.admin.invite_user_by_email(
                 normalized,
@@ -261,9 +265,22 @@ async def create_invitation(
                 "still created, recipient can sign up manually.",
                 normalized,
             )
+    elif background_tasks is not None:
+        # Existing account → Supabase's invite API is signup-only, so send
+        # a Resend "notify" email instead. Fire-and-forget; the in-app
+        # bell + Home panel remain the durable surface, this just nudges
+        # users who aren't currently in the app.
+        workspace_name = (workspace_map.get(workspace_id) or {}).get(
+            "name"
+        ) or "a workspace"
+        background_tasks.add_task(
+            send_workspace_invite_email,
+            supabase,
+            workspace_name=workspace_name,
+            invitee_id=target.id,
+            inviter_id=user_id,
+        )
 
-    inviter_map = await _lookup_users(supabase, user_ids=[user_id])
-    workspace_map = await _lookup_workspaces(supabase, ids=[workspace_id])
     return _enrich(row, inviter_map=inviter_map, workspace_map=workspace_map)
 
 

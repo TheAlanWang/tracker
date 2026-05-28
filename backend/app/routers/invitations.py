@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from supabase import AsyncClient
 
 from app.core.deps import get_current_user_id, get_supabase_admin
@@ -33,6 +33,7 @@ router = APIRouter(tags=["invitations"])
 async def create_(
     ws_id: str,
     body: InvitationCreate,
+    background_tasks: BackgroundTasks,
     user_id: str = Depends(get_current_user_id),
     supabase: AsyncClient = Depends(get_supabase_admin),
 ):
@@ -43,6 +44,7 @@ async def create_(
             workspace_id=ws_id,
             email=body.email,
             role=body.role,
+            background_tasks=background_tasks,
         )
     except InvitationPermissionError as exc:
         raise HTTPException(

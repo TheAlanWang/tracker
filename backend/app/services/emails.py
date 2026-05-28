@@ -22,7 +22,10 @@ from supabase import AsyncClient
 from app.core.config import get_settings
 from app.schemas.project import NotifyAssigneeThreshold
 from app.schemas.task import TaskPriority, TaskResponse, TaskStatus
-from app.services._email_templates import render_assignment_email
+from app.services._email_templates import (
+    render_assignment_email,
+    render_workspace_invite_email,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -197,4 +200,74 @@ async def send_assignment_email(
     except Exception:  # noqa: BLE001
         logger.exception(
             "[email] resend send failed for %s → %s", task.identifier, assignee.email
+        )
+
+
+async def send_workspace_invite_email(
+    supabase: AsyncClient,
+    *,
+    workspace_name: str,
+    invitee_id: str,
+    inviter_id: str,
+) -> None:
+    """Fire-and-forget invite notification for an ALREADY-REGISTERED user.
+
+    New (unregistered) invitees get Supabase's signup invite email instead;
+    this path covers existing accounts, who otherwise had no email at all
+    and could miss the invitation until they happened to open the app.
+
+    Best-effort: logs and returns on any failure — the invitation row is
+    already persisted, so a Resend hiccup must not fail the invite API.
+    """
+    settings = get_settings()
+    if not settings.resend_api_key:
+        logger.info(
+            "[email] skipping workspace invite to %s — RESEND_API_KEY unset",
+            invitee_id,
+        )
+        return
+
+    invitee = await _resolve_user(supabase, invitee_id)
+    if not invitee or not invitee.email:
+        return
+    inviter = await _resolve_user(supabase, inviter_id)
+
+    inviter_name = _display_name(inviter) if inviter else "Someone"
+    invitee_name = _display_name(
+        invitee, fallback=(invitee.email or "").split("@", 1)[0] or "there"
+    )
+
+    # Deep-link to the app root — Home resolves pending invitations and
+    # renders the accept/decline panel on load.
+    frontend_url = os.environ.get("FRONTEND_URL", "http://localhost:5173").rstrip("/")
+
+    html, text = render_workspace_invite_email(
+        invitee_name=invitee_name,
+        inviter_name=inviter_name,
+        workspace_name=workspace_name,
+        accept_url=frontend_url,
+    )
+
+    import resend
+
+    resend.api_key = settings.resend_api_key
+    payload = {
+        "from": settings.email_sender,
+        "to": invitee.email,
+        "subject": f"{inviter_name} invited you to {workspace_name} on Trackly",
+        "html": html,
+        "text": text,
+    }
+    try:
+        await asyncio.to_thread(resend.Emails.send, payload)
+        logger.info(
+            "[email] sent workspace invite for %s to %s",
+            workspace_name,
+            invitee.email,
+        )
+    except Exception:  # noqa: BLE001
+        logger.exception(
+            "[email] resend invite send failed for %s → %s",
+            workspace_name,
+            invitee.email,
         )

@@ -109,3 +109,50 @@ Project admins can manage notifications in Project Settings:
 """
 
     return html, text
+
+
+def render_workspace_invite_email(
+    *,
+    invitee_name: str,
+    inviter_name: str,
+    workspace_name: str,
+    accept_url: str,
+) -> tuple[str, str]:
+    """Return (html, plaintext) for a workspace-invitation email sent to an
+    ALREADY-REGISTERED user. New users get Supabase's signup invite instead;
+    this is the Resend "notify-only" path for people who already have an
+    account and just need to open the app to accept."""
+
+    html = f"""<!doctype html>
+<html><body style="margin:0;padding:0;background:#f8fafc;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" width="560" style="max-width:560px;margin:32px auto;background:#ffffff;border:1px solid #e2e8f0;border-radius:12px;">
+  <tr><td style="padding:32px 32px 8px;">
+    <p style="margin:0;color:#0f172a;font-size:14px;line-height:1.5;">Hi {invitee_name},</p>
+    <p style="margin:8px 0 24px;color:#0f172a;font-size:14px;line-height:1.5;"><strong>{inviter_name}</strong> invited you to a workspace.</p>
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;margin-bottom:24px;">
+      <tr><td style="padding:16px;">
+        <p style="margin:0;color:#0f172a;font-size:16px;font-weight:600;line-height:1.4;">{workspace_name}</p>
+        <p style="margin:6px 0 0;color:#64748b;font-size:13px;">invited by {inviter_name}</p>
+      </td></tr>
+    </table>
+    <a href="{accept_url}" style="display:inline-block;background:#2563eb;color:#ffffff;text-decoration:none;padding:10px 22px;border-radius:8px;font-size:14px;font-weight:600;">Accept invitation</a>
+  </td></tr>
+  <tr><td style="padding:0 32px 32px;">
+    <hr style="border:none;border-top:1px solid #e2e8f0;margin:32px 0 16px;">
+    <p style="margin:0;color:#94a3b8;font-size:12px;line-height:1.5;">You already have a Trackly account, so just open the app to accept or decline this invitation.</p>
+  </td></tr>
+</table>
+</body></html>"""
+
+    text = f"""Hi {invitee_name},
+
+{inviter_name} invited you to join the workspace {workspace_name} on Trackly.
+
+Accept invitation: {accept_url}
+
+---
+You already have a Trackly account, so just open the app to accept or
+decline this invitation.
+"""
+
+    return html, text
