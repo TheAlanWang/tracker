@@ -178,8 +178,42 @@ export function useCreateTask(projectId: string) {
       return data;
     },
     onSuccess: (task) => {
-      qc.invalidateQueries({ queryKey: ["projects", projectId, "tasks"] });
+      // Write the created task straight into every cached list variant it
+      // belongs to, so it shows the moment the POST returns — no second
+      // GET round-trip. useTasks keys are ["projects", id, "tasks", opts]
+      // where opts is { status?, sprint?, archived? }; skip variants the
+      // new (active, unfiltered) task doesn't match.
+      const variants = qc.getQueriesData<Task[]>({
+        queryKey: ["projects", projectId, "tasks"],
+      });
+      for (const [key, list] of variants) {
+        if (!list) continue;
+        const opts = (key[3] ?? {}) as {
+          status?: TaskStatus;
+          sprint?: string;
+          archived?: boolean;
+        };
+        if (opts.archived) continue; // new task is active (archived_at null)
+        if (opts.status && opts.status !== task.status) continue;
+        if (opts.sprint === "null" && task.sprint_id !== null) continue;
+        if (
+          opts.sprint &&
+          opts.sprint !== "null" &&
+          opts.sprint !== task.sprint_id
+        )
+          continue;
+        if (list.some((t) => t.id === task.id)) continue; // dedupe realtime race
+        // Order is moot — Board sorts by position, List by created_at.
+        qc.setQueryData<Task[]>(key, [task, ...list]);
+      }
       notifyEmailScheduled(qc, task);
+    },
+    onSettled: () => {
+      // Background reconcile (mirrors useMoveTask). The task is already
+      // visible from the cache write above, so this refetch is silent — it
+      // just corrects ordering/edge cases and covers a dropped realtime
+      // connection.
+      qc.invalidateQueries({ queryKey: ["projects", projectId, "tasks"] });
     },
   });
 }
