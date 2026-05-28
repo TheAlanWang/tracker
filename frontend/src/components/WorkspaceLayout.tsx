@@ -938,6 +938,15 @@ export function WorkspaceLayout() {
                           <span className="shrink-0 font-mono text-xs text-slate-400 dark:text-neutral-500">
                             {w.slug}
                           </span>
+                          {w.plan === "pro" && (
+                            <span
+                              className="shrink-0 text-sm leading-none text-[#C9A227] dark:text-[#E8C766]"
+                              title="Pro"
+                              aria-label="Pro plan"
+                            >
+                              ✦
+                            </span>
+                          )}
                         </div>
                         {w.id === currentWs?.id && (
                           <span className="shrink-0 text-slate-400 dark:text-neutral-500 text-xs">✓</span>
