@@ -34,3 +34,10 @@ class WorkspaceResponse(BaseModel):
     plan: Literal["free", "pro"] = "free"
     created_at: datetime
     updated_at: datetime
+
+
+class WorkspaceUsageResponse(BaseModel):
+    # Bytes of task-image uploads owned by the workspace. Avatars excluded
+    # (user-global). Display-only — not enforced. Extensible: add
+    # emails_this_month etc. here when those counters land.
+    storage_bytes: int

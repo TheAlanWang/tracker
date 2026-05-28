@@ -6,6 +6,7 @@ from app.schemas.workspace import (
     WorkspaceCreate,
     WorkspaceResponse,
     WorkspaceUpdate,
+    WorkspaceUsageResponse,
 )
 from app.services.workspaces import (
     WorkspaceNotFoundError,
@@ -14,6 +15,7 @@ from app.services.workspaces import (
     create_workspace,
     delete_workspace,
     get_workspace,
+    get_workspace_storage_bytes,
     list_workspaces_for_user,
     update_workspace,
 )
@@ -56,6 +58,21 @@ async def get(
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN) from exc
     except WorkspaceNotFoundError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND) from exc
+
+
+@router.get("/{ws_id}/usage", response_model=WorkspaceUsageResponse)
+async def usage(
+    ws_id: str,
+    user_id: str = Depends(get_current_user_id),
+    supabase: AsyncClient = Depends(get_supabase_admin),
+):
+    try:
+        storage_bytes = await get_workspace_storage_bytes(
+            supabase, user_id=user_id, workspace_id=ws_id
+        )
+        return WorkspaceUsageResponse(storage_bytes=storage_bytes)
+    except WorkspacePermissionError as exc:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN) from exc
 
 
 @router.patch("/{ws_id}", response_model=WorkspaceResponse)

@@ -42,6 +42,20 @@ async def _is_member(supabase: AsyncClient, *, user_id: str, workspace_id: str) 
     return bool(rows)
 
 
+async def get_workspace_storage_bytes(
+    supabase: AsyncClient, *, user_id: str, workspace_id: str
+) -> int:
+    """Total bytes of task-image uploads owned by this workspace, for the
+    Plan section's storage usage display. Caller must be a member."""
+    if not await _is_member(supabase, user_id=user_id, workspace_id=workspace_id):
+        raise WorkspacePermissionError(workspace_id)
+    result = await supabase.rpc(
+        "workspace_storage_bytes", {"p_workspace_id": workspace_id}
+    ).execute()
+    # RPC returns a bare bigint; supabase-py surfaces it as .data
+    return int(result.data or 0)
+
+
 async def create_workspace(
     supabase: AsyncClient, *, user_id: str, payload: WorkspaceCreate
 ) -> WorkspaceResponse:

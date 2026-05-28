@@ -32,6 +32,7 @@ import {
   useDeleteWorkspace,
   useUpdateWorkspace,
   useWorkspaces,
+  useWorkspaceUsage,
 } from "@/features/workspaces/api";
 import { PLAN_LABEL, PLAN_LIMITS } from "@/features/billing/planLimits";
 import { ProBadge } from "@/components/ProBadge";
@@ -63,6 +64,7 @@ export default function WorkspaceSettings() {
 
   const { data: members = [], isLoading } = useMembers(wsId);
   const { data: invitations = [] } = useWorkspaceInvitations(wsId);
+  const { data: usage } = useWorkspaceUsage(wsId);
   const inviteMutation = useCreateInvitation(wsId);
   const revokeMutation = useRevokeInvitation(wsId);
   const updateRoleMutation = useUpdateMemberRole(wsId);
@@ -616,6 +618,12 @@ export default function WorkspaceSettings() {
             // (admin SQL, support tooling, etc.).
             const overBy = usedSeats - limits.members;
             const overCap = overBy > 0;
+            // Storage: bytes from the backend usage endpoint, compared
+            // against the plan's GB cap. Display-only — not enforced.
+            const storageCapBytes = limits.storage_gb * 1024 * 1024 * 1024;
+            const storageBytes = usage?.storage_bytes ?? null;
+            const storageOver =
+              storageBytes != null && storageBytes > storageCapBytes;
             return (
               <div className="rounded-lg border border-slate-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 divide-y divide-slate-200 dark:divide-neutral-800">
                 {/* Top row — current plan + status text. The badge color
@@ -658,14 +666,10 @@ export default function WorkspaceSettings() {
                     }
                   />
                   <UsageRow
-                    label="Emails this month"
-                    used="—"
-                    cap={String(limits.emails_per_month)}
-                  />
-                  <UsageRow
                     label="Storage"
-                    used="—"
+                    used={storageBytes != null ? formatBytes(storageBytes) : "—"}
                     cap={`${limits.storage_gb} GB`}
+                    isOver={storageOver}
                   />
                   <UsageRow
                     label="MCP calls today"
@@ -748,6 +752,17 @@ function SettingRow({
 // full left column (no narrow constraint like SettingRow), Toggle sits
 // vertically centered on the right. Optional `note` shows under the row
 // content (used for the "only owner can toggle" message).
+// Human-readable byte size. Picks MB under 1 GB, else GB — so small
+// usage reads "5 MB" rather than "0.00 GB" next to a "100 GB" cap.
+function formatBytes(bytes: number): string {
+  const gb = bytes / (1024 * 1024 * 1024);
+  if (gb >= 1) return `${gb.toFixed(gb >= 10 ? 0 : 1)} GB`;
+  const mb = bytes / (1024 * 1024);
+  if (mb >= 1) return `${mb.toFixed(mb >= 10 ? 0 : 1)} MB`;
+  const kb = bytes / 1024;
+  return `${Math.max(0, Math.round(kb))} KB`;
+}
+
 // One row in the Plan section's usage panel: `Label    used / cap`.
 // Tabular feel (font-mono on the numbers) so the eye scans the right
 // column quickly. `isOver=true` flips the used number red and renders
