@@ -14,6 +14,13 @@ const TYPE_LABEL: Record<SearchResult["type"], string> = {
   label: "Labels",
 };
 
+// Shared styling for each result group. The uppercase grey heading plus a
+// hairline divider + top spacing on every group after the first keeps the
+// sections (Tasks / Go to / …) visually distinct without shouting.
+const GROUP_CLASS =
+  "[&:not(:first-child)]:mt-2 [&:not(:first-child)]:border-t [&:not(:first-child)]:border-slate-100 dark:[&:not(:first-child)]:border-neutral-800 [&:not(:first-child)]:pt-2 " +
+  "[&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:pb-1.5 [&_[cmdk-group-heading]]:pt-1 [&_[cmdk-group-heading]]:text-xs [&_[cmdk-group-heading]]:font-semibold [&_[cmdk-group-heading]]:text-slate-500 [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-wide";
+
 export function CommandPalette() {
   const { open, close } = useCommandPaletteStore();
   const { wsSlug = "" } = useParams<{ wsSlug: string }>();
@@ -86,7 +93,7 @@ export function CommandPalette() {
             {query.trim() === "" && recents.length > 0 && (
               <Command.Group
                 heading="Recent"
-                className="[&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1 [&_[cmdk-group-heading]]:text-xs [&_[cmdk-group-heading]]:font-semibold [&_[cmdk-group-heading]]:text-slate-500 [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-wide"
+                className={GROUP_CLASS}
               >
                 {recents.map((item: RecentItem) => (
                   <CommandItem
@@ -111,7 +118,7 @@ export function CommandPalette() {
                   <Command.Group
                     key={type}
                     heading={TYPE_LABEL[type]}
-                    className="[&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1 [&_[cmdk-group-heading]]:text-xs [&_[cmdk-group-heading]]:font-semibold [&_[cmdk-group-heading]]:text-slate-500 [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-wide"
+                    className={GROUP_CLASS}
                   >
                     {items.map((r) => (
                       <CommandItem
@@ -132,7 +139,7 @@ export function CommandPalette() {
             {navMatches.length > 0 && (
               <Command.Group
                 heading="Go to"
-                className="[&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1 [&_[cmdk-group-heading]]:text-xs [&_[cmdk-group-heading]]:font-semibold [&_[cmdk-group-heading]]:text-slate-500 [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-wide"
+                className={GROUP_CLASS}
               >
                 {navMatches.map((t) => (
                   <CommandItem
