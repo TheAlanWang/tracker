@@ -397,10 +397,19 @@ async def add_comment(task_identifier: str, body: str) -> dict[str, Any]:
 
 
 def main() -> None:
-    """Entry point referenced by `pyproject.toml [project.scripts]`."""
-    # stdio transport — what Claude Code / Cursor / Claude Desktop
-    # all use for local MCP servers. No HTTP server, no port to bind.
-    mcp.run()
+    """Entry point — boot the streamable-HTTP MCP server.
+
+    v1 had a stdio mode here; v2 is HTTP-only (see spec security invariants).
+    Anyone wanting to use trackly-mcp connects via OAuth to the hosted URL.
+    """
+    import os
+    import uvicorn
+
+    from .app import create_app
+
+    host = os.environ.get("HOST", "0.0.0.0")
+    port = int(os.environ.get("PORT", "8080"))
+    uvicorn.run(create_app(), host=host, port=port, log_level="info")
 
 
 if __name__ == "__main__":
