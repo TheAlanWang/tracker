@@ -139,7 +139,9 @@ export default function Billing() {
               </p>
             </div>
           </div>
-          {isOwner && (
+          {/* Only when a real Stripe subscription backs it — a manually-granted
+              ("comped") Pro has no customer to manage. */}
+          {isOwner && selectedWs.has_billing && (
             <Button
               variant="outline"
               className="shrink-0"

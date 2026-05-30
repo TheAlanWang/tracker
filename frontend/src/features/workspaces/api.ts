@@ -39,6 +39,9 @@ export type Workspace = {
   owner_id: string;
   features: WorkspaceFeatures;
   plan: "free" | "pro";
+  // True when a real Stripe customer/subscription backs this workspace (vs a
+  // manually-granted Pro). Gates the "Manage billing" affordance.
+  has_billing: boolean;
   created_at: string;
   updated_at: string;
 };

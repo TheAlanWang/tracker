@@ -41,6 +41,10 @@ async def checkout(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Billing is not configured",
         ) from exc
+    except BillingStateError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)
+        ) from exc
     except WorkspacePermissionError as exc:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN) from exc
     except WorkspaceNotFoundError as exc:

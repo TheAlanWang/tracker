@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 class WorkspaceCreate(BaseModel):
@@ -32,8 +32,19 @@ class WorkspaceResponse(BaseModel):
     # Subscription tier. Flipped via SQL today; Stripe webhook later.
     # Client cannot mutate this through WorkspaceUpdate.
     plan: Literal["free", "pro"] = "free"
+    # True when a Stripe customer exists for this workspace (i.e. real billing,
+    # not a manually-comped Pro). The UI uses it to decide whether to offer
+    # "Manage billing". Derived from stripe_customer_id; never client-settable.
+    has_billing: bool = False
     created_at: datetime
     updated_at: datetime
+
+    @model_validator(mode="before")
+    @classmethod
+    def _derive_has_billing(cls, data):
+        if isinstance(data, dict) and "has_billing" not in data:
+            return {**data, "has_billing": bool(data.get("stripe_customer_id"))}
+        return data
 
 
 class WorkspaceUsageResponse(BaseModel):

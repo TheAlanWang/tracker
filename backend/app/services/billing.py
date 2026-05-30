@@ -71,7 +71,18 @@ async def create_checkout(
     ws = await _owned_workspace(supabase, user_id=user_id, workspace_id=workspace_id)
 
     customer_id = ws.get("stripe_customer_id")
-    if not customer_id:
+    if customer_id:
+        # Guard against a second subscription — if one is already active, send
+        # the caller to manage it instead of stacking another (this is how the
+        # 3-duplicate-subs mess happened during testing).
+        existing = await stripe.Subscription.list_async(
+            customer=customer_id, status="active", limit=1
+        )
+        if existing.data:
+            raise BillingStateError(
+                "This workspace already has an active subscription."
+            )
+    else:
         customer = await stripe.Customer.create_async(
             name=ws["name"],
             metadata={"workspace_id": workspace_id},
@@ -180,14 +191,23 @@ async def handle_event(
                 plan="pro",
                 subscription_id=obj.get("subscription"),
             )
-    elif etype == "customer.subscription.deleted":
+    elif etype in ("customer.subscription.deleted", "customer.subscription.updated"):
+        # Downgrade once the subscription stops granting access — it was deleted,
+        # or moved to a terminal status (canceled / unpaid / incomplete_expired).
+        # A still-active sub merely flagged cancel_at_period_end keeps Pro until
+        # it actually ends (the user paid for the current period); the eventual
+        # `deleted` event handles that. For *immediate* downgrade on cancel, set
+        # the Stripe Customer Portal to "cancel immediately".
+        inactive = etype == "customer.subscription.deleted" or obj.get(
+            "status"
+        ) in ("canceled", "unpaid", "incomplete_expired")
+        if not inactive:
+            return
+
         workspace_id = (obj.get("metadata") or {}).get("workspace_id")
         if workspace_id:
             await _set_plan(
-                settings,
-                workspace_id=workspace_id,
-                plan="free",
-                subscription_id=None,
+                settings, workspace_id=workspace_id, plan="free", subscription_id=None
             )
         else:
             # No metadata — fall back to matching by stored subscription id.
