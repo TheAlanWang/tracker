@@ -17,6 +17,7 @@
 
 import { Outlet, useLocation, useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
+import { CreditCard, SlidersHorizontal } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
@@ -1130,20 +1131,7 @@ export function WorkspaceLayout() {
                         setProfileMenuOpen(false);
                         navigate(`/w/${wsSlug}/settings#ws-plan`);
                       }}
-                      icon={
-                        <svg
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth={1.7}
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          className="w-4 h-4"
-                        >
-                          <rect x="2" y="5" width="20" height="14" rx="2" />
-                          <line x1="2" y1="10" x2="22" y2="10" />
-                        </svg>
-                      }
+                      icon={<CreditCard className="w-4 h-4" strokeWidth={1.7} />}
                     >
                       Plan
                     </ProfileMenuItem>
@@ -1152,27 +1140,7 @@ export function WorkspaceLayout() {
                         setProfileMenuOpen(false);
                         navigate(`/w/${wsSlug}/settings#ws-features`);
                       }}
-                      icon={
-                        <svg
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth={1.7}
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          className="w-4 h-4"
-                        >
-                          <line x1="4" y1="21" x2="4" y2="14" />
-                          <line x1="4" y1="10" x2="4" y2="3" />
-                          <line x1="12" y1="21" x2="12" y2="12" />
-                          <line x1="12" y1="8" x2="12" y2="3" />
-                          <line x1="20" y1="21" x2="20" y2="16" />
-                          <line x1="20" y1="12" x2="20" y2="3" />
-                          <line x1="1" y1="14" x2="7" y2="14" />
-                          <line x1="9" y1="8" x2="15" y2="8" />
-                          <line x1="17" y1="16" x2="23" y2="16" />
-                        </svg>
-                      }
+                      icon={<SlidersHorizontal className="w-4 h-4" strokeWidth={1.7} />}
                     >
                       Features
                     </ProfileMenuItem>
