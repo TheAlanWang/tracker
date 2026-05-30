@@ -25,6 +25,7 @@ import { Camera, Pencil, Trash2 } from "lucide-react";
 
 import { Avatar } from "@/components/Avatar";
 import { isUploadedAvatar } from "@/lib/avatar";
+import { PROFILE_SETTINGS_SECTIONS } from "@/lib/navTargets";
 import { AVATAR_COLORS } from "@/lib/avatarColors";
 import { InlineSpinner } from "@/components/PageSpinner";
 import { SettingsLayout } from "@/components/SettingsLayout";
@@ -60,17 +61,16 @@ export default function ProfileSettings() {
   // in WorkspaceLayout's left rail beside SettingsSidebar; clicking one
   // smooth-scrolls to the matching <section id=...> on this page.
   // Invitations only listed when there's actually something to scroll to.
-  useSectionSidebar({
-    title: "Profile",
-    sections: [
-      { id: "profile-general", label: "General" },
-      { id: "profile-signin", label: "Sign-In Methods" },
-      ...(invitations.length > 0
-        ? [{ id: "profile-invitations", label: "Invitations" }]
-        : []),
-      { id: "profile-danger", label: "Danger Zone" },
-    ],
-  });
+  // Stable sections come from the shared catalog; the transient Invitations
+  // section is spliced in before Danger Zone only when there's one to show.
+  const profileSections = [...PROFILE_SETTINGS_SECTIONS];
+  if (invitations.length > 0) {
+    profileSections.splice(profileSections.length - 1, 0, {
+      id: "profile-invitations",
+      label: "Invitations",
+    });
+  }
+  useSectionSidebar({ title: "Profile", sections: profileSections });
 
   if (!me) {
     return (

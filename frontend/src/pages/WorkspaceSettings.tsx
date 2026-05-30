@@ -41,6 +41,7 @@ import { ProBadge } from "@/components/ProBadge";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import { useSectionSidebar } from "@/hooks/useSectionSidebar";
+import { WORKSPACE_SETTINGS_SECTIONS } from "@/lib/navTargets";
 
 export default function WorkspaceSettings() {
   useDocumentTitle("Workspace Settings");
@@ -48,13 +49,7 @@ export default function WorkspaceSettings() {
   // smooth-scroll to the matching <section id=...> on this page.
   useSectionSidebar({
     title: "Workspace",
-    sections: [
-      { id: "ws-general", label: "General" },
-      { id: "ws-members", label: "Members" },
-      { id: "ws-features", label: "Features" },
-      { id: "ws-plan", label: "Plan" },
-      { id: "ws-danger", label: "Danger Zone" },
-    ],
+    sections: WORKSPACE_SETTINGS_SECTIONS,
   });
   const { wsSlug: routeWsSlug } = useParams();
   const navigate = useNavigate();

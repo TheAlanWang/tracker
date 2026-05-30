@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Command } from "cmdk";
 import { useNavigate, useParams } from "react-router-dom";
 
 import { useSearch, type SearchResult } from "@/features/search/api";
 import { useWorkspaces } from "@/features/workspaces/api";
 import { useCommandPaletteStore } from "@/lib/commandPaletteStore";
+import { buildNavTargets, matchNavTarget } from "@/lib/navTargets";
 import { addRecent, getRecents, type RecentItem } from "@/lib/recents";
 
 const TYPE_LABEL: Record<SearchResult["type"], string> = {
@@ -26,6 +27,14 @@ export function CommandPalette() {
 
   const { data: searchResults = [] } = useSearch(query, workspaceId, wsSlug);
   const recents = getRecents();
+
+  // Static "Go to" navigation targets (pages + settings sections), filtered
+  // client-side by the same query. Independent of the server entity search.
+  const navTargets = useMemo(() => buildNavTargets(wsSlug), [wsSlug]);
+  const navMatches =
+    query.trim() === ""
+      ? []
+      : navTargets.filter((t) => matchNavTarget(t, query));
 
   function handleSelect(href: string, label: string, sublabel?: string) {
     addRecent({ href, label, sublabel });
@@ -82,6 +91,7 @@ export function CommandPalette() {
                 {recents.map((item: RecentItem) => (
                   <CommandItem
                     key={item.href}
+                    value={item.href}
                     label={item.label}
                     sublabel={item.sublabel}
                     onSelect={() =>
@@ -106,6 +116,7 @@ export function CommandPalette() {
                     {items.map((r) => (
                       <CommandItem
                         key={r.id}
+                        value={r.id}
                         label={r.label}
                         sublabel={r.sublabel ?? undefined}
                         onSelect={() =>
@@ -116,6 +127,24 @@ export function CommandPalette() {
                   </Command.Group>
                 );
               })}
+
+            {/* Navigation: jump to a page or settings section */}
+            {navMatches.length > 0 && (
+              <Command.Group
+                heading="Go to"
+                className="[&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1 [&_[cmdk-group-heading]]:text-xs [&_[cmdk-group-heading]]:font-semibold [&_[cmdk-group-heading]]:text-slate-500 [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-wide"
+              >
+                {navMatches.map((t) => (
+                  <CommandItem
+                    key={t.id}
+                    value={t.id}
+                    label={t.label}
+                    sublabel={t.context}
+                    onSelect={() => handleSelect(t.href, t.label, t.context)}
+                  />
+                ))}
+              </Command.Group>
+            )}
           </Command.List>
         </div>
       </div>
@@ -124,17 +153,20 @@ export function CommandPalette() {
 }
 
 function CommandItem({
+  value,
   label,
   sublabel,
   onSelect,
 }: {
+  // Unique cmdk value for keyboard selection; falls back to label.
+  value?: string;
   label: string;
   sublabel?: string;
   onSelect: () => void;
 }) {
   return (
     <Command.Item
-      value={label}
+      value={value ?? label}
       onSelect={onSelect}
       className="flex items-center justify-between rounded px-3 py-2 text-sm cursor-pointer text-slate-900 dark:text-neutral-200 data-[selected=true]:bg-slate-100 aria-selected:bg-slate-100"
     >
