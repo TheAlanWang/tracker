@@ -10,6 +10,9 @@ type Props<T extends string> = {
   onChange: (value: T) => void;
   options: Option<T>[];
   className?: string;
+  // Extra classes appended to the trigger button — e.g. to make it borderless
+  // ("ghost"). Appended last so it overrides the default border/bg.
+  triggerClassName?: string;
   placeholder?: string;
   // Custom render for each option (used both in the dropdown list and
   // for the currently-selected value in the trigger). Useful for
@@ -29,6 +32,7 @@ export function Select<T extends string>({
   onChange,
   options,
   className = "",
+  triggerClassName = "",
   placeholder,
   renderOption,
 }: Props<T>) {
@@ -60,7 +64,7 @@ export function Select<T extends string>({
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="w-full flex items-center justify-between rounded border border-slate-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 px-2.5 py-1.5 text-sm text-slate-700 dark:text-neutral-300 hover:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-300"
+        className={`w-full flex items-center justify-between rounded border border-slate-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 px-2.5 py-1.5 text-sm text-slate-700 dark:text-neutral-300 hover:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-300 ${triggerClassName}`}
       >
         <span className="truncate">
           {current ? (

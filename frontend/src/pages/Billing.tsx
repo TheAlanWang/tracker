@@ -106,29 +106,24 @@ export default function Billing() {
             Plan &amp; usage for this workspace.
           </p>
         </div>
-        {/* Workspace context — billing acts on this one. A switcher when there
-            are several; a static chip when there's only one. */}
-        {workspaces.length > 1 ? (
-          <Select
-            value={selectedWs.id}
-            onChange={setPickedId}
-            options={workspaces.map((w) => ({ value: w.id, label: w.name }))}
-            renderOption={(o) => (
-              <span className="flex min-w-0 items-center gap-2">
-                <WsInitial name={o.label} />
-                <span className="truncate">{o.label}</span>
-              </span>
-            )}
-            className="w-56 shrink-0"
-          />
-        ) : (
-          <div className="flex shrink-0 items-center gap-2 rounded-lg border border-slate-200 px-3 py-1.5 text-sm dark:border-neutral-800">
-            <WsInitial name={selectedWs.name} />
-            <span className="font-medium text-slate-700 dark:text-neutral-300">
+        {/* Workspace context — billing acts on this one. Frameless switcher
+            when there are several; plain text when there's only one. */}
+        <div className="flex shrink-0 items-center gap-1.5 text-sm">
+          <span className="text-slate-500 dark:text-neutral-400">Workspace:</span>
+          {workspaces.length > 1 ? (
+            <Select
+              value={selectedWs.id}
+              onChange={setPickedId}
+              options={workspaces.map((w) => ({ value: w.id, label: w.name }))}
+              className="w-44"
+              triggerClassName="border-0 bg-transparent px-1.5 font-medium text-slate-900 dark:text-neutral-100 hover:bg-slate-100 dark:hover:bg-neutral-800 focus:ring-0"
+            />
+          ) : (
+            <span className="font-medium text-slate-900 dark:text-neutral-100">
               {selectedWs.name}
             </span>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       {/* Clear "you're on Pro" confirmation + the manage/cancel entry point. */}
@@ -286,15 +281,6 @@ export default function Billing() {
         </div>
       </div>
     </div>
-  );
-}
-
-// Small colored initial square for a workspace, matching the settings rail.
-function WsInitial({ name }: { name: string }) {
-  return (
-    <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded bg-slate-100 text-[10px] font-semibold text-slate-700 dark:bg-neutral-800 dark:text-neutral-300">
-      {name.charAt(0).toUpperCase()}
-    </span>
   );
 }
 
