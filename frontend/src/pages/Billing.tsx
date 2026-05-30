@@ -158,7 +158,7 @@ export default function Billing() {
           const isCurrent = p === plan;
           const isUpsell = p === "pro" && plan === "free";
           const cardClass = isUpsell
-            ? "border-blue-200 dark:border-blue-500/30 bg-blue-50/50 dark:bg-blue-500/[0.06]"
+            ? "border-[#C9A227]/40 dark:border-[#E8C766]/30 bg-[#C9A227]/[0.06] dark:bg-[#E8C766]/[0.06]"
             : "border-slate-200 dark:border-neutral-800 bg-white dark:bg-neutral-900";
           return (
             <div
@@ -175,7 +175,7 @@ export default function Billing() {
                   </span>
                 ) : (
                   isUpsell && (
-                    <span className="text-[10px] uppercase tracking-wider font-semibold text-blue-600 dark:text-blue-400">
+                    <span className="text-[10px] uppercase tracking-wider font-semibold text-[#C9A227] dark:text-[#E8C766]">
                       Recommended
                     </span>
                   )
@@ -201,7 +201,7 @@ export default function Billing() {
                     <Check
                       className={`w-4 h-4 shrink-0 ${
                         isUpsell
-                          ? "text-blue-500 dark:text-blue-400"
+                          ? "text-[#C9A227] dark:text-[#E8C766]"
                           : "text-slate-400 dark:text-neutral-500"
                       }`}
                       strokeWidth={2.5}
@@ -216,7 +216,7 @@ export default function Billing() {
               {p === "pro" && plan === "free" && (
                 <div className="mt-auto pt-6">
                   <Button
-                    className="w-full"
+                    className="w-full bg-[#C9A227] text-white hover:bg-[#b8941f] dark:bg-[#C9A227] dark:text-white dark:hover:bg-[#b8941f]"
                     disabled={!isOwner || checkout.isPending}
                     onClick={startCheckout}
                   >
