@@ -36,7 +36,6 @@ def test_rejects_invalid(uri, reason):
         validate_redirect_uri(uri)
 
 
-def test_rejects_http_with_loopback_hostname_not_ip():
-    """`localhost` resolves to loopback but RFC 8252 says use the literal IP."""
-    with pytest.raises(InvalidRedirectURI):
-        validate_redirect_uri("http://localhost:1234/cb")
+def test_allows_http_localhost():
+    """localhost is treated as loopback — MCP clients use http://localhost callbacks."""
+    validate_redirect_uri("http://localhost:1234/cb")

@@ -54,7 +54,25 @@ async def test_well_known_authorization_server(transport):
     body = r.json()
     assert body["authorization_endpoint"] == "https://mcp.test/authorize"
     assert body["token_endpoint"] == "https://mcp.test/token"
+    assert body["registration_endpoint"] == "https://mcp.test/register"
     assert "S256" in body["code_challenge_methods_supported"]
+
+
+async def test_register_returns_client_id(transport):
+    """Dynamic Client Registration (RFC 7591) — MCP clients need this."""
+    async with httpx.AsyncClient(transport=transport, base_url="http://test") as c:
+        r = await c.post(
+            "/register",
+            json={
+                "client_name": "Claude",
+                "redirect_uris": ["http://localhost:1234/cb"],
+            },
+        )
+    assert r.status_code == 201
+    body = r.json()
+    assert body["client_id"]
+    assert body["token_endpoint_auth_method"] == "none"
+    assert body["redirect_uris"] == ["http://localhost:1234/cb"]
 
 
 async def test_authorize_renders_picker(transport):
