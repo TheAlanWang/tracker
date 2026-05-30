@@ -15,7 +15,6 @@ export const WORKSPACE_SETTINGS_SECTIONS: SectionLink[] = [
   { id: "ws-general", label: "General" },
   { id: "ws-members", label: "Members" },
   { id: "ws-features", label: "Features" },
-  { id: "ws-plan", label: "Plan" },
   { id: "ws-danger", label: "Danger Zone" },
 ];
 
@@ -31,7 +30,6 @@ const SECTION_KEYWORDS: Record<string, string> = {
   "ws-general": "name slug rename workspace",
   "ws-members": "invite people team roles permissions",
   "ws-features": "labels dependencies block sprints goals toggles modules",
-  "ws-plan": "billing subscription upgrade pricing tier seats",
   "ws-danger": "delete leave transfer ownership",
   "profile-general": "name avatar display",
   "profile-signin": "password oauth email login authentication",
@@ -56,6 +54,7 @@ export function buildNavTargets(wsSlug: string): NavTarget[] {
   const targets: NavTarget[] = [
     { id: "page-dashboard", label: "Dashboard", context: "Page", href: `${base}/dashboard` },
     { id: "page-goals", label: "Goals", context: "Page", href: `${base}/goals`, keywords: "objectives okrs" },
+    { id: "page-plan", label: "Plan", context: "Page", href: `${base}/plan`, keywords: "billing subscription upgrade pricing tier seats pro" },
     { id: "page-my-issues", label: "My Issues", context: "Page", href: `${base}/my-issues`, keywords: "assigned tasks mine" },
     { id: "page-ws-settings", label: "Workspace Settings", context: "Page", href: `${base}/settings`, keywords: "preferences configuration" },
     { id: "page-profile", label: "Profile", context: "Page", href: `${base}/profile`, keywords: "account me" },

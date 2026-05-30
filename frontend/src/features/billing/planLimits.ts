@@ -32,3 +32,10 @@ export const PLAN_LABEL: Record<Plan, string> = {
   free: "Free",
   pro: "Pro",
 };
+
+// Monthly price per workspace (USD), display-only. v1 is flat per workspace
+// (not per-seat). Backend/Stripe is authoritative for what's actually charged.
+export const PLAN_PRICE: Record<Plan, number> = {
+  free: 0,
+  pro: 4.99,
+};

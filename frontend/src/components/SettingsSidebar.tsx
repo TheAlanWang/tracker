@@ -6,7 +6,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
-import { Folder, LayoutGrid, User } from "lucide-react";
+import { CreditCard, Folder, LayoutGrid, User } from "lucide-react";
 
 import { useProjects } from "@/features/projects/api";
 import { useWorkspaces } from "@/features/workspaces/api";
@@ -36,6 +36,7 @@ export function SettingsSidebar({
   // scoped (above the workspaces tree), so it suppresses the workspace-row
   // highlight even though the URL still contains wsSlug for context.
   const onProfileSettings = location.pathname.endsWith("/profile");
+  const onPlanPage = location.pathname.endsWith("/plan");
   const onProjectSettings = !!pKey;
 
   // Style tokens lifted from WorkspaceLayout's SidebarNav so the rails
@@ -170,6 +171,19 @@ export function SettingsSidebar({
           >
             <User className="w-4 h-4" strokeWidth={1.7} />
           </button>
+          <button
+            type="button"
+            onClick={() => navigate(`/w/${wsSlug}/plan`)}
+            className={`group flex items-center justify-center w-full rounded-md py-1.5 transition-colors ${
+              onPlanPage
+                ? "bg-slate-100 dark:bg-neutral-800 text-slate-900 dark:text-neutral-200"
+                : "text-slate-500 dark:text-neutral-400 hover:text-slate-900 dark:hover:text-neutral-100 hover:bg-slate-100 dark:hover:bg-neutral-800"
+            }`}
+            title="Plan"
+            aria-label="Plan"
+          >
+            <CreditCard className="w-4 h-4" strokeWidth={1.7} />
+          </button>
 
           {workspaces.length > 0 && (
             <div className="mt-3 space-y-0.5">
@@ -255,6 +269,13 @@ export function SettingsSidebar({
             className={onProfileSettings ? itemActive : itemIdle}
           >
             Profile
+          </button>
+          <button
+            type="button"
+            onClick={() => navigate(`/w/${wsSlug}/plan`)}
+            className={onPlanPage ? itemActive : itemIdle}
+          >
+            Plan
           </button>
 
           <p className={sectionLabel}>

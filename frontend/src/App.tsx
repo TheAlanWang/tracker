@@ -21,6 +21,7 @@ import TaskStandalone from "@/pages/TaskStandalone";
 import TaskList from "@/pages/TaskList";
 import MyIssues from "@/pages/MyIssues";
 import NotFound from "@/pages/NotFound";
+import PlanSettings from "@/pages/PlanSettings";
 import ProfileSettings from "@/pages/ProfileSettings";
 import ProjectSettings from "@/pages/ProjectSettings";
 import SprintDetail from "@/pages/SprintDetail";
@@ -88,6 +89,7 @@ export default function App() {
           <Route index element={<WorkspaceHome />} />
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="goals" element={<Goals />} />
+          <Route path="plan" element={<PlanSettings />} />
           <Route path="my-issues" element={<MyIssues />} />
           <Route path="settings" element={<WorkspaceSettings />} />
           <Route path="profile" element={<ProfileSettings />} />

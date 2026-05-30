@@ -28,6 +28,19 @@ class Settings(BaseSettings):
     # domain is already verified in Resend — no DNS work needed.
     email_sender: str = "Tracker <noreply_tracker@thealanwang.xyz>"
 
+    # Frontend origin — used for billing Checkout success/cancel redirects.
+    frontend_url: str = "http://localhost:5173"
+
+    # ---- Stripe (billing) ----
+    # Optional — when unset the /billing routes return 503, so the app still
+    # boots in local/CI without a Stripe account. Test-mode keys are fine:
+    #   stripe_secret_key   sk_test_…   (Stripe Dashboard → Developers → API keys)
+    #   stripe_webhook_secret whsec_…   (`stripe listen` output, or a dashboard endpoint)
+    #   stripe_pro_price_id price_…     (the recurring $4.99/mo "Trackly Pro" price)
+    stripe_secret_key: str | None = None
+    stripe_webhook_secret: str | None = None
+    stripe_pro_price_id: str | None = None
+
     model_config = SettingsConfigDict(
         env_file=f".env.{APP_ENV}",
         env_file_encoding="utf-8",

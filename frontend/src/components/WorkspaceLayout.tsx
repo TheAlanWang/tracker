@@ -1129,7 +1129,7 @@ export function WorkspaceLayout() {
                     <ProfileMenuItem
                       onClick={() => {
                         setProfileMenuOpen(false);
-                        navigate(`/w/${wsSlug}/settings#ws-plan`);
+                        navigate(`/w/${wsSlug}/plan`);
                       }}
                       icon={<CreditCard className="w-4 h-4" strokeWidth={1.7} />}
                     >

@@ -36,10 +36,7 @@ import {
   useDeleteWorkspace,
   useUpdateWorkspace,
   useWorkspaces,
-  useWorkspaceUsage,
 } from "@/features/workspaces/api";
-import { PLAN_LABEL, PLAN_LIMITS } from "@/features/billing/planLimits";
-import { ProBadge } from "@/components/ProBadge";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import { useSectionSidebar } from "@/hooks/useSectionSidebar";
@@ -63,7 +60,6 @@ export default function WorkspaceSettings() {
 
   const { data: members = [], isLoading } = useMembers(wsId);
   const { data: invitations = [] } = useWorkspaceInvitations(wsId);
-  const { data: usage } = useWorkspaceUsage(wsId);
   const inviteMutation = useCreateInvitation(wsId);
   const revokeMutation = useRevokeInvitation(wsId);
   const updateRoleMutation = useUpdateMemberRole(wsId);
@@ -661,88 +657,6 @@ export default function WorkspaceSettings() {
           </div>
         </section>
 
-        {/* Plan section — current subscription tier + per-cap usage.
-            v1: members is the only enforced cap; emails / storage / MCP
-            show "—" placeholders until those backend counters exist. Pro
-            tier is activated out-of-band (SQL today, Stripe webhook later). */}
-        <section id="ws-plan" className="space-y-4 scroll-mt-4">
-          <h2 className="text-xl font-medium text-slate-900 dark:text-neutral-200">Plan</h2>
-          {currentWs && (() => {
-            const plan = currentWs.plan;
-            const limits = PLAN_LIMITS[plan];
-            const pendingCount = invitations.filter((i) => i.status === "pending").length;
-            const usedSeats = members.length + pendingCount;
-            // Over-cap state: only reachable today via manual SQL downgrade
-            // (no self-serve plan change). v2 Stripe flow will pre-empt
-            // this by blocking downgrades that violate the cap — but we
-            // still need the visual signal in case of out-of-band changes
-            // (admin SQL, support tooling, etc.).
-            const overBy = usedSeats - limits.members;
-            const overCap = overBy > 0;
-            // Storage: bytes from the backend usage endpoint, compared
-            // against the plan's GB cap. Display-only — not enforced.
-            const storageCapBytes = limits.storage_gb * 1024 * 1024 * 1024;
-            const storageBytes = usage?.storage_bytes ?? null;
-            const storageOver =
-              storageBytes != null && storageBytes > storageCapBytes;
-            return (
-              <div className="rounded-lg border border-slate-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 divide-y divide-slate-200 dark:divide-neutral-800">
-                {/* Top row — current plan + status text. The badge color
-                    is the only thing tying this section to "billing"
-                    visually; the rest matches the neutral General style. */}
-                <div className="flex items-center justify-between px-5 py-4">
-                  <div className="space-y-1">
-                    <h3 className="text-base font-medium text-slate-900 dark:text-neutral-200">
-                      Current plan
-                    </h3>
-                    <p className="text-xs text-slate-500 dark:text-neutral-400">
-                      Pro plan is in development. Contact support to upgrade.
-                    </p>
-                  </div>
-                  {plan === "pro" ? (
-                    <ProBadge size="md" />
-                  ) : (
-                    <span className="inline-flex items-center rounded-full bg-slate-100 dark:bg-neutral-800 px-3 py-1 text-xs font-medium uppercase tracking-wider text-slate-700 dark:text-neutral-300">
-                      {PLAN_LABEL[plan]}
-                    </span>
-                  )}
-                </div>
-                {/* Usage panel — one row per cap. Members has live count;
-                    the rest are "—" until backend counters land. */}
-                <div className="divide-y divide-slate-200 dark:divide-neutral-800">
-                  <UsageRow
-                    label="Members"
-                    used={String(usedSeats)}
-                    cap={String(limits.members)}
-                    isOver={overCap}
-                    note={
-                      pendingCount > 0
-                        ? `${members.length} active + ${pendingCount} pending`
-                        : undefined
-                    }
-                    warning={
-                      overCap
-                        ? `Over plan limit — remove ${overBy} member${overBy === 1 ? "" : "s"} to invite new ones.`
-                        : undefined
-                    }
-                  />
-                  <UsageRow
-                    label="Storage"
-                    used={storageBytes != null ? formatBytes(storageBytes) : "—"}
-                    cap={`${limits.storage_gb} GB`}
-                    isOver={storageOver}
-                  />
-                  <UsageRow
-                    label="MCP calls today"
-                    used="—"
-                    cap={String(limits.mcp_calls_per_day)}
-                  />
-                </div>
-              </div>
-            );
-          })()}
-        </section>
-
         <section id="ws-danger" className="space-y-4 scroll-mt-4">
           <h2 className="text-xl font-medium text-red-700 dark:text-red-400">Danger Zone</h2>
           {/* Stacked block (same shape as Profile Settings' Danger zone):
@@ -921,65 +835,6 @@ function TransferOwnershipModal({
     </div>
   );
 }
-
-// Human-readable byte size. Picks MB under 1 GB, else GB — so small
-// usage reads "5 MB" rather than "0.00 GB" next to a "100 GB" cap.
-function formatBytes(bytes: number): string {
-  const gb = bytes / (1024 * 1024 * 1024);
-  if (gb >= 1) return `${gb.toFixed(gb >= 10 ? 0 : 1)} GB`;
-  const mb = bytes / (1024 * 1024);
-  if (mb >= 1) return `${mb.toFixed(mb >= 10 ? 0 : 1)} MB`;
-  const kb = bytes / 1024;
-  return `${Math.max(0, Math.round(kb))} KB`;
-}
-
-// One row in the Plan section's usage panel: `Label    used / cap`.
-// Tabular feel (font-mono on the numbers) so the eye scans the right
-// column quickly. `isOver=true` flips the used number red and renders
-// `warning` as a red sub-line — used when a workspace was downgraded
-// while it had more members than the target plan allows.
-function UsageRow({
-  label,
-  used,
-  cap,
-  note,
-  warning,
-  isOver,
-}: {
-  label: string;
-  used: string;
-  cap: string;
-  note?: string;
-  warning?: string;
-  isOver?: boolean;
-}) {
-  return (
-    <div className="flex items-center justify-between px-5 py-3">
-      <div className="space-y-0.5">
-        <p className="text-sm text-slate-700 dark:text-neutral-300">{label}</p>
-        {note && (
-          <p className="text-xs text-slate-500 dark:text-neutral-400">{note}</p>
-        )}
-        {warning && (
-          <p className="text-xs text-red-700 dark:text-red-400">{warning}</p>
-        )}
-      </div>
-      <p className="font-mono text-sm tabular-nums">
-        <span
-          className={
-            isOver
-              ? "font-medium text-red-700 dark:text-red-400"
-              : "font-medium text-slate-900 dark:text-neutral-200"
-          }
-        >
-          {used}
-        </span>
-        <span className="text-slate-400 dark:text-neutral-500"> / {cap}</span>
-      </p>
-    </div>
-  );
-}
-
 
 function FeatureRow({
   title,
