@@ -1,0 +1,36 @@
+# Auto-deploy the trackly-mcp MCP server to Fly.io when ITS code changes land
+# on main. Uses Fly's remote builder so the GitHub runner stays light.
+#
+# Requires repo secret FLY_API_TOKEN_MCP (Settings → Secrets and variables →
+# Actions). Generate a token scoped to THIS app (kept separate from the
+# backend's FLY_API_TOKEN so each token only deploys its own app):
+#     cd trackly-mcp && fly tokens create deploy -x 999999h
+#
+# Path filter means a backend-only or frontend-only push will NOT redeploy
+# the MCP server. No untrusted github.event.* input is referenced.
+
+name: Fly Deploy (trackly-mcp)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "trackly-mcp/**"
+      - ".github/workflows/deploy-mcp.yml"
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: Deploy trackly-mcp to Fly.io
+    runs-on: ubuntu-latest
+    concurrency:
+      group: deploy-trackly-mcp
+      cancel-in-progress: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+      - name: Deploy
+        working-directory: trackly-mcp
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN_MCP }}
+        run: flyctl deploy --remote-only
