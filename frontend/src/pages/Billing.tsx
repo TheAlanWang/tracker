@@ -319,6 +319,9 @@ function WorkspaceChip({
 
   const current = workspaces.find((w) => w.id === value);
   const multi = workspaces.length > 1;
+  // Pro workspace → the whole chip goes gold (border + faint gold fill),
+  // matching the gold initial and the rest of the Pro identity.
+  const isPro = current?.plan === "pro";
 
   return (
     <div ref={ref} className="relative">
@@ -326,7 +329,11 @@ function WorkspaceChip({
         type="button"
         disabled={!multi}
         onClick={() => multi && setOpen((v) => !v)}
-        className="flex items-center gap-2.5 rounded-lg border border-slate-200 bg-white px-3.5 py-2 text-[15px] transition-colors hover:bg-slate-50 disabled:cursor-default disabled:hover:bg-white dark:border-neutral-700 dark:bg-neutral-900 dark:hover:bg-neutral-800 dark:disabled:hover:bg-neutral-900"
+        className={`flex items-center gap-2.5 rounded-lg border px-3.5 py-2 text-[15px] transition-colors disabled:cursor-default ${
+          isPro
+            ? "border-[#C9A227]/50 bg-[#C9A227]/[0.06] hover:bg-[#C9A227]/10 dark:border-[#E8C766]/40 dark:bg-[#E8C766]/[0.06] dark:hover:bg-[#E8C766]/10"
+            : "border-slate-200 bg-white hover:bg-slate-50 disabled:hover:bg-white dark:border-neutral-700 dark:bg-neutral-900 dark:hover:bg-neutral-800 dark:disabled:hover:bg-neutral-900"
+        }`}
       >
         <WsInitial name={current?.name ?? "?"} pro={current?.plan === "pro"} />
         <span className="max-w-[12rem] truncate font-medium text-slate-900 dark:text-neutral-100">
