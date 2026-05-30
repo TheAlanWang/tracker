@@ -731,10 +731,8 @@ export function WorkspaceLayout() {
   // Scroll the main pane back to the top when the workspace changes —
   // otherwise switching from (say) the Plan section at the bottom lands
   // you mid-page in the new workspace, which reads as disorienting.
+  // (Effect lives below, after onSettingsPage is computed.)
   const mainRef = useRef<HTMLElement>(null);
-  useEffect(() => {
-    mainRef.current?.scrollTo({ top: 0, behavior: "smooth" });
-  }, [wsSlug]);
   const navigate = useNavigate();
   const location = useLocation();
   // Swap the global SidebarNav for SettingsSidebar on settings/profile
@@ -745,6 +743,15 @@ export function WorkspaceLayout() {
     location.pathname === `/w/${wsSlug}/settings` ||
     location.pathname === `/w/${wsSlug}/profile` ||
     /^\/w\/[^/]+\/p\/[^/]+\/settings$/.test(location.pathname);
+
+  // Scroll main to top on workspace switch (wsSlug) AND when moving between
+  // settings sub-pages (Workspace ↔ Profile ↔ Project Settings) — those keep
+  // the same wsSlug so only the pathname changes. Non-settings nav
+  // (board/list/dashboard) keeps its scroll position (key stays "").
+  const settingsScrollKey = onSettingsPage ? location.pathname : "";
+  useEffect(() => {
+    mainRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+  }, [wsSlug, settingsScrollKey]);
   const { data: workspaces = [] } = useWorkspaces();
   const { data: me } = useCurrentUser();
 
@@ -1319,7 +1326,7 @@ function SidebarNav({
   wsSlug,
   currentWsId,
   goalsEnabled,
-  collapsed,
+  collapsed: collapsedPinned,
   onToggle,
 }: {
   wsSlug: string;
@@ -1411,6 +1418,37 @@ function SidebarNav({
     }
   }
 
+  // Hover-to-peek: when the sidebar is pinned-collapsed, hovering the 48px
+  // rail floats the full sidebar over the content (overlay, doesn't shift
+  // <main>). `peek` is transient (never persisted). The derived `collapsed`
+  // below means "render the icon rail" = pinned-collapsed AND not peeking, so
+  // every downstream label/title/rail check stays keyed on one flag.
+  const [peek, setPeek] = useState(false);
+  const peekTimer = useRef<number | null>(null);
+  const openPeek = () => {
+    if (peekTimer.current) window.clearTimeout(peekTimer.current);
+    // small delay so brushing past the left edge doesn't pop it open
+    peekTimer.current = window.setTimeout(() => setPeek(true), 120);
+  };
+  const closePeek = () => {
+    if (peekTimer.current) {
+      window.clearTimeout(peekTimer.current);
+      peekTimer.current = null;
+    }
+    setPeek(false);
+  };
+  useEffect(
+    () => () => {
+      if (peekTimer.current) window.clearTimeout(peekTimer.current);
+    },
+    [],
+  );
+  const collapsed = collapsedPinned && !peek;
+  const handleToggle = () => {
+    closePeek();
+    onToggle();
+  };
+
   // Treat the URL as the source of truth for sidebar active state so each
   // primary entry highlights consistently as the user navigates.
   const onDashboard = pathname === `/w/${wsSlug}/dashboard`;
@@ -1430,9 +1468,20 @@ function SidebarNav({
   const itemActive = `${itemBase} text-slate-900 dark:text-neutral-200 bg-slate-100 dark:bg-neutral-800 font-medium`;
 
   return (
-    <aside
-      className={`group/sidebar relative ${collapsed ? "w-12" : "w-56"} shrink-0 border-r border-slate-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 p-2 flex flex-col gap-0.5 overflow-y-auto overflow-x-hidden transition-[width] duration-200 ease-out`}
-    >
+    <>
+      {/* When pinned-collapsed, reserve the 48px gutter in flow so <main>
+          never shifts; the real <aside> floats over it as an overlay and
+          widens to w-56 on hover (peek). */}
+      {collapsedPinned && <div className="w-12 shrink-0" aria-hidden />}
+      <aside
+        onMouseEnter={collapsedPinned ? openPeek : undefined}
+        onMouseLeave={collapsedPinned ? closePeek : undefined}
+        className={`group/sidebar border-r border-slate-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 p-2 flex flex-col gap-0.5 overflow-y-auto overflow-x-hidden transition-[width] duration-200 ease-out ${
+          collapsedPinned
+            ? `absolute left-0 inset-y-0 z-30 ${peek ? "w-56 shadow-xl" : "w-12"}`
+            : "relative w-56 shrink-0"
+        }`}
+      >
       {/* Collapse toggle — two modes:
             - Expanded: absolute top-right + hidden by default, fades in
               when the sidebar is hovered (Linear / Notion pattern).
@@ -1445,7 +1494,7 @@ function SidebarNav({
       {collapsed ? (
         <button
           type="button"
-          onClick={onToggle}
+          onClick={handleToggle}
           className="self-center w-7 h-7 flex items-center justify-center rounded text-slate-400 dark:text-neutral-500 hover:text-slate-900 dark:hover:text-neutral-100 hover:bg-slate-100 dark:hover:bg-neutral-800 mb-1 shrink-0"
           title="Expand sidebar"
           aria-label="Expand sidebar"
@@ -1467,10 +1516,12 @@ function SidebarNav({
       ) : (
         <button
           type="button"
-          onClick={onToggle}
+          onClick={handleToggle}
           className="absolute top-2 right-2 z-10 w-7 h-7 flex items-center justify-center rounded text-slate-400 dark:text-neutral-500 hover:text-slate-900 dark:hover:text-neutral-100 hover:bg-slate-100 dark:hover:bg-neutral-800 transition-opacity opacity-0 group-hover/sidebar:opacity-100 focus:opacity-100"
-          title="Collapse sidebar"
-          aria-label="Collapse sidebar"
+          // In peek (pinned-collapsed, floated open) the toggle pins it open;
+          // when actually expanded it collapses.
+          title={collapsedPinned ? "Pin sidebar open" : "Collapse sidebar"}
+          aria-label={collapsedPinned ? "Pin sidebar open" : "Collapse sidebar"}
         >
           <svg
             viewBox="0 0 24 24"
@@ -1483,7 +1534,7 @@ function SidebarNav({
           >
             <rect x="3" y="4" width="18" height="16" rx="2" />
             <line x1="9" y1="4" x2="9" y2="20" />
-            <path d="M16 9l-3 3 3 3" />
+            <path d={collapsedPinned ? "M13 9l3 3-3 3" : "M16 9l-3 3 3 3"} />
           </svg>
         </button>
       )}
@@ -1741,6 +1792,7 @@ function SidebarNav({
         })}
       </div>
 
-    </aside>
+      </aside>
+    </>
   );
 }
