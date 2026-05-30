@@ -16,6 +16,7 @@ Security invariants enforced inline:
 import base64
 import hashlib
 import secrets
+import time
 from urllib.parse import urlencode
 
 from starlette.requests import Request
@@ -52,10 +53,37 @@ def build_oauth_router(
             "issuer": base,
             "authorization_endpoint": f"{base}/authorize",
             "token_endpoint": f"{base}/token",
+            "registration_endpoint": f"{base}/register",
             "response_types_supported": ["code"],
             "grant_types_supported": ["authorization_code", "refresh_token"],
             "code_challenge_methods_supported": ["S256"],
+            "token_endpoint_auth_methods_supported": ["none"],
         })
+
+    async def register(request: Request) -> Response:
+        # RFC 7591 Dynamic Client Registration. MCP clients (Claude Desktop /
+        # Code, Cursor) require this to obtain a client_id before /authorize.
+        # We are a public-client PKCE proxy: client_id is NOT authenticated and
+        # /authorize never checks it — security rests on PKCE + redirect_uri
+        # validation. So we don't persist anything; we mint an id and echo the
+        # submitted metadata back per the spec.
+        try:
+            body = await request.json()
+        except Exception:
+            body = {}
+        return JSONResponse(
+            {
+                "client_id": "mcp-" + _token_url(16),
+                "client_id_issued_at": int(time.time()),
+                "token_endpoint_auth_method": "none",
+                "grant_types": body.get("grant_types")
+                or ["authorization_code", "refresh_token"],
+                "response_types": body.get("response_types") or ["code"],
+                "redirect_uris": body.get("redirect_uris") or [],
+                **({"client_name": body["client_name"]} if body.get("client_name") else {}),
+            },
+            status_code=201,
+        )
 
     async def authorize(request: Request) -> Response:
         params = request.query_params
@@ -193,6 +221,7 @@ def build_oauth_router(
     return Router(routes=[
         Route("/.well-known/oauth-protected-resource", well_known_resource, methods=["GET"]),
         Route("/.well-known/oauth-authorization-server", well_known_auth_server, methods=["GET"]),
+        Route("/register", register, methods=["POST"]),
         Route("/authorize", authorize, methods=["GET"]),
         Route("/authorize/start", authorize_start, methods=["GET"]),
         Route("/callback", callback, methods=["GET"]),
