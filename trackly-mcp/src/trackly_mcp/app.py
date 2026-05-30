@@ -58,13 +58,17 @@ def create_app() -> Starlette:
             sweeper.cancel()
             await supabase.aclose()
 
+    # Serve FastMCP's streamable-HTTP route at the TOP LEVEL, next to the OAuth
+    # routes. FastMCP already exposes it as Route("/mcp"), so we lift that route
+    # in directly. We must NOT `app.mount("/mcp", mcp_app)`: that double-prefixes
+    # the real endpoint to /mcp/mcp AND makes Starlette 307-redirect /mcp→/mcp/,
+    # and the redirect drops the Authorization header (→ 401 "missing") / lands
+    # on a non-existent path (→ 404). A plain top-level Route("/mcp") is hit
+    # directly by the client with its bearer intact.
     app = Starlette(
-        routes=oauth.routes,
+        routes=[*oauth.routes, *mcp_app.routes],
         lifespan=lifespan,
     )
-
-    # Mount FastMCP under /mcp. AuthMiddleware below catches it.
-    app.mount("/mcp", mcp_app)
 
     app.add_middleware(
         AuthMiddleware,

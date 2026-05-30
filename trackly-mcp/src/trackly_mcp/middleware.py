@@ -81,7 +81,20 @@ class AuthMiddleware:
 
         try:
             payload = await anyio.to_thread.run_sync(self._decode, token)
-        except Exception:
+        except Exception as exc:
+            # Log WHY (alg + error type) so 401s are diagnosable. Never logs the
+            # token or the signing secret. `alg` comes from the UNVERIFIED header
+            # (attacker-controlled), so whitelist it and repr()-truncate the
+            # message to avoid log injection via crafted values.
+            try:
+                raw_alg = jwt.get_unverified_header(token).get("alg", "?")
+            except Exception:
+                raw_alg = "?"
+            alg = raw_alg if raw_alg in ("HS256", "ES256") else "other"
+            print(
+                f"[auth] token rejected: alg={alg} err={type(exc).__name__}: {str(exc)[:120]!r}",
+                flush=True,
+            )
             await self._reject(send, status=401, reason="invalid")
             return
 
