@@ -29,7 +29,6 @@ const CAP_LINES: ((p: Plan) => string)[] = [
   (p) => `${PLAN_LIMITS[p].members} members`,
   (p) => `${PLAN_LIMITS[p].storage_gb} GB storage`,
   (p) => `${PLAN_LIMITS[p].mcp_calls_per_day.toLocaleString()} MCP calls / day`,
-  (p) => `${PLAN_LIMITS[p].emails_per_month.toLocaleString()} emails / month`,
 ];
 
 export default function Billing() {
@@ -268,11 +267,6 @@ export default function Billing() {
             cap={`${limits.storage_gb} GB`}
             fraction={storageBytes != null ? storageBytes / storageCapBytes : undefined}
             isOver={storageBytes != null && storageBytes > storageCapBytes}
-          />
-          <UsageRow
-            label="MCP calls today"
-            used="—"
-            cap={limits.mcp_calls_per_day.toLocaleString()}
           />
         </div>
       </div>
