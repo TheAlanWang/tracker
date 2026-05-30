@@ -17,6 +17,7 @@ import Goals from "@/pages/Goals";
 import Home from "@/pages/Home";
 import Landing from "@/pages/Landing";
 import TaskDetail from "@/pages/TaskDetail";
+import TaskStandalone from "@/pages/TaskStandalone";
 import TaskList from "@/pages/TaskList";
 import MyIssues from "@/pages/MyIssues";
 import NotFound from "@/pages/NotFound";
@@ -63,6 +64,16 @@ export default function App() {
           element={
             <ProtectedRoute>
               <Browse />
+            </ProtectedRoute>
+          }
+        />
+        {/* Chrome-less standalone task view (opened in a new tab from the
+            task modal's expand button). No workspace sidebar / header. */}
+        <Route
+          path="/t/:identifier"
+          element={
+            <ProtectedRoute>
+              <TaskStandalone />
             </ProtectedRoute>
           }
         />

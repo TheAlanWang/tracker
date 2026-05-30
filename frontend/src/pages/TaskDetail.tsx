@@ -24,7 +24,7 @@ import ReactMarkdown from "react-markdown";
 import rehypeHighlight from "rehype-highlight";
 import remarkGfm from "remark-gfm";
 import { toast } from "sonner";
-import { Activity as ActivityIcon, AlignLeft, ChevronRight, Mail, MessageSquare, Trash2 } from "lucide-react";
+import { Activity as ActivityIcon, AlignLeft, ChevronRight, Mail, MessageSquare, Pencil, Trash2 } from "lucide-react";
 
 import { Avatar } from "@/components/Avatar";
 import { PageSpinner } from "@/components/PageSpinner";
@@ -44,7 +44,7 @@ import { Select } from "@/components/ui/select";
 import { CommentBody } from "@/components/CommentBody";
 import { TaskImage } from "@/components/TaskImage";
 import { markdownUrlTransform } from "@/lib/resolveTaskImageUrl";
-import { uploadTaskImage } from "@/lib/uploadTaskImage";
+import { useImagePasteUpload } from "@/lib/useImagePasteUpload";
 import { MentionTextarea } from "@/components/MentionTextarea";
 import { ChecklistSection } from "@/components/ChecklistSection";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -54,9 +54,11 @@ import { useGoals } from "@/features/goals/api";
 import { isSprintsEnabled, useWorkspaces } from "@/features/workspaces/api";
 import { type Activity, useTaskActivity } from "@/features/activity/api";
 import {
+  type Comment,
   useComments,
   useCreateComment,
   useDeleteComment,
+  useUpdateComment,
 } from "@/features/comments/api";
 import {
   TaskPriority,
@@ -68,7 +70,7 @@ import {
 } from "@/features/tasks/api";
 import { wouldEmailOnSave } from "@/features/tasks/wouldEmailOnSave";
 import { useProjects } from "@/features/projects/api";
-import { useMembers } from "@/features/members/api";
+import { type Member, useMembers } from "@/features/members/api";
 import { useSprints } from "@/features/sprints/api";
 import {
   useTaskWatchers,
@@ -236,11 +238,12 @@ function parseDescriptionImages(md: string): DescriptionImageHit[] {
   return hits;
 }
 
-// Thumbnail strip rendered below the description textarea when editing.
-// Clicking a thumbnail focuses the textarea and selects the `![](url)` span
-// in the underlying markdown — useful for jumping to / replacing an image
-// without manually scanning the source.
-function DescriptionThumbnails({
+// Thumbnail strip rendered below a markdown textarea (task description and
+// comment composers) when it contains images. Clicking a thumbnail focuses
+// the textarea and selects the `![](url)` span in the underlying markdown —
+// useful for jumping to / replacing an image without manually scanning the
+// source.
+function ImageThumbnails({
   draft,
   textareaRef,
 }: {
@@ -283,6 +286,137 @@ function DescriptionThumbnails({
         </button>
       ))}
     </div>
+  );
+}
+
+// Small Edit / Preview segmented toggle for the comment composers — same
+// look as the description editor's tabs. Lives standalone so the new-comment
+// form and CommentEditor share it.
+function EditPreviewTabs({
+  mode,
+  onChange,
+}: {
+  mode: "edit" | "preview";
+  onChange: (m: "edit" | "preview") => void;
+}) {
+  return (
+    <div className="flex justify-end gap-1">
+      {(["edit", "preview"] as const).map((m) => (
+        <button
+          key={m}
+          type="button"
+          onClick={() => onChange(m)}
+          className={`px-2 py-0.5 text-xs rounded transition-colors ${
+            mode === m
+              ? "bg-slate-200 dark:bg-neutral-700 text-slate-900 dark:text-neutral-200"
+              : "text-slate-500 hover:text-slate-700 dark:text-neutral-400 dark:hover:text-neutral-200"
+          }`}
+        >
+          {m === "edit" ? "Edit" : "Preview"}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+// Inline editor for an existing comment. Lives in its own component because
+// it calls useImagePasteUpload — a hook can't be called inside the
+// comments.map() loop, so each editing row mounts its own instance. Mirrors
+// the new-comment composer: MentionTextarea + paste/drop image upload +
+// thumbnail strip, with Save/Cancel.
+function CommentEditor({
+  comment,
+  members,
+  workspaceId,
+  userId,
+  onDone,
+  onImageClick,
+}: {
+  comment: Comment;
+  members: Member[];
+  workspaceId: string;
+  userId: string;
+  onDone: () => void;
+  onImageClick?: (url: string) => void;
+}) {
+  const [draft, setDraft] = useState(comment.body);
+  const [mode, setMode] = useState<"edit" | "preview">("edit");
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const updateMutation = useUpdateComment(comment.task_id);
+  const img = useImagePasteUpload({
+    workspaceId: workspaceId || undefined,
+    userId: userId || undefined,
+    textareaRef,
+    setDraft,
+  });
+
+  async function onSave(e: React.FormEvent) {
+    e.preventDefault();
+    if (!draft.trim()) return;
+    try {
+      await updateMutation.mutateAsync({ commentId: comment.id, body: draft });
+      onDone();
+    } catch (err) {
+      const detail =
+        (err as { response?: { data?: { detail?: string } } }).response?.data
+          ?.detail ?? "Failed to save comment";
+      toast.error(detail);
+    }
+  }
+
+  return (
+    <form onSubmit={onSave} className="space-y-2">
+      <EditPreviewTabs mode={mode} onChange={setMode} />
+      {mode === "edit" ? (
+        <>
+          <div className="relative">
+            <MentionTextarea
+              ref={textareaRef}
+              value={draft}
+              onChange={setDraft}
+              members={members}
+              placeholder="Edit comment… use @ to mention · paste or drop an image"
+              rows={3}
+              maxLength={10000}
+              className="w-full rounded border border-slate-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 p-2 text-sm"
+              onPaste={img.onPaste}
+              onDragOver={img.onDragOver}
+              onDragLeave={img.onDragLeave}
+              onDrop={img.onDrop}
+            />
+            {img.dragging && (
+              <div className="pointer-events-none absolute inset-0 rounded border-2 border-dashed border-blue-400 bg-blue-50/80 dark:bg-blue-950/40 flex items-center justify-center text-sm font-medium text-blue-700 dark:text-blue-300">
+                Drop image to upload
+              </div>
+            )}
+          </div>
+          <ImageThumbnails draft={draft} textareaRef={textareaRef} />
+        </>
+      ) : (
+        <div className="rounded border border-slate-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 p-2 min-h-[5.5rem]">
+          {draft.trim() ? (
+            <CommentBody body={draft} members={members} onImageClick={onImageClick} />
+          ) : (
+            <p className="text-sm italic text-slate-400 dark:text-neutral-500">
+              Nothing to preview.
+            </p>
+          )}
+        </div>
+      )}
+      <div className="flex items-center justify-end gap-2">
+        <Button type="submit" disabled={updateMutation.isPending}>
+          {updateMutation.isPending ? "Saving…" : "Save"}
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={onDone}
+          disabled={updateMutation.isPending}
+        >
+          Cancel
+        </Button>
+      </div>
+    </form>
   );
 }
 
@@ -610,7 +744,6 @@ export function TaskDetailContent({
   // + a drag-over flag to show the "Drop image to upload" overlay + a tab
   // mode that swaps the textarea for a rendered preview while still editing.
   const descTextareaRef = useRef<HTMLTextAreaElement>(null);
-  const [draggingImage, setDraggingImage] = useState(false);
   const [descEditMode, setDescEditMode] = useState<"edit" | "preview">("edit");
   // Lightbox: URL of the image to display full-screen, or null. Wired into
   // every ReactMarkdown render on this page (description view, description
@@ -755,6 +888,27 @@ export function TaskDetailContent({
   const createCommentMutation = useCreateComment(task?.id ?? "");
   const deleteCommentMutation = useDeleteComment(task?.id ?? "");
   const [commentDraft, setCommentDraft] = useState("");
+  const commentTextareaRef = useRef<HTMLTextAreaElement>(null);
+  const [commentEditMode, setCommentEditMode] = useState<"edit" | "preview">(
+    "edit",
+  );
+  // Which comment is currently in inline-edit mode (null = none).
+  const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
+
+  // Image paste / drag-drop upload, shared with the per-comment edit
+  // composer (CommentEditor, defined below) via the same hook.
+  const descImg = useImagePasteUpload({
+    workspaceId: task?.workspace_id,
+    userId: me?.id,
+    textareaRef: descTextareaRef,
+    setDraft: setDescDraft,
+  });
+  const commentImg = useImagePasteUpload({
+    workspaceId: task?.workspace_id,
+    userId: me?.id,
+    textareaRef: commentTextareaRef,
+    setDraft: setCommentDraft,
+  });
 
   const { data: activity = [] } = useTaskActivity(task?.id ?? "");
 
@@ -928,75 +1082,13 @@ export function TaskDetailContent({
     setDescEditMode("edit");
   }
 
-  // --- Description image upload (paste + drag-drop) ---
-
-  // Insert text at the textarea's caret (or append if the ref is gone).
-  // Used by handleImageFile to drop in the markdown image snippet.
-  function insertIntoDescription(snippet: string) {
-    const ta = descTextareaRef.current;
-    if (!ta) {
-      setDescDraft((d) => d + snippet);
-      return;
-    }
-    const start = ta.selectionStart ?? descDraft.length;
-    const end = ta.selectionEnd ?? descDraft.length;
-    setDescDraft(
-      (d) => d.slice(0, start) + snippet + d.slice(end),
-    );
-    requestAnimationFrame(() => {
-      ta.focus();
-      const pos = start + snippet.length;
-      ta.setSelectionRange(pos, pos);
-    });
-  }
-
-  async function handleDescriptionImageFile(file: File) {
-    if (!me || !task) return;
-    // Optimistic placeholder so multi-paste in quick succession doesn't
-    // race; we swap it for the real URL when upload finishes, or drop it
-    // entirely on error.
-    const placeholder = `![uploading ${file.name}…]()`;
-    insertIntoDescription(placeholder + "\n");
-    try {
-      const url = await uploadTaskImage(file, task.workspace_id, me.id);
-      setDescDraft((d) =>
-        d.replace(placeholder, `![${file.name}](${url})`),
-      );
-    } catch (err) {
-      const msg =
-        err instanceof Error ? err.message : "Failed to upload image";
-      toast.error(msg);
-      setDescDraft((d) => d.replace(placeholder + "\n", ""));
-    }
-  }
-
-  function onDescriptionPaste(
-    e: React.ClipboardEvent<HTMLTextAreaElement>,
-  ) {
-    const files = Array.from(e.clipboardData.files).filter((f) =>
-      f.type.startsWith("image/"),
-    );
-    if (files.length === 0) return; // text / non-image paste falls through
-    e.preventDefault();
-    files.forEach((f) => void handleDescriptionImageFile(f));
-  }
-
-  function onDescriptionDrop(e: React.DragEvent<HTMLTextAreaElement>) {
-    const files = Array.from(e.dataTransfer.files).filter((f) =>
-      f.type.startsWith("image/"),
-    );
-    setDraggingImage(false);
-    if (files.length === 0) return;
-    e.preventDefault();
-    files.forEach((f) => void handleDescriptionImageFile(f));
-  }
-
   async function onPostComment(e: React.FormEvent) {
     e.preventDefault();
     if (!commentDraft.trim()) return;
     try {
       await createCommentMutation.mutateAsync({ body: commentDraft });
       setCommentDraft("");
+      setCommentEditMode("edit");
     } catch (err) {
       const detail =
         (err as { response?: { data?: { detail?: string } } }).response?.data
@@ -1055,8 +1147,8 @@ export function TaskDetailContent({
   }
 
   return (
-    <div className="grid grid-cols-3 gap-8">
-      <div className="col-span-2 space-y-4">
+    <div className="grid grid-cols-[minmax(0,1fr)_300px] gap-8">
+      <div className="space-y-4">
         {/* Title block — two rows now (was one):
             Row 1: identifier eyebrow on the left, action button cluster
                    on the right. Identifier is short, so the cluster sits
@@ -1236,24 +1328,19 @@ export function TaskDetailContent({
                         rows={6}
                         value={descDraft}
                         onChange={(e) => setDescDraft(e.target.value)}
-                        onPaste={onDescriptionPaste}
-                        onDragOver={(e) => {
-                          if (e.dataTransfer.types.includes("Files")) {
-                            e.preventDefault();
-                            setDraggingImage(true);
-                          }
-                        }}
-                        onDragLeave={() => setDraggingImage(false)}
-                        onDrop={onDescriptionDrop}
+                        onPaste={descImg.onPaste}
+                        onDragOver={descImg.onDragOver}
+                        onDragLeave={descImg.onDragLeave}
+                        onDrop={descImg.onDrop}
                         placeholder="Add a description… (paste or drop an image to upload)"
                       />
-                      {draggingImage && (
+                      {descImg.dragging && (
                         <div className="pointer-events-none absolute inset-0 rounded border-2 border-dashed border-blue-400 bg-blue-50/80 dark:bg-blue-950/40 flex items-center justify-center text-sm font-medium text-blue-700 dark:text-blue-300">
                           Drop image to upload
                         </div>
                       )}
                     </div>
-                    <DescriptionThumbnails
+                    <ImageThumbnails
                       draft={descDraft}
                       textareaRef={descTextareaRef}
                     />
@@ -1368,12 +1455,25 @@ export function TaskDetailContent({
                   className="group rounded border border-slate-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 p-3"
                 >
                   {/* Body first — that's what people scan; author/time
-                      below as a subordinate footer. */}
-                  <CommentBody
-                    body={c.body}
-                    members={members}
-                    onImageClick={setLightboxUrl}
-                  />
+                      below as a subordinate footer. Swaps to an inline
+                      editor (same composer as new comments, image upload
+                      included) when this comment is being edited. */}
+                  {editingCommentId === c.id ? (
+                    <CommentEditor
+                      comment={c}
+                      members={members}
+                      workspaceId={task?.workspace_id ?? ""}
+                      userId={me?.id ?? ""}
+                      onDone={() => setEditingCommentId(null)}
+                      onImageClick={setLightboxUrl}
+                    />
+                  ) : (
+                    <CommentBody
+                      body={c.body}
+                      members={members}
+                      onImageClick={setLightboxUrl}
+                    />
+                  )}
                   <div className="mt-3 pt-2 border-t border-slate-100 dark:border-neutral-800/60 flex items-center gap-2">
                     <Avatar
                       displayName={author?.display_name ?? null}
@@ -1394,16 +1494,29 @@ export function TaskDetailContent({
                         {formatRelativeTime(c.created_at)}
                       </span>
                     </div>
-                    {isMine && (
-                      <button
-                        type="button"
-                        onClick={() => onDeleteComment(c.id)}
-                        title="Delete comment"
-                        aria-label="Delete comment"
-                        className="opacity-0 group-hover:opacity-100 focus:opacity-100 text-slate-400 dark:text-neutral-500 hover:text-red-600 dark:hover:text-red-500 transition-opacity rounded p-1 -mr-1"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" aria-hidden />
-                      </button>
+                    {isMine && editingCommentId !== c.id && (
+                      <div className="flex items-center gap-0.5 -mr-1">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditingCommentId(c.id);
+                          }}
+                          title="Edit comment"
+                          aria-label="Edit comment"
+                          className="opacity-0 group-hover:opacity-100 focus:opacity-100 text-slate-400 dark:text-neutral-500 hover:text-slate-700 dark:hover:text-neutral-300 transition-opacity rounded p-1"
+                        >
+                          <Pencil className="w-3.5 h-3.5" aria-hidden />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => onDeleteComment(c.id)}
+                          title="Delete comment"
+                          aria-label="Delete comment"
+                          className="opacity-0 group-hover:opacity-100 focus:opacity-100 text-slate-400 dark:text-neutral-500 hover:text-red-600 dark:hover:text-red-500 transition-opacity rounded p-1"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" aria-hidden />
+                        </button>
+                      </div>
                     )}
                   </div>
                 </div>
@@ -1411,22 +1524,60 @@ export function TaskDetailContent({
             })
           )}
           <form onSubmit={onPostComment} className="space-y-2">
-            <MentionTextarea
-              value={commentDraft}
-              onChange={setCommentDraft}
-              members={members}
-              placeholder="Write a comment… use @ to mention a teammate"
-              rows={3}
-              maxLength={10000}
-              className="w-full rounded border border-slate-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 p-2 text-sm"
-            />
+            {/* Edit / Preview toggle only appears once there's a draft —
+                keeps the resting state just the textarea + placeholder.
+                Preview renders the same way the posted comment will
+                (CommentBody: markdown + images + mentions). */}
+            {commentDraft.trim() && (
+              <EditPreviewTabs
+                mode={commentEditMode}
+                onChange={setCommentEditMode}
+              />
+            )}
+            {commentEditMode === "edit" || !commentDraft.trim() ? (
+              <>
+                <div className="relative">
+                  <MentionTextarea
+                    ref={commentTextareaRef}
+                    value={commentDraft}
+                    onChange={setCommentDraft}
+                    members={members}
+                    placeholder="Write a comment… use @ to mention · paste or drop an image"
+                    rows={3}
+                    maxLength={10000}
+                    className="w-full rounded border border-slate-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 p-2 text-sm"
+                    onPaste={commentImg.onPaste}
+                    onDragOver={commentImg.onDragOver}
+                    onDragLeave={commentImg.onDragLeave}
+                    onDrop={commentImg.onDrop}
+                  />
+                  {commentImg.dragging && (
+                    <div className="pointer-events-none absolute inset-0 rounded border-2 border-dashed border-blue-400 bg-blue-50/80 dark:bg-blue-950/40 flex items-center justify-center text-sm font-medium text-blue-700 dark:text-blue-300">
+                      Drop image to upload
+                    </div>
+                  )}
+                </div>
+                <ImageThumbnails
+                  draft={commentDraft}
+                  textareaRef={commentTextareaRef}
+                />
+              </>
+            ) : (
+              <div className="rounded border border-slate-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 p-2 min-h-[5.5rem]">
+                <CommentBody
+                  body={commentDraft}
+                  members={members}
+                  onImageClick={setLightboxUrl}
+                />
+              </div>
+            )}
             {/* Buttons only appear once the user has typed something —
                 resting state is just the textarea + placeholder, no
                 idle "Post comment" sitting around disabled. The
                 placeholder copy is enough to tell people this is a
                 type-and-submit affordance. */}
             {commentDraft.trim() && (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center justify-end gap-2">
                 <Button
                   type="submit"
                   disabled={createCommentMutation.isPending}
@@ -1436,7 +1587,10 @@ export function TaskDetailContent({
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => setCommentDraft("")}
+                  onClick={() => {
+                    setCommentDraft("");
+                    setCommentEditMode("edit");
+                  }}
                   disabled={createCommentMutation.isPending}
                 >
                   Cancel
@@ -1493,9 +1647,9 @@ export function TaskDetailContent({
         </details>
       </div>
 
-      <aside className="space-y-4 border-l border-slate-200 dark:border-neutral-800 pl-6 self-start sticky top-0 pb-4">
+      <aside className="space-y-5 border-l border-slate-200 dark:border-neutral-800 pl-6 self-start sticky top-0 pb-4">
         <div className="space-y-1">
-          <p className="text-sm font-normal uppercase tracking-wide text-muted-foreground">
+          <p className="text-xs font-medium uppercase tracking-wider text-slate-400 dark:text-neutral-500">
             Status
           </p>
           {isEditing ? (
@@ -1513,7 +1667,7 @@ export function TaskDetailContent({
         {/* Priority — hide entire block in view mode when "No priority". */}
         {(isEditing || priorityDraft !== "no_priority") && (
           <div className="space-y-1">
-            <p className="text-sm font-normal uppercase tracking-wide text-muted-foreground">
+            <p className="text-xs font-medium uppercase tracking-wider text-slate-400 dark:text-neutral-500">
               Priority
             </p>
             {isEditing ? (
@@ -1540,7 +1694,7 @@ export function TaskDetailContent({
         {/* Due date — hide in view mode when unset. */}
         {(isEditing || dueDateDraft) && (
           <div className="space-y-1">
-            <p className="text-sm font-normal uppercase tracking-wide text-muted-foreground">
+            <p className="text-xs font-medium uppercase tracking-wider text-slate-400 dark:text-neutral-500">
               Due date
             </p>
             {isEditing ? (
@@ -1568,7 +1722,7 @@ export function TaskDetailContent({
             wired into the dirty-check / payload regardless). */}
         {sprintsEnabled && (isEditing || sprintDraft) && (
           <div className="space-y-1">
-            <p className="text-sm font-normal uppercase tracking-wide text-muted-foreground">
+            <p className="text-xs font-medium uppercase tracking-wider text-slate-400 dark:text-neutral-500">
               Sprint
             </p>
             {isEditing ? (
@@ -1597,7 +1751,7 @@ export function TaskDetailContent({
         {/* Hide entire Goal block in view mode when no goal is linked. */}
         {goalsEnabled && (isEditing || goalDraft) && (
           <div className="space-y-1">
-            <p className="text-sm font-normal uppercase tracking-wide text-muted-foreground">
+            <p className="text-xs font-medium uppercase tracking-wider text-slate-400 dark:text-neutral-500">
               Goal
             </p>
             {isEditing ? (
@@ -1617,7 +1771,7 @@ export function TaskDetailContent({
         {/* Assignee — hide in view mode when unassigned. */}
         {(isEditing || assigneeDraft) && (
           <div className="space-y-1">
-            <p className="text-sm font-normal uppercase tracking-wide text-muted-foreground">
+            <p className="text-xs font-medium uppercase tracking-wider text-slate-400 dark:text-neutral-500">
               Assignee
             </p>
             {isEditing ? (
@@ -1701,7 +1855,7 @@ export function TaskDetailContent({
 
         {(isEditing || taskLabels.length > 0) && (
           <div className="space-y-1">
-            <p className="text-sm font-normal uppercase tracking-wide text-muted-foreground">
+            <p className="text-xs font-medium uppercase tracking-wider text-slate-400 dark:text-neutral-500">
               Labels
             </p>
             <LabelsEditor
@@ -1738,7 +1892,7 @@ export function TaskDetailContent({
         />
 
         <div className="space-y-1">
-          <p className="text-sm font-normal uppercase tracking-wide text-muted-foreground">
+          <p className="text-xs font-medium uppercase tracking-wider text-slate-400 dark:text-neutral-500">
             Created
           </p>
           {/* Matches Due Date's format ("May 12, 2026") with the time

@@ -238,7 +238,7 @@ function DependencyGroup({
 
   return (
     <div className="space-y-1.5">
-      <p className="text-sm font-normal uppercase tracking-wide text-muted-foreground">
+      <p className="text-xs font-medium uppercase tracking-wider text-slate-400 dark:text-neutral-500">
         {label}
       </p>
       {chips.map((c) =>
