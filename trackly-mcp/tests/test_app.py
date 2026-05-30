@@ -79,6 +79,8 @@ def test_authenticated_mcp_initialize_runs_session_manager(configured_app):
             },
         )
 
-    assert r.status_code != 401, "token should authenticate"
-    assert r.status_code != 500, f"session manager not initialized: {r.text}"
+    # 200 = fully wired: token authenticated, session manager up, and the
+    # transport-security Host check passed (a 421 here means DNS-rebinding
+    # protection rejected the Host — see server.py).
+    assert r.status_code == 200, f"expected 200, got {r.status_code}: {r.text}"
     assert "Task group is not initialized" not in r.text
