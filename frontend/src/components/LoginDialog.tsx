@@ -100,6 +100,10 @@ export function LoginDialog({
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  // Email/password is collapsed by default so OAuth (Google/GitHub) is the
+  // obvious primary path — most people sign in without ever triggering an
+  // email (avoids the generic Supabase auth emails).
+  const [showEmail, setShowEmail] = useState(false);
   // Inline auth error (wrong password, email taken, etc). Errors *about this
   // form* belong here, not in a corner toast that can be missed.
   const [authError, setAuthError] = useState<string | null>(null);
@@ -115,6 +119,7 @@ export function LoginDialog({
     setMode(next);
     setAuthError(null);
     setSignupEmailSent(null);
+    setShowEmail(false);
   }
 
   useEffect(() => {
@@ -342,6 +347,18 @@ export function LoginDialog({
           </p>
         )}
 
+        {!showEmail && (
+          <button
+            type="button"
+            onClick={() => setShowEmail(true)}
+            className="mt-3 w-full rounded-md border border-slate-200 dark:border-neutral-800 py-2 text-center text-sm text-slate-600 dark:text-neutral-300 hover:bg-slate-50 dark:hover:bg-neutral-800"
+          >
+            {isSignin ? "Continue with email" : "Sign up with email"}
+          </button>
+        )}
+
+        {showEmail && (
+        <>
         <div className="relative my-4">
           <div className="absolute inset-0 flex items-center">
             <span className="w-full border-t border-slate-200 dark:border-neutral-800" />
@@ -446,6 +463,8 @@ export function LoginDialog({
             </p>
           )}
         </form>
+        </>
+        )}
 
         <p className="mt-5 text-center text-sm text-slate-500 dark:text-neutral-400">
           {isSignin ? (
