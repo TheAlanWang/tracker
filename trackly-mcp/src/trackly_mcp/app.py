@@ -47,8 +47,13 @@ def create_app() -> Starlette:
     async def lifespan(app: Starlette) -> AsyncGenerator[None, None]:
         # Start background TTL sweeper
         sweeper = asyncio.create_task(store.run_sweeper(interval_seconds=30.0))
+        # Starlette does NOT run the lifespan of a *mounted* sub-app, so the
+        # FastMCP StreamableHTTP session manager's task group would never be
+        # initialized — the first authenticated /mcp request would then 500
+        # with "Task group is not initialized". Drive it from here.
         try:
-            yield
+            async with mcp.session_manager.run():
+                yield
         finally:
             sweeper.cancel()
             await supabase.aclose()
