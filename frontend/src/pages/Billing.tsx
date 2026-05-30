@@ -97,18 +97,13 @@ export default function Billing() {
 
   return (
     <div className="max-w-3xl mx-auto space-y-10">
-      <div className="flex items-start justify-between gap-4">
-        <div className="min-w-0">
-          <h1 className="text-2xl font-semibold tracking-tight text-slate-900 dark:text-neutral-100">
-            Billing
-          </h1>
-          <p className="mt-1 text-sm text-slate-500 dark:text-neutral-400">
-            Plan &amp; usage for this workspace.
-          </p>
-        </div>
-        {/* Workspace context — billing acts on this one. Frameless switcher
-            when there are several; plain text when there's only one. */}
-        <div className="flex shrink-0 items-center gap-1.5 text-sm">
+      {/* Centered header. Workspace context — billing acts on this one;
+          frameless switcher when there are several, plain text otherwise. */}
+      <div className="text-center">
+        <h1 className="text-2xl font-semibold tracking-tight text-slate-900 dark:text-neutral-100">
+          Billing
+        </h1>
+        <div className="mt-2 flex items-center justify-center gap-1.5 text-sm">
           <span className="text-slate-500 dark:text-neutral-400">Workspace:</span>
           {workspaces.length > 1 ? (
             <Select
