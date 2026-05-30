@@ -1,6 +1,10 @@
-"""Search service — cross-entity ilike search within a workspace."""
+"""Search service — fuzzy, ranked, cross-entity search within a workspace.
 
-import asyncio
+Backed by the `search_workspace` Postgres RPC, which scores matches by trigram
+similarity (typo-tolerant) plus a substring bonus and returns the most relevant
+rows across projects / tasks / labels / goals / sprints. This service verifies
+membership and turns each scored row into a navigable SearchResult.
+"""
 
 from supabase import AsyncClient
 
@@ -22,6 +26,22 @@ async def _is_member(supabase: AsyncClient, *, user_id: str, workspace_id: str) 
     return bool(rows)
 
 
+def _href(row: dict, base: str) -> str:
+    """Build the navigation target for one scored search row."""
+    rtype = row["type"]
+    project_key = row.get("project_key") or ""
+    if rtype == "project":
+        return f"{base}/p/{row['sublabel']}/list"
+    if rtype == "task":
+        return f"{base}/p/{project_key}/tasks/{row['sublabel']}"
+    if rtype == "goal":
+        return f"{base}/goals"
+    if rtype == "sprint":
+        return f"{base}/p/{project_key}/sprints/{row['id']}"
+    # label (and any future type): land on the workspace root.
+    return f"{base}"
+
+
 async def search(
     supabase: AsyncClient,
     *,
@@ -34,88 +54,24 @@ async def search(
         raise SearchPermissionError(workspace_id)
 
     q = query.strip()
+    if not q:
+        return []
+
     base = f"/w/{ws_slug}" if ws_slug else ""
 
-    async def _search_projects() -> list[SearchResult]:
-        rows = (
-            await supabase.table("projects")
-            .select("id, name, key")
-            .eq("workspace_id", workspace_id)
-            .or_(f"name.ilike.%{q}%,key.ilike.%{q}%")
-            .limit(5)
-            .execute()
-        ).data
-        return [
-            SearchResult(
-                type="project",
-                id=r["id"],
-                label=r["name"],
-                sublabel=r["key"],
-                href=f"{base}/p/{r['key']}/list",
-            )
-            for r in rows
-        ]
+    rows = (
+        await supabase.rpc(
+            "search_workspace", {"p_ws": workspace_id, "p_q": q}
+        ).execute()
+    ).data or []
 
-    async def _search_tasks() -> list[SearchResult]:
-        rows = (
-            await supabase.table("tasks")
-            .select("id, identifier, title, project_id")
-            .eq("workspace_id", workspace_id)
-            .or_(f"identifier.ilike.%{q}%,title.ilike.%{q}%")
-            .limit(10)
-            .execute()
-        ).data
-        # Collect unique project IDs to look up project keys for hrefs
-        project_ids = list({r["project_id"] for r in rows})
-        project_key_map: dict[str, str] = {}
-        if project_ids:
-            proj_rows = (
-                await supabase.table("projects")
-                .select("id, key")
-                .in_("id", project_ids)
-                .execute()
-            ).data
-            project_key_map = {p["id"]: p["key"] for p in proj_rows}
-
-        results = []
-        for r in rows:
-            proj_key = project_key_map.get(r["project_id"], "")
-            identifier = r["identifier"]
-            results.append(
-                SearchResult(
-                    type="task",
-                    id=r["id"],
-                    label=r["title"],
-                    sublabel=identifier,
-                    href=f"{base}/p/{proj_key}/tasks/{identifier}",
-                )
-            )
-        return results
-
-    async def _search_labels() -> list[SearchResult]:
-        rows = (
-            await supabase.table("labels")
-            .select("id, name")
-            .eq("workspace_id", workspace_id)
-            .ilike("name", f"%{q}%")
-            .limit(5)
-            .execute()
-        ).data
-        return [
-            SearchResult(
-                type="label",
-                id=r["id"],
-                label=r["name"],
-                sublabel=None,
-                href=f"{base}",
-            )
-            for r in rows
-        ]
-
-    # Concurrent fan-out via asyncio.gather — replaces the previous
-    # ThreadPoolExecutor pattern. Event loop multiplexes the three HTTP
-    # requests on one thread, no GIL contention.
-    projects, tasks, labels = await asyncio.gather(
-        _search_projects(), _search_tasks(), _search_labels()
-    )
-    return [*projects, *tasks, *labels]
+    return [
+        SearchResult(
+            type=row["type"],
+            id=row["id"],
+            label=row["label"],
+            sublabel=row.get("sublabel"),
+            href=_href(row, base),
+        )
+        for row in rows
+    ]
