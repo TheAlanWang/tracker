@@ -210,7 +210,15 @@ export function SettingsSidebar({
                     title={w.name}
                     aria-label={w.name}
                   >
-                    <span className="inline-flex items-center justify-center w-5 h-5 rounded text-[10px] font-semibold bg-slate-100 dark:bg-neutral-800 text-slate-700 dark:text-neutral-300">
+                    {/* Pro workspaces get a soft gold badge (matches the ✦
+                        on the expanded rows); Free stays neutral grey. */}
+                    <span
+                      className={`inline-flex items-center justify-center w-5 h-5 rounded text-[10px] font-semibold ${
+                        w.plan === "pro"
+                          ? "bg-[#C9A227]/15 text-[#C9A227] dark:bg-[#E8C766]/15 dark:text-[#E8C766]"
+                          : "bg-slate-100 dark:bg-neutral-800 text-slate-700 dark:text-neutral-300"
+                      }`}
+                    >
                       {initial}
                     </span>
                   </button>
