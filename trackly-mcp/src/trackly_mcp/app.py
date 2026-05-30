@@ -74,7 +74,7 @@ def create_app() -> Starlette:
         AuthMiddleware,
         jwt_secret=cfg.supabase_jwt_secret,
         protected_prefix="/mcp",
-        resource_metadata_url=f"{cfg.server_base_url}/.well-known/oauth-protected-resource",
+        resource_metadata_url=f"{cfg.server_base_url}/.well-known/oauth-protected-resource/mcp",
     )
 
     return app

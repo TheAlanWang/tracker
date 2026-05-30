@@ -240,6 +240,12 @@ def build_oauth_router(
 
     return Router(routes=[
         Route("/.well-known/oauth-protected-resource", well_known_resource, methods=["GET"]),
+        # RFC 9728: clients build the PRM URL by inserting the well-known
+        # segment before the resource's path, i.e. for resource ".../mcp" they
+        # fetch ".../.well-known/oauth-protected-resource/mcp". Serve it there
+        # too (same doc) — without it the client can't bind the token to the
+        # resource and won't send it → 401 "missing" on /mcp.
+        Route("/.well-known/oauth-protected-resource/mcp", well_known_resource, methods=["GET"]),
         Route("/.well-known/oauth-authorization-server", well_known_auth_server, methods=["GET"]),
         Route("/register", register, methods=["POST"]),
         Route("/authorize", authorize, methods=["GET"]),
