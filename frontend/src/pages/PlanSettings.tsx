@@ -2,35 +2,31 @@ import { useEffect, useState } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
+import { Check } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
-import { ProBadge } from "@/components/ProBadge";
-import { useCreateCheckout, useBillingPortal } from "@/features/billing/api";
 import {
   PLAN_LABEL,
   PLAN_LIMITS,
   PLAN_PRICE,
   type Plan,
 } from "@/features/billing/planLimits";
+import { useCreateCheckout, useBillingPortal } from "@/features/billing/api";
 import { useMembers } from "@/features/members/api";
 import { useWorkspaceInvitations } from "@/features/invitations/api";
 import { useWorkspaces, useWorkspaceUsage } from "@/features/workspaces/api";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 
-// The caps we surface in the Free-vs-Pro comparison, in display order.
-const CAP_ROWS: { label: string; value: (p: Plan) => string }[] = [
-  { label: "Members", value: (p) => `${PLAN_LIMITS[p].members}` },
-  { label: "Storage", value: (p) => `${PLAN_LIMITS[p].storage_gb} GB` },
-  {
-    label: "MCP calls / day",
-    value: (p) => PLAN_LIMITS[p].mcp_calls_per_day.toLocaleString(),
-  },
-  {
-    label: "Emails / month",
-    value: (p) => PLAN_LIMITS[p].emails_per_month.toLocaleString(),
-  },
+const GOLD = "#C9A227";
+
+// What each tier includes, phrased as a benefits list (icon + text).
+const CAP_LINES: ((p: Plan) => string)[] = [
+  (p) => `${PLAN_LIMITS[p].members} members`,
+  (p) => `${PLAN_LIMITS[p].storage_gb} GB storage`,
+  (p) => `${PLAN_LIMITS[p].mcp_calls_per_day.toLocaleString()} MCP calls / day`,
+  (p) => `${PLAN_LIMITS[p].emails_per_month.toLocaleString()} emails / month`,
 ];
 
 export default function PlanSettings() {
@@ -39,9 +35,8 @@ export default function PlanSettings() {
   const { data: workspaces = [] } = useWorkspaces();
   const { data: me } = useCurrentUser();
 
-  // The page defaults to the workspace in the URL, but you can switch the
-  // billed workspace right here (no need to leave the page). Billing acts on
-  // whichever is selected.
+  // Defaults to the workspace in the URL; the in-page picker can switch which
+  // workspace is billed without leaving the page.
   const urlWs = workspaces.find((w) => w.slug === wsSlug);
   const [pickedId, setPickedId] = useState("");
   const selectedWs = workspaces.find((w) => w.id === pickedId) ?? urlWs;
@@ -83,6 +78,7 @@ export default function PlanSettings() {
   const usedSeats = members.length + pendingCount;
   const overBy = usedSeats - limits.members;
   const storageBytes = usage?.storage_bytes ?? null;
+  const storageCapBytes = limits.storage_gb * 1024 * 1024 * 1024;
 
   async function startCheckout() {
     try {
@@ -100,135 +96,146 @@ export default function PlanSettings() {
   }
 
   return (
-    <div className="max-w-3xl mx-auto space-y-8">
-      <div className="flex items-start justify-between gap-4">
-        <div className="min-w-0">
-          <h1 className="text-2xl font-semibold tracking-tight text-slate-900 dark:text-neutral-100">
-            Plan
-          </h1>
-          {/* Billing acts on the selected workspace. With more than one, pick
-              it right here; otherwise just name it. */}
-          {workspaces.length > 1 ? (
-            <div className="mt-1.5 flex items-center gap-2 text-sm text-slate-500 dark:text-neutral-400">
-              <span>for</span>
-              <Select
-                value={selectedWs.id}
-                onChange={setPickedId}
-                options={workspaces.map((w) => ({ value: w.id, label: w.name }))}
-                className="w-52"
-              />
-            </div>
-          ) : (
-            <p className="text-sm text-slate-500 dark:text-neutral-400">
-              for <span className="font-medium text-slate-700 dark:text-neutral-300">{selectedWs.name}</span>
-            </p>
-          )}
-        </div>
-        {plan === "pro" ? (
-          <ProBadge size="md" />
+    <div className="max-w-3xl mx-auto space-y-10">
+      <div>
+        <h1 className="text-2xl font-semibold tracking-tight text-slate-900 dark:text-neutral-100">
+          Plan
+        </h1>
+        {/* Billing acts on the selected workspace. With more than one, pick it
+            right here; otherwise just name it. */}
+        {workspaces.length > 1 ? (
+          <div className="mt-2 flex items-center gap-2 text-sm text-slate-500 dark:text-neutral-400">
+            <span>for</span>
+            <Select
+              value={selectedWs.id}
+              onChange={setPickedId}
+              options={workspaces.map((w) => ({ value: w.id, label: w.name }))}
+              className="w-52"
+            />
+          </div>
         ) : (
-          <span className="inline-flex items-center rounded-full bg-slate-100 dark:bg-neutral-800 px-3 py-1 text-xs font-medium uppercase tracking-wider text-slate-700 dark:text-neutral-300">
-            {PLAN_LABEL[plan]}
-          </span>
+          <p className="mt-1 text-sm text-slate-500 dark:text-neutral-400">
+            for{" "}
+            <span className="font-medium text-slate-700 dark:text-neutral-300">
+              {selectedWs.name}
+            </span>
+          </p>
         )}
       </div>
 
       {/* Free vs Pro — what each tier costs and includes. */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 items-stretch">
         {(["free", "pro"] as const).map((p) => {
           const isCurrent = p === plan;
+          const isUpsell = p === "pro" && plan === "free";
+          const cardClass = isCurrent
+            ? "border-[#C9A227]/70 ring-1 ring-[#C9A227]/25 bg-white dark:bg-neutral-900"
+            : isUpsell
+              ? "border-blue-200 dark:border-blue-500/30 bg-blue-50/50 dark:bg-blue-500/[0.06]"
+              : "border-slate-200 dark:border-neutral-800 bg-white dark:bg-neutral-900";
           return (
             <div
               key={p}
-              className={`rounded-xl border p-5 space-y-4 ${
-                isCurrent
-                  ? "border-[#C9A227] dark:border-[#E8C766] ring-1 ring-[#C9A227]/30"
-                  : "border-slate-200 dark:border-neutral-800"
-              }`}
+              className={`flex flex-col rounded-2xl border p-6 shadow-sm ${cardClass}`}
             >
-              <div className="space-y-1">
-                <div className="flex items-center gap-2">
-                  <h2 className="text-base font-semibold text-slate-900 dark:text-neutral-100">
-                    {PLAN_LABEL[p]}
-                  </h2>
-                  {isCurrent && (
-                    <span className="text-[10px] uppercase tracking-wider font-semibold text-[#C9A227] dark:text-[#E8C766]">
-                      Current
-                    </span>
-                  )}
-                </div>
-                <p className="text-slate-900 dark:text-neutral-100">
-                  <span className="text-2xl font-semibold">
-                    ${PLAN_PRICE[p].toFixed(2)}
-                  </span>
-                  <span className="text-sm text-slate-500 dark:text-neutral-400">
-                    {" "}
-                    / workspace / mo
-                  </span>
-                </p>
-              </div>
-              <ul className="space-y-1.5">
-                {CAP_ROWS.map((row) => (
-                  <li
-                    key={row.label}
-                    className="flex items-center justify-between text-sm"
+              <div className="flex items-center gap-2">
+                <h2 className="text-base font-semibold text-slate-900 dark:text-neutral-100">
+                  {PLAN_LABEL[p]}
+                </h2>
+                {isCurrent ? (
+                  <span
+                    className="text-[10px] uppercase tracking-wider font-semibold"
+                    style={{ color: GOLD }}
                   >
-                    <span className="text-slate-600 dark:text-neutral-400">
-                      {row.label}
+                    Current
+                  </span>
+                ) : (
+                  isUpsell && (
+                    <span className="text-[10px] uppercase tracking-wider font-semibold text-blue-600 dark:text-blue-400">
+                      Recommended
                     </span>
-                    <span className="font-medium text-slate-900 dark:text-neutral-200 tabular-nums">
-                      {row.value(p)}
-                    </span>
+                  )
+                )}
+              </div>
+
+              <p className="mt-2 text-slate-900 dark:text-neutral-100">
+                <span className="text-3xl font-semibold tracking-tight">
+                  ${PLAN_PRICE[p].toFixed(2)}
+                </span>
+                <span className="text-sm text-slate-500 dark:text-neutral-400">
+                  {" "}
+                  / workspace / mo
+                </span>
+              </p>
+
+              <ul className="mt-5 space-y-2.5">
+                {CAP_LINES.map((line, i) => (
+                  <li
+                    key={i}
+                    className="flex items-center gap-2.5 text-sm text-slate-700 dark:text-neutral-300"
+                  >
+                    <Check
+                      className={`w-4 h-4 shrink-0 ${
+                        isUpsell
+                          ? "text-blue-500 dark:text-blue-400"
+                          : "text-slate-400 dark:text-neutral-500"
+                      }`}
+                      strokeWidth={2.5}
+                    />
+                    <span>{line(p)}</span>
                   </li>
                 ))}
               </ul>
 
-              {/* Per-card CTA */}
-              {p === "pro" && plan === "free" && (
-                <Button
-                  className="w-full"
-                  disabled={!isOwner || checkout.isPending}
-                  onClick={startCheckout}
-                >
-                  {checkout.isPending ? "Redirecting…" : "Upgrade to Pro"}
-                </Button>
-              )}
-              {p === "pro" && plan === "pro" && (
-                <Button
-                  variant="outline"
-                  className="w-full"
-                  disabled={!isOwner || portal.isPending}
-                  onClick={openPortal}
-                >
-                  {portal.isPending ? "Opening…" : "Manage billing"}
-                </Button>
-              )}
-              {p === "free" && plan === "pro" && isOwner && (
-                <p className="text-xs text-slate-500 dark:text-neutral-400">
-                  Downgrade from “Manage billing”.
-                </p>
-              )}
+              {/* Per-card CTA, pinned to the bottom so the two cards align. */}
+              <div className="mt-auto pt-6">
+                {p === "pro" && plan === "free" && (
+                  <Button
+                    className="w-full"
+                    disabled={!isOwner || checkout.isPending}
+                    onClick={startCheckout}
+                  >
+                    {checkout.isPending ? "Redirecting…" : "Upgrade to Pro"}
+                  </Button>
+                )}
+                {p === "pro" && plan === "pro" && (
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    disabled={!isOwner || portal.isPending}
+                    onClick={openPortal}
+                  >
+                    {portal.isPending ? "Opening…" : "Manage billing"}
+                  </Button>
+                )}
+                {p === "free" && plan === "pro" && isOwner && (
+                  <p className="text-xs text-slate-500 dark:text-neutral-400">
+                    Downgrade from “Manage billing”.
+                  </p>
+                )}
+              </div>
             </div>
           );
         })}
       </div>
 
       {!isOwner && (
-        <p className="text-xs text-slate-500 dark:text-neutral-400">
+        <p className="-mt-6 text-xs text-slate-500 dark:text-neutral-400">
           Only the workspace owner can change the plan.
         </p>
       )}
 
       {/* Usage against the current plan's caps. */}
       <div>
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-neutral-400 mb-2">
+        <h2 className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-neutral-400">
           Usage
         </h2>
-        <div className="rounded-lg border border-slate-200 dark:border-neutral-800 divide-y divide-slate-200 dark:divide-neutral-800">
+        <div className="rounded-xl border border-slate-200 dark:border-neutral-800 divide-y divide-slate-100 dark:divide-neutral-800">
           <UsageRow
             label="Members"
             used={String(usedSeats)}
             cap={String(limits.members)}
+            fraction={usedSeats / limits.members}
             isOver={overBy > 0}
             note={
               pendingCount > 0
@@ -245,10 +252,8 @@ export default function PlanSettings() {
             label="Storage"
             used={storageBytes != null ? formatBytes(storageBytes) : "—"}
             cap={`${limits.storage_gb} GB`}
-            isOver={
-              storageBytes != null &&
-              storageBytes > limits.storage_gb * 1024 * 1024 * 1024
-            }
+            fraction={storageBytes != null ? storageBytes / storageCapBytes : undefined}
+            isOver={storageBytes != null && storageBytes > storageCapBytes}
           />
           <UsageRow
             label="MCP calls today"
@@ -278,7 +283,8 @@ function formatBytes(bytes: number): string {
   return `${Math.max(0, Math.round(kb))} KB`;
 }
 
-// One row in the usage panel: `Label    used / cap`.
+// One row in the usage panel: label, used / cap, and (when a fraction is
+// given) a thin progress bar — neutral, gold near the cap, red over it.
 function UsageRow({
   label,
   used,
@@ -286,6 +292,7 @@ function UsageRow({
   note,
   warning,
   isOver,
+  fraction,
 }: {
   label: string;
   used: string;
@@ -293,30 +300,47 @@ function UsageRow({
   note?: string;
   warning?: string;
   isOver?: boolean;
+  fraction?: number;
 }) {
+  const barColor = isOver
+    ? "#dc2626"
+    : fraction != null && fraction >= 0.8
+      ? GOLD
+      : "#94a3b8";
   return (
-    <div className="flex items-center justify-between px-5 py-3">
-      <div className="space-y-0.5">
+    <div className="px-5 py-3.5">
+      <div className="flex items-center justify-between">
         <p className="text-sm text-slate-700 dark:text-neutral-300">{label}</p>
-        {note && (
-          <p className="text-xs text-slate-500 dark:text-neutral-400">{note}</p>
-        )}
-        {warning && (
-          <p className="text-xs text-red-700 dark:text-red-400">{warning}</p>
-        )}
+        <p className="font-mono text-sm tabular-nums">
+          <span
+            className={
+              isOver
+                ? "font-medium text-red-700 dark:text-red-400"
+                : "font-medium text-slate-900 dark:text-neutral-200"
+            }
+          >
+            {used}
+          </span>
+          <span className="text-slate-400 dark:text-neutral-500"> / {cap}</span>
+        </p>
       </div>
-      <p className="font-mono text-sm tabular-nums">
-        <span
-          className={
-            isOver
-              ? "font-medium text-red-700 dark:text-red-400"
-              : "font-medium text-slate-900 dark:text-neutral-200"
-          }
-        >
-          {used}
-        </span>
-        <span className="text-slate-400 dark:text-neutral-500"> / {cap}</span>
-      </p>
+      {fraction != null && (
+        <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-neutral-800">
+          <div
+            className="h-full rounded-full transition-all"
+            style={{
+              width: `${Math.min(100, Math.max(2, fraction * 100))}%`,
+              backgroundColor: barColor,
+            }}
+          />
+        </div>
+      )}
+      {note && (
+        <p className="mt-1 text-xs text-slate-500 dark:text-neutral-400">{note}</p>
+      )}
+      {warning && (
+        <p className="mt-1 text-xs text-red-700 dark:text-red-400">{warning}</p>
+      )}
     </div>
   );
 }
