@@ -56,6 +56,10 @@ class TrackerClient:
         resp = await self.request("PATCH", path, json=json, **kwargs)
         return resp.json() if resp.text else None
 
+    async def delete(self, path: str, **kwargs: Any) -> Any:
+        resp = await self.request("DELETE", path, **kwargs)
+        return resp.json() if resp.text else None
+
     async def aclose(self) -> None:
         if self._http is not None:
             await self._http.aclose()

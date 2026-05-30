@@ -13,7 +13,7 @@ def test_fastmcp_instance_imports():
 
 
 def test_tools_registered():
-    """All 19 tools should be on the FastMCP instance."""
+    """All tools should be on the FastMCP instance."""
     # FastMCP exposes tools via mcp._tool_manager — name varies by mcp version;
     # the resilient check is asking it to list:
     import asyncio
@@ -26,5 +26,7 @@ def test_tools_registered():
         "create_task", "update_task_status", "update_task_title",
         "update_task_description", "set_due_date", "set_priority",
         "assign_task", "move_to_sprint", "add_comment",
+        "list_checklist", "add_checklist_item", "set_checklist_item",
+        "delete_checklist_item",
     }
     assert expected.issubset(names), f"missing: {expected - names}"

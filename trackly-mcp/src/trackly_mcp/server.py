@@ -422,6 +422,59 @@ async def add_comment(task_identifier: str, body: str) -> dict[str, Any]:
     )
 
 
+@mcp.tool()
+async def list_checklist(task_identifier: str) -> list[dict[str, Any]]:
+    """List a task's checklist items (its subtasks/acceptance criteria). Use
+    when the user asks 'what's on the checklist for TRAC-7', 'show the
+    subtasks', or — importantly — BEFORE checking/unchecking or deleting an
+    item, to get its `id`. Returns each item's id, text, done, position."""
+    client = get_client()
+    resolved = await resolve_task_identifier(task_identifier)
+    return await client.get(f"/tasks/{resolved['task_id']}/checklist")
+
+
+@mcp.tool()
+async def add_checklist_item(task_identifier: str, text: str) -> dict[str, Any]:
+    """Add a checklist item (subtask) to a task. Use when the user says 'add a
+    checklist item to TRAC-7: …', 'add subtask …', or breaks a task into
+    steps. Returns the new item (id, text, done=false, position)."""
+    client = get_client()
+    resolved = await resolve_task_identifier(task_identifier)
+    return await client.post(
+        f"/tasks/{resolved['task_id']}/checklist",
+        json={"text": text},
+    )
+
+
+@mcp.tool()
+async def set_checklist_item(
+    item_id: str,
+    done: bool | None = None,
+    text: str | None = None,
+) -> dict[str, Any]:
+    """Update a checklist item by its `id` (get it from list_checklist first).
+    Pass `done` true/false to check / uncheck it, and/or `text` to rename it.
+    Use when the user says 'check off the X item', 'mark … done', 'uncheck …',
+    'rename that subtask'. Returns the updated item."""
+    client = get_client()
+    payload: dict[str, Any] = {}
+    if done is not None:
+        payload["done"] = done
+    if text is not None:
+        payload["text"] = text
+    return await client.patch(f"/checklist/{item_id}", json=payload)
+
+
+@mcp.tool()
+async def delete_checklist_item(item_id: str) -> dict[str, Any]:
+    """Delete a checklist item by its `id` (from list_checklist). Use when the
+    user says 'remove that subtask', 'delete the … checklist item'. Returns
+    {"deleted": <item_id>}."""
+    client = get_client()
+    await client.delete(f"/checklist/{item_id}")
+    return {"deleted": item_id}
+
+
 def main() -> None:
     """Entry point — boot the streamable-HTTP MCP server.
 
