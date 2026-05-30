@@ -1,9 +1,10 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 
 import { Button } from "@/components/ui/button";
+import { Select } from "@/components/ui/select";
 import { ProBadge } from "@/components/ProBadge";
 import { useCreateCheckout, useBillingPortal } from "@/features/billing/api";
 import {
@@ -37,8 +38,14 @@ export default function PlanSettings() {
   const { wsSlug } = useParams();
   const { data: workspaces = [] } = useWorkspaces();
   const { data: me } = useCurrentUser();
-  const currentWs = workspaces.find((w) => w.slug === wsSlug);
-  const wsId = currentWs?.id ?? "";
+
+  // The page defaults to the workspace in the URL, but you can switch the
+  // billed workspace right here (no need to leave the page). Billing acts on
+  // whichever is selected.
+  const urlWs = workspaces.find((w) => w.slug === wsSlug);
+  const [pickedId, setPickedId] = useState("");
+  const selectedWs = workspaces.find((w) => w.id === pickedId) ?? urlWs;
+  const wsId = selectedWs?.id ?? "";
 
   const { data: members = [] } = useMembers(wsId);
   const { data: invitations = [] } = useWorkspaceInvitations(wsId);
@@ -65,10 +72,10 @@ export default function PlanSettings() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  if (!currentWs) return null;
+  if (!selectedWs) return null;
 
-  const plan = currentWs.plan;
-  const isOwner = !!me && currentWs.owner_id === me.id;
+  const plan = selectedWs.plan;
+  const isOwner = !!me && selectedWs.owner_id === me.id;
 
   // Live usage for the current plan's caps.
   const limits = PLAN_LIMITS[plan];
@@ -94,16 +101,28 @@ export default function PlanSettings() {
 
   return (
     <div className="max-w-3xl mx-auto space-y-8">
-      <div className="flex items-center justify-between">
-        <div>
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0">
           <h1 className="text-2xl font-semibold tracking-tight text-slate-900 dark:text-neutral-100">
             Plan
           </h1>
-          {/* Make the billed workspace explicit — upgrade/cancel applies to
-              this workspace only (switch workspaces to bill a different one). */}
-          <p className="text-sm text-slate-500 dark:text-neutral-400">
-            for <span className="font-medium text-slate-700 dark:text-neutral-300">{currentWs.name}</span>
-          </p>
+          {/* Billing acts on the selected workspace. With more than one, pick
+              it right here; otherwise just name it. */}
+          {workspaces.length > 1 ? (
+            <div className="mt-1.5 flex items-center gap-2 text-sm text-slate-500 dark:text-neutral-400">
+              <span>for</span>
+              <Select
+                value={selectedWs.id}
+                onChange={setPickedId}
+                options={workspaces.map((w) => ({ value: w.id, label: w.name }))}
+                className="w-52"
+              />
+            </div>
+          ) : (
+            <p className="text-sm text-slate-500 dark:text-neutral-400">
+              for <span className="font-medium text-slate-700 dark:text-neutral-300">{selectedWs.name}</span>
+            </p>
+          )}
         </div>
         {plan === "pro" ? (
           <ProBadge size="md" />
