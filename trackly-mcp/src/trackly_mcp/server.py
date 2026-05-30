@@ -69,7 +69,8 @@ async def list_my_tasks(
     title, status, priority, due_date, project_id, updated_at."""
     client = get_client()
     ws = await resolve_workspace(workspace_slug)
-    params: dict[str, Any] = {"assignee_id": client.user_id}
+    from .context import get_user_id
+    params: dict[str, Any] = {"assignee_id": get_user_id()}
     tasks = await client.get(
         f"/workspaces/{ws['id']}/tasks", params=params
     )
@@ -147,7 +148,8 @@ async def list_tasks(
     ws = await resolve_workspace(workspace_slug)
 
     if assignee_id == "me":
-        assignee_id = os.environ["TRACKLY_USER_ID"]
+        from .context import get_user_id
+        assignee_id = get_user_id()
 
     if project_key:
         # Project-scoped endpoint supports `status` natively; we do
@@ -353,7 +355,8 @@ async def assign_task(
     client = get_client()
     resolved = await resolve_task_identifier(task_identifier)
     if assignee_id == "me":
-        assignee_id = os.environ["TRACKLY_USER_ID"]
+        from .context import get_user_id
+        assignee_id = get_user_id()
     return await client.patch(
         f"/tasks/{resolved['task_id']}",
         json={"assignee_id": assignee_id},
