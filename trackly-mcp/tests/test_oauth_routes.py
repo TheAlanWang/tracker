@@ -168,19 +168,22 @@ async def test_callback_to_token_full_flow(transport, store):
         )
         request_id = next(iter(store._auth.keys()))  # noqa: SLF001
 
-        # 2. /authorize/start → Supabase URL. Skip following; just capture the state' param.
+        # 2. /authorize/start → Supabase URL + sets mcp_flow cookie (= new_state,
+        #    the key it just stored in the auth dict).
         r = await c.get(
             "/authorize/start",
             params={"request_id": request_id, "provider": "github"},
             follow_redirects=False,
         )
-        loc = r.headers["location"]
-        sb_state = parse_qs(urlparse(loc).query)["state"][0]
+        flow_id = next(iter(store._auth.keys()))  # noqa: SLF001
 
-        # 3. Supabase redirects to /callback with code + state'
+        # 3. Supabase redirects to /callback with ?code= (no state); we carry the
+        #    flow cookie. (Passed explicitly — the cookie is Secure, won't ride
+        #    the test's http transport via the jar.)
         r = await c.get(
             "/callback",
-            params={"code": "sb-code", "state": sb_state},
+            params={"code": "sb-code"},
+            cookies={"mcp_flow": flow_id},
             follow_redirects=False,
         )
         assert r.status_code in (302, 303)
@@ -239,9 +242,12 @@ async def test_token_verifier_match_returns_supabase_tokens(transport, store):
             params={"request_id": request_id, "provider": "github"},
             follow_redirects=False,
         )
-        sb_state = parse_qs(urlparse(r.headers["location"]).query)["state"][0]
+        flow_id = next(iter(store._auth.keys()))  # noqa: SLF001
         r = await c.get(
-            "/callback", params={"code": "sb", "state": sb_state}, follow_redirects=False
+            "/callback",
+            params={"code": "sb"},
+            cookies={"mcp_flow": flow_id},
+            follow_redirects=False,
         )
         mcp_code = parse_qs(urlparse(r.headers["location"]).query)["code"][0]
 
