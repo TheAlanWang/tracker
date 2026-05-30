@@ -96,14 +96,20 @@ export default function Billing() {
   }
 
   return (
-    <div className="max-w-3xl mx-auto space-y-10">
-      {/* Centered header. Workspace context — billing acts on this one;
-          frameless switcher when there are several, plain text otherwise. */}
-      <div className="text-center">
-        <h1 className="text-2xl font-semibold tracking-tight text-slate-900 dark:text-neutral-100">
-          Billing
-        </h1>
-        <div className="mt-2 flex items-center justify-center gap-1.5 text-sm">
+    <div className="mx-auto max-w-3xl min-w-0">
+      {/* Header in the Profile-settings style: left-aligned title + subtitle.
+          The workspace switcher (billing acts on this one) sits on the right —
+          frameless when there are several, plain text otherwise. */}
+      <header className="mb-6 flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          <h1 className="text-3xl font-semibold text-slate-900 dark:text-neutral-200">
+            Billing
+          </h1>
+          <p className="mt-2 text-slate-500 dark:text-neutral-400">
+            Your workspace plan and usage.
+          </p>
+        </div>
+        <div className="flex shrink-0 items-center gap-1.5 pt-1.5 text-sm">
           <span className="text-slate-500 dark:text-neutral-400">Workspace:</span>
           {workspaces.length > 1 ? (
             <Select
@@ -119,7 +125,9 @@ export default function Billing() {
             </span>
           )}
         </div>
-      </div>
+      </header>
+
+      <div className="space-y-10">
 
       {/* Clear "you're on Pro" confirmation + the manage/cancel entry point. */}
       {plan === "pro" && (
@@ -274,6 +282,7 @@ export default function Billing() {
             cap={limits.mcp_calls_per_day.toLocaleString()}
           />
         </div>
+      </div>
       </div>
     </div>
   );
