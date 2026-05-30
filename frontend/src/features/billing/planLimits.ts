@@ -37,5 +37,5 @@ export const PLAN_LABEL: Record<Plan, string> = {
 // (not per-seat). Backend/Stripe is authoritative for what's actually charged.
 export const PLAN_PRICE: Record<Plan, number> = {
   free: 0,
-  pro: 4.99,
+  pro: 9.99,
 };
