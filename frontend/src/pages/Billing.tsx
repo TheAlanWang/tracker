@@ -157,11 +157,9 @@ export default function Billing() {
         {(["free", "pro"] as const).map((p) => {
           const isCurrent = p === plan;
           const isUpsell = p === "pro" && plan === "free";
-          const cardClass = isCurrent
-            ? "border-[#C9A227]/70 ring-1 ring-[#C9A227]/25 bg-white dark:bg-neutral-900"
-            : isUpsell
-              ? "border-blue-200 dark:border-blue-500/30 bg-blue-50/50 dark:bg-blue-500/[0.06]"
-              : "border-slate-200 dark:border-neutral-800 bg-white dark:bg-neutral-900";
+          const cardClass = isUpsell
+            ? "border-blue-200 dark:border-blue-500/30 bg-blue-50/50 dark:bg-blue-500/[0.06]"
+            : "border-slate-200 dark:border-neutral-800 bg-white dark:bg-neutral-900";
           return (
             <div
               key={p}
@@ -172,10 +170,7 @@ export default function Billing() {
                   {PLAN_LABEL[p]}
                 </h2>
                 {isCurrent ? (
-                  <span
-                    className="text-[10px] uppercase tracking-wider font-semibold"
-                    style={{ color: GOLD }}
-                  >
+                  <span className="text-[10px] uppercase tracking-wider font-semibold text-slate-400 dark:text-neutral-500">
                     Current
                   </span>
                 ) : (
