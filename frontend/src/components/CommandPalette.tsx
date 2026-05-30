@@ -3,7 +3,7 @@ import { Command } from "cmdk";
 import { useNavigate, useParams } from "react-router-dom";
 
 import { useSearch, type SearchResult } from "@/features/search/api";
-import { useWorkspaces } from "@/features/workspaces/api";
+import { isLabelsEnabled, useWorkspaces } from "@/features/workspaces/api";
 import { useCommandPaletteStore } from "@/lib/commandPaletteStore";
 import { buildNavTargets, matchNavTarget } from "@/lib/navTargets";
 import { addRecent, getRecents, type RecentItem } from "@/lib/recents";
@@ -57,8 +57,14 @@ export function CommandPalette() {
     }
   }
 
+  // Drop label results when the Labels feature is disabled for this workspace.
+  const labelsEnabled = isLabelsEnabled(currentWs);
+  const visibleResults = labelsEnabled
+    ? searchResults
+    : searchResults.filter((r) => r.type !== "label");
+
   // Group search results by type
-  const byType = searchResults.reduce<
+  const byType = visibleResults.reduce<
     Record<string, SearchResult[]>
   >((acc, r) => {
     if (!acc[r.type]) acc[r.type] = [];

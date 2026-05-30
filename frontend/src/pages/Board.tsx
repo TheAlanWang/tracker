@@ -41,7 +41,7 @@ import {
 } from "@/features/tasks/api";
 import { useProjects } from "@/features/projects/api";
 import { useProjectTasksRealtime } from "@/features/realtime/useProjectTasksRealtime";
-import { useWorkspaces } from "@/features/workspaces/api";
+import { isDependenciesEnabled, useWorkspaces } from "@/features/workspaces/api";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 
 // Columns derive from the canonical STATUS_ORDER in labels.ts. Adding a
@@ -256,8 +256,14 @@ function CardBody({
   // Lookup the workspace's "currently blocked" set — React Query dedupes
   // across every card subscribing, so this is one network call regardless
   // of how many cards are on screen.
+  const { data: workspaces = [] } = useWorkspaces();
+  const depsEnabled = isDependenciesEnabled(
+    workspaces.find((w) => w.id === task.workspace_id),
+  );
   const { data: blockedIds } = useBlockedTaskIds(task.workspace_id);
-  const isBlocked = blockedIds?.has(task.id) ?? false;
+  // Dependencies is an opt-out workspace feature — when disabled, don't show
+  // the blocked badge (the data/relationships are preserved).
+  const isBlocked = depsEnabled && (blockedIds?.has(task.id) ?? false);
 
   // Inline title editing — only on interactive cards (not the drag
   // preview). Click the title text to swap the <div> for a <textarea>;

@@ -51,7 +51,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { GoalPicker } from "@/components/GoalPicker";
 import { useChecklist } from "@/features/checklist/api";
 import { useGoals } from "@/features/goals/api";
-import { isSprintsEnabled, useWorkspaces } from "@/features/workspaces/api";
+import {
+  isSprintsEnabled,
+  isLabelsEnabled,
+  isDependenciesEnabled,
+  useWorkspaces,
+} from "@/features/workspaces/api";
 import { type Activity, useTaskActivity } from "@/features/activity/api";
 import {
   type Comment,
@@ -697,6 +702,10 @@ export function TaskDetailContent({
   // inline sprint picker in the right rail. The sprint_id on the task is
   // preserved either way; we just stop showing the editor.
   const sprintsEnabled = isSprintsEnabled(taskWorkspace);
+  // Labels & Dependencies are opt-out workspace features — hide their UI when
+  // disabled (data is preserved; see workspace.features).
+  const labelsEnabled = isLabelsEnabled(taskWorkspace);
+  const dependenciesEnabled = isDependenciesEnabled(taskWorkspace);
   const { data: checklistItems = [] } = useChecklist(task?.id ?? "");
   const uncheckedCount = checklistItems.filter((i) => !i.done).length;
   // Bridge state for the empty → first-item flow: clicking "+ Add
@@ -1047,7 +1056,7 @@ export function TaskDetailContent({
       const wasMovingForward =
         statusDraft !== task.status &&
         (statusDraft === "in_progress" || statusDraft === "in_review");
-      if (wasMovingForward && openBlockers.length > 0) {
+      if (dependenciesEnabled && wasMovingForward && openBlockers.length > 0) {
         const blockerNames = openBlockers
           .slice(0, 2)
           .map((l) => l.task.identifier)
@@ -1853,7 +1862,7 @@ export function TaskDetailContent({
           </div>
         )}
 
-        {(isEditing || taskLabels.length > 0) && (
+        {labelsEnabled && (isEditing || taskLabels.length > 0) && (
           <div className="space-y-1">
             <p className="text-xs font-medium uppercase tracking-wider text-slate-400 dark:text-neutral-500">
               Labels
@@ -1866,30 +1875,32 @@ export function TaskDetailContent({
           </div>
         )}
 
-        <DependenciesSection
-          taskId={task.id}
-          workspaceId={task.workspace_id}
-          readOnly={!isEditing}
-          pendingAdds={pendingDepAdds}
-          removedDepIds={pendingDepRemoveIds}
-          onAdd={(direction, t) =>
-            setPendingDepAdds((prev) => [...prev, { direction, task: t }])
-          }
-          onRemovePersisted={(depId) =>
-            setPendingDepRemoveIds((prev) => {
-              const next = new Set(prev);
-              next.add(depId);
-              return next;
-            })
-          }
-          onCancelPendingAdd={(tid, direction) =>
-            setPendingDepAdds((prev) =>
-              prev.filter(
-                (p) => !(p.task.id === tid && p.direction === direction),
-              ),
-            )
-          }
-        />
+        {dependenciesEnabled && (
+          <DependenciesSection
+            taskId={task.id}
+            workspaceId={task.workspace_id}
+            readOnly={!isEditing}
+            pendingAdds={pendingDepAdds}
+            removedDepIds={pendingDepRemoveIds}
+            onAdd={(direction, t) =>
+              setPendingDepAdds((prev) => [...prev, { direction, task: t }])
+            }
+            onRemovePersisted={(depId) =>
+              setPendingDepRemoveIds((prev) => {
+                const next = new Set(prev);
+                next.add(depId);
+                return next;
+              })
+            }
+            onCancelPendingAdd={(tid, direction) =>
+              setPendingDepAdds((prev) =>
+                prev.filter(
+                  (p) => !(p.task.id === tid && p.direction === direction),
+                ),
+              )
+            }
+          />
+        )}
 
         <div className="space-y-1">
           <p className="text-xs font-medium uppercase tracking-wider text-slate-400 dark:text-neutral-500">

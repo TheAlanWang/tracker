@@ -4,18 +4,32 @@ import { apiClient } from "@/api/client";
 
 // Known feature-flag keys. Stored as a sparse map in `workspaces.features`
 // (jsonb). Default polarity is per-key:
-//   - goals:   missing → OFF (new/experimental layer; owners opt IN)
-//   - sprints: missing → ON  (mature feature; owners opt OUT only)
-// Read `sprints` through `isSprintsEnabled()` rather than `!!features?.sprints`
-// so the default-ON polarity is respected everywhere.
+//   - goals:        missing → OFF (new/experimental layer; owners opt IN)
+//   - sprints:      missing → ON  (mature feature; owners opt OUT only)
+//   - labels:       missing → ON  (existing data; owners opt OUT only)
+//   - dependencies: missing → ON  (existing data; owners opt OUT only)
+// Read opt-OUT flags through their is*Enabled() helper rather than
+// `!!features?.x` so the default-ON polarity is respected everywhere.
 export type WorkspaceFeatures = {
   goals?: boolean;
   sprints?: boolean;
+  labels?: boolean;
+  dependencies?: boolean;
 };
 
 export function isSprintsEnabled(ws: Workspace | undefined | null): boolean {
   // undefined → true; only explicit false hides.
   return ws?.features?.sprints !== false;
+}
+
+export function isLabelsEnabled(ws: Workspace | undefined | null): boolean {
+  return ws?.features?.labels !== false;
+}
+
+export function isDependenciesEnabled(
+  ws: Workspace | undefined | null,
+): boolean {
+  return ws?.features?.dependencies !== false;
 }
 
 export type Workspace = {

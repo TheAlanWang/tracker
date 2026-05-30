@@ -31,6 +31,8 @@ import {
 } from "@/features/invitations/api";
 import {
   isSprintsEnabled,
+  isLabelsEnabled,
+  isDependenciesEnabled,
   useDeleteWorkspace,
   useUpdateWorkspace,
   useWorkspaces,
@@ -80,6 +82,8 @@ export default function WorkspaceSettings() {
   // polarity of sprints (undefined treated as true).
   const [goalsDraft, setGoalsDraft] = useState(false);
   const [sprintsDraft, setSprintsDraft] = useState(true);
+  const [labelsDraft, setLabelsDraft] = useState(true);
+  const [dependenciesDraft, setDependenciesDraft] = useState(true);
 
   // Sync the rename + feature drafts to the current workspace on workspace
   // switch. Keeping the component mounted (rather than the previous
@@ -94,6 +98,8 @@ export default function WorkspaceSettings() {
       setWsSlug(currentWs.slug);
       setGoalsDraft(!!currentWs.features?.goals);
       setSprintsDraft(isSprintsEnabled(currentWs));
+      setLabelsDraft(isLabelsEnabled(currentWs));
+      setDependenciesDraft(isDependenciesEnabled(currentWs));
     }
   }, [currentWs]);
   /* eslint-enable react-hooks/set-state-in-effect */
@@ -118,7 +124,12 @@ export default function WorkspaceSettings() {
     !!currentWs && goalsDraft !== !!currentWs.features?.goals;
   const sprintsChanged =
     !!currentWs && sprintsDraft !== isSprintsEnabled(currentWs);
-  const featuresDirty = goalsChanged || sprintsChanged;
+  const labelsChanged =
+    !!currentWs && labelsDraft !== isLabelsEnabled(currentWs);
+  const dependenciesChanged =
+    !!currentWs && dependenciesDraft !== isDependenciesEnabled(currentWs);
+  const featuresDirty =
+    goalsChanged || sprintsChanged || labelsChanged || dependenciesChanged;
 
   async function onSaveFeatures() {
     if (!currentWs || !featuresDirty) return;
@@ -131,6 +142,10 @@ export default function WorkspaceSettings() {
           features: {
             ...(goalsChanged ? { goals: goalsDraft } : {}),
             ...(sprintsChanged ? { sprints: sprintsDraft } : {}),
+            ...(labelsChanged ? { labels: labelsDraft } : {}),
+            ...(dependenciesChanged
+              ? { dependencies: dependenciesDraft }
+              : {}),
           },
         },
       });
@@ -594,6 +609,32 @@ export default function WorkspaceSettings() {
               checked={sprintsDraft}
               disabled={!isOwner || updateWsMutation.isPending}
               onChange={setSprintsDraft}
+              note={
+                !isOwner
+                  ? "Only the workspace owner can toggle features."
+                  : undefined
+              }
+            />
+            <FeatureRow
+              title="Labels"
+              pill={null}
+              description="Color-coded tags you attach to tasks for ad-hoc grouping and filtering. Disable to hide the Labels editor on tasks and label results in search. Existing labels are kept and reappear if you re-enable."
+              checked={labelsDraft}
+              disabled={!isOwner || updateWsMutation.isPending}
+              onChange={setLabelsDraft}
+              note={
+                !isOwner
+                  ? "Only the workspace owner can toggle features."
+                  : undefined
+              }
+            />
+            <FeatureRow
+              title="Dependencies"
+              pill={null}
+              description="Blocked-by / blocks relationships between tasks. Disable to hide the dependencies section on tasks, the blocked badge on the board, and the still-blocked warning. Existing links are kept and reappear if you re-enable."
+              checked={dependenciesDraft}
+              disabled={!isOwner || updateWsMutation.isPending}
+              onChange={setDependenciesDraft}
               note={
                 !isOwner
                   ? "Only the workspace owner can toggle features."
