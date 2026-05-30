@@ -281,10 +281,17 @@ export default function Billing() {
   );
 }
 
-// Small slate initial square for a workspace (matches the settings rail).
-function WsInitial({ name }: { name: string }) {
+// Initial square for a workspace (matches the settings rail). Pro workspaces
+// get the soft gold treatment; Free stays neutral slate.
+function WsInitial({ name, pro }: { name: string; pro?: boolean }) {
   return (
-    <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded bg-slate-100 text-[10px] font-semibold text-slate-700 dark:bg-neutral-800 dark:text-neutral-300">
+    <span
+      className={`inline-flex h-5 w-5 shrink-0 items-center justify-center rounded text-[10px] font-semibold ${
+        pro
+          ? "bg-[#C9A227]/15 text-[#C9A227] dark:bg-[#E8C766]/15 dark:text-[#E8C766]"
+          : "bg-slate-100 text-slate-700 dark:bg-neutral-800 dark:text-neutral-300"
+      }`}
+    >
       {name.charAt(0).toUpperCase() || "?"}
     </span>
   );
@@ -330,7 +337,7 @@ function WorkspaceChip({
         onClick={() => multi && setOpen((v) => !v)}
         className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-sm transition-colors hover:bg-slate-50 disabled:cursor-default disabled:hover:bg-white dark:border-neutral-700 dark:bg-neutral-900 dark:hover:bg-neutral-800 dark:disabled:hover:bg-neutral-900"
       >
-        <WsInitial name={current?.name ?? "?"} />
+        <WsInitial name={current?.name ?? "?"} pro={current?.plan === "pro"} />
         <span className="max-w-[12rem] truncate font-medium text-slate-900 dark:text-neutral-100">
           {current?.name ?? "—"}
         </span>
@@ -354,7 +361,7 @@ function WorkspaceChip({
                   : "hover:bg-slate-50 dark:hover:bg-neutral-800/50"
               }`}
             >
-              <WsInitial name={w.name} />
+              <WsInitial name={w.name} pro={w.plan === "pro"} />
               <span className="truncate text-slate-700 dark:text-neutral-200">
                 {w.name}
               </span>
