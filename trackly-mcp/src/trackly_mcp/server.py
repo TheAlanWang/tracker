@@ -38,6 +38,19 @@ from .client import (
 # both inapplicable and harmful. Disable it explicitly.
 mcp = FastMCP(
     "trackly",
+    # Stateless: each HTTP request is processed inline, in a task derived from
+    # that request's context. This is REQUIRED for our auth model — the
+    # AuthMiddleware stashes the caller's bearer in a contextvar and the tools
+    # read it via get_bearer(). In stateful mode the tool runs in the session
+    # manager's long-lived task group (spawned at startup), which never sees
+    # the per-request contextvar → get_bearer() LookupError on every tool call.
+    # Stateless also fits a pure request/response tool server (no server push).
+    stateless_http=True,
+    # FastMCP's settings.host defaults to 127.0.0.1, which auto-enables
+    # DNS-rebinding protection that only allows a localhost Host header — behind
+    # Fly our Host is trackly-mcp.fly.dev, so /mcp returned 421 "Invalid Host
+    # header" after auth passed. That guard is for localhost-bound servers; this
+    # is a public OAuth-Bearer-gated service, so disable it.
     transport_security=TransportSecuritySettings(
         enable_dns_rebinding_protection=False,
     ),
