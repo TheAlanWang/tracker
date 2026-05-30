@@ -95,9 +95,16 @@ export default function PlanSettings() {
   return (
     <div className="max-w-3xl mx-auto space-y-8">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold tracking-tight text-slate-900 dark:text-neutral-100">
-          Plan
-        </h1>
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight text-slate-900 dark:text-neutral-100">
+            Plan
+          </h1>
+          {/* Make the billed workspace explicit — upgrade/cancel applies to
+              this workspace only (switch workspaces to bill a different one). */}
+          <p className="text-sm text-slate-500 dark:text-neutral-400">
+            for <span className="font-medium text-slate-700 dark:text-neutral-300">{currentWs.name}</span>
+          </p>
+        </div>
         {plan === "pro" ? (
           <ProBadge size="md" />
         ) : (
