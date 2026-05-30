@@ -1,7 +1,12 @@
 """App-level smoke: /mcp is 401 without auth, OAuth endpoints are reachable, no env at import."""
 
+import json
+import time
+
 import httpx
+import jwt
 import pytest
+import respx
 
 
 def test_create_app_requires_config(monkeypatch):
@@ -37,48 +42,60 @@ async def test_well_known_reachable(configured_app):
     assert r.status_code == 200
 
 
-def test_authenticated_mcp_initialize_runs_session_manager(configured_app):
-    """Regression: the mounted FastMCP app's lifespan must be driven by the
-    parent, or the StreamableHTTP session manager's task group is never
-    initialized and the first authenticated /mcp request 500s with
-    "Task group is not initialized". TestClient(as a context manager) runs
-    the lifespan, so this exercises the real startup path.
-    """
-    import time
-
-    import jwt
-    from starlette.testclient import TestClient
-
-    token = jwt.encode(
-        {
-            "sub": "user-123",
-            "aud": "authenticated",
-            "iat": int(time.time()),
-            "exp": int(time.time()) + 3600,
-        },
-        "test-secret-padded-32-bytes-hs256-ok",
+def _mint(secret="test-secret-padded-32-bytes-hs256-ok"):
+    return jwt.encode(
+        {"sub": "u1", "aud": "authenticated", "iat": int(time.time()), "exp": int(time.time()) + 3600},
+        secret,
         algorithm="HS256",
     )
-    init = {
-        "jsonrpc": "2.0",
-        "id": 1,
-        "method": "initialize",
-        "params": {
-            "protocolVersion": "2024-11-05",
-            "capabilities": {},
-            "clientInfo": {"name": "test", "version": "1"},
-        },
-    }
-    with TestClient(configured_app) as client:  # runs lifespan (startup/shutdown)
-        r = client.post(
-            "/mcp",
-            json=init,
-            headers={
-                "Authorization": f"Bearer {token}",
-                "Accept": "application/json, text/event-stream",
-            },
-        )
 
-    assert r.status_code != 401, "token should authenticate"
-    assert r.status_code != 500, f"session manager not initialized: {r.text}"
-    assert "Task group is not initialized" not in r.text
+
+def _sse_json(r):
+    for line in r.text.splitlines():
+        if line.startswith("data:"):
+            return json.loads(line[5:].strip())
+    return r.json()
+
+
+def test_authed_tool_call_forwards_bearer_to_backend(configured_app):
+    """End-to-end: an authenticated tools/call must propagate the caller's
+    bearer through the stateless transport + AuthMiddleware contextvar to the
+    backend REST call. Guards two fixes at once: stateless_http (so the tool
+    runs in the request context and get_bearer() works) and the Host check
+    being off (no 421). If stateful, the tool would LookupError the bearer.
+    """
+    from starlette.testclient import TestClient
+
+    token = _mint()
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Accept": "application/json, text/event-stream",
+        "Content-Type": "application/json",
+        "MCP-Protocol-Version": "2025-06-18",
+    }
+    init = {
+        "jsonrpc": "2.0", "id": 1, "method": "initialize",
+        "params": {"protocolVersion": "2025-06-18", "capabilities": {},
+                   "clientInfo": {"name": "t", "version": "1"}},
+    }
+    call = {
+        "jsonrpc": "2.0", "id": 2, "method": "tools/call",
+        "params": {"name": "list_workspaces", "arguments": {}},
+    }
+    with respx.mock:
+        route = respx.get("https://tracker.test/workspaces").mock(
+            return_value=httpx.Response(200, json=[{"id": "w1", "slug": "acme", "name": "Acme"}])
+        )
+        with TestClient(configured_app) as c:  # runs lifespan
+            ri = c.post("/mcp", json=init, headers=headers)
+            r = c.post("/mcp", json=call, headers=headers)
+
+        # initialize 200 = session manager wired (no "Task group not initialized"
+        # 500) AND Host check passed (no 421 from DNS-rebinding protection).
+        assert ri.status_code == 200, ri.text
+        assert "Task group is not initialized" not in ri.text
+        assert r.status_code == 200, r.text
+        body = _sse_json(r)
+        assert body["result"]["isError"] is False, body
+        assert route.called, "tool did not reach the backend"
+        assert route.calls.last.request.headers["authorization"] == f"Bearer {token}"
