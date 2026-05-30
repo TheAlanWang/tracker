@@ -23,10 +23,14 @@ def test_tools_registered():
         "list_workspaces", "list_projects", "list_my_tasks", "get_task", "search",
         "list_sprints", "list_tasks", "list_workspace_members",
         "list_recent_activity", "get_project",
-        "create_task", "update_task_status", "update_task_title",
-        "update_task_description", "set_due_date", "set_priority",
-        "assign_task", "move_to_sprint", "add_comment",
+        "create_task", "update_task", "add_comment",
         "list_checklist", "add_checklist_item", "set_checklist_item",
         "delete_checklist_item",
     }
     assert expected.issubset(names), f"missing: {expected - names}"
+    # The seven single-field setters are now folded into update_task.
+    removed = {
+        "update_task_status", "update_task_title", "update_task_description",
+        "set_due_date", "set_priority", "assign_task", "move_to_sprint",
+    }
+    assert not (removed & names), f"should be gone: {removed & names}"

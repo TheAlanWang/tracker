@@ -56,6 +56,11 @@ mcp = FastMCP(
     ),
 )
 
+# Sentinel default for update_task's clearable fields. Lets us distinguish
+# "argument omitted → leave unchanged" from "argument passed as null → clear":
+# both look like None otherwise. Any caller value (a string or null) overrides it.
+_UNSET = "__UNSET__"
+
 # ─── Read tools ─────────────────────────────────────────────────────
 
 
@@ -143,7 +148,7 @@ async def list_sprints(project_key_or_id: str) -> list[dict[str, Any]]:
     completed) and date range. Sprints live under a project, not under
     a workspace — pass the project key (e.g. 'FRO') or UUID. Use when
     the user says 'what sprint is active in FRO', 'show all sprints',
-    or implicitly before `move_to_sprint` when the user references
+    or implicitly before `update_task` (sprint_id) when the user references
     'the current sprint' but doesn't supply a UUID. Returns sprint id,
     name, status, start_date, end_date."""
     client = get_client()
@@ -207,9 +212,9 @@ async def list_workspace_members(workspace_slug: str) -> list[dict[str, Any]]:
     """List the members of a workspace — each member's user_id,
     display_name, email, avatar_url, and role. Use when the user says
     'who's in this workspace', or — more importantly — implicitly
-    BEFORE `assign_task` when they reference a teammate by name
+    BEFORE `update_task` when they reference a teammate by name
     ('assign FE-23 to Sarah'). Map the name → user_id, then call
-    assign_task with that user_id."""
+    update_task with that user_id as `assignee_id`."""
     client = get_client()
     ws = await resolve_workspace(workspace_slug)
     return await client.get(f"/workspaces/{ws['id']}/members")
@@ -282,130 +287,71 @@ async def create_task(
 
 
 @mcp.tool()
-async def update_task_status(
+async def update_task(
     task_identifier: str,
     status: Literal[
         "backlog", "todo", "in_progress", "in_review", "done", "cancelled"
-    ],
+    ]
+    | None = None,
+    title: str | None = None,
+    priority: Literal["urgent", "high", "medium", "low", "no_priority"]
+    | None = None,
+    description: str | None = _UNSET,
+    due_date: str | None = _UNSET,
+    assignee_id: str | None = _UNSET,
+    sprint_id: str | None = _UNSET,
 ) -> dict[str, Any]:
-    """Change a task's status. Use when the user says 'move TRAC-7 to
-    in progress', 'mark TRAC-7 done', 'this is in review now'. Returns
-    the updated task. Server enforces workspace membership."""
+    """Edit a task — one tool for any combination of its fields. Only the
+    arguments you pass are changed; everything you omit is left untouched, so
+    you can do several edits in a single call (e.g. 'mark TRAC-7 done and bump
+    it to high' → status='done', priority='high').
+
+    Identify the task by its human identifier (e.g. 'TRAC-7'). Fields:
+    - `status`: move between columns ('move TRAC-7 to in progress', 'mark done').
+    - `title`: rename ('rename TRAC-7 to ...').
+    - `priority`: 'this is urgent', 'bump to high'. Pass 'no_priority' to clear.
+    - `description`: replace the markdown body. To APPEND, first `get_task` to
+      read the current body, edit it, then pass the combined text.
+    - `due_date`: an ISO 8601 calendar date (YYYY-MM-DD). Convert relative dates
+      ('Friday', 'next Monday') to absolute YYYY-MM-DD before calling.
+    - `assignee_id`: a user UUID, or the literal string "me" for the current
+      user (resolved from the request context — saves a lookup). To assign by
+      name, `list_workspace_members` first to map name → user_id.
+    - `sprint_id`: a sprint UUID. For 'the active/current sprint', call
+      `list_sprints` first and use the one whose status is 'active'.
+
+    Clearing: `description`, `due_date`, `assignee_id`, and `sprint_id` accept
+    null to CLEAR them ('unassign FE-12', 'clear the deadline', 'pull out of the
+    sprint'). Omitting an argument leaves that field unchanged. Returns the
+    updated task; the server enforces workspace membership."""
+    payload: dict[str, Any] = {}
+    if status is not None:
+        payload["status"] = status
+    if title is not None:
+        payload["title"] = title
+    if priority is not None:
+        payload["priority"] = priority
+    if description is not _UNSET:
+        payload["description"] = description
+    if due_date is not _UNSET:
+        payload["due_date"] = due_date
+    if assignee_id is not _UNSET:
+        if assignee_id == "me":
+            from .context import get_user_id
+            assignee_id = get_user_id()
+        payload["assignee_id"] = assignee_id
+    if sprint_id is not _UNSET:
+        payload["sprint_id"] = sprint_id
+
+    if not payload:
+        raise TracklyError(
+            "update_task called with no fields to change — pass at least one of "
+            "status, title, priority, description, due_date, assignee_id, sprint_id."
+        )
+
     client = get_client()
     resolved = await resolve_task_identifier(task_identifier)
-    return await client.patch(
-        f"/tasks/{resolved['task_id']}",
-        json={"status": status},
-    )
-
-
-@mcp.tool()
-async def update_task_title(
-    task_identifier: str,
-    title: str,
-) -> dict[str, Any]:
-    """Rename a task. Use when the user says 'rename TRAC-7 to ...',
-    'update title of FE-12 to ...', 'change TRAC-7's name'. Returns
-    the updated task."""
-    client = get_client()
-    resolved = await resolve_task_identifier(task_identifier)
-    return await client.patch(
-        f"/tasks/{resolved['task_id']}",
-        json={"title": title},
-    )
-
-
-@mcp.tool()
-async def update_task_description(
-    task_identifier: str,
-    description: str | None,
-) -> dict[str, Any]:
-    """Replace a task's description (markdown body). Pass null/empty to
-    clear. Use when the user says 'update TRAC-7's description with ...',
-    'replace the body of FE-12 with ...'. To APPEND rather than replace,
-    first call `get_task` to read the current description, modify it,
-    then call this tool with the combined body. Returns the updated task."""
-    client = get_client()
-    resolved = await resolve_task_identifier(task_identifier)
-    return await client.patch(
-        f"/tasks/{resolved['task_id']}",
-        json={"description": description},
-    )
-
-
-@mcp.tool()
-async def set_due_date(
-    task_identifier: str,
-    due_date: str | None,
-) -> dict[str, Any]:
-    """Set or clear a task's due date. Use when the user says 'push
-    TRAC-7 to Friday', 'set due date on FE-12 to next Monday', 'clear
-    the deadline on TRAC-7'. `due_date` must be an ISO 8601 calendar
-    date (YYYY-MM-DD), or null to clear. The AI should convert relative
-    dates ('Friday', 'next Monday') to absolute YYYY-MM-DD before
-    calling. Returns the updated task."""
-    client = get_client()
-    resolved = await resolve_task_identifier(task_identifier)
-    return await client.patch(
-        f"/tasks/{resolved['task_id']}",
-        json={"due_date": due_date},
-    )
-
-
-@mcp.tool()
-async def set_priority(
-    task_identifier: str,
-    priority: Literal["urgent", "high", "medium", "low", "no_priority"],
-) -> dict[str, Any]:
-    """Set a task's priority. Use when the user says 'this is urgent',
-    'bump TRAC-7 to high', 'lower priority of FE-12', 'clear priority
-    on TRAC-7' (→ 'no_priority'). Returns the updated task."""
-    client = get_client()
-    resolved = await resolve_task_identifier(task_identifier)
-    return await client.patch(
-        f"/tasks/{resolved['task_id']}",
-        json={"priority": priority},
-    )
-
-
-@mcp.tool()
-async def assign_task(
-    task_identifier: str,
-    assignee_id: str | None,
-) -> dict[str, Any]:
-    """Assign a task to a user, or clear the assignee. Use when the user
-    says 'assign TRAC-7 to me', 'unassign FE-12', 'give TRAC-7 to <uuid>'.
-    Pass the literal string "me" as a shortcut for the current user
-    (resolved from the authenticated request context) — saves Claude an
-    extra lookup. Pass null to unassign. Returns the updated task."""
-    client = get_client()
-    resolved = await resolve_task_identifier(task_identifier)
-    if assignee_id == "me":
-        from .context import get_user_id
-        assignee_id = get_user_id()
-    return await client.patch(
-        f"/tasks/{resolved['task_id']}",
-        json={"assignee_id": assignee_id},
-    )
-
-
-@mcp.tool()
-async def move_to_sprint(
-    task_identifier: str,
-    sprint_id: str | None,
-) -> dict[str, Any]:
-    """Add a task to a sprint, or pull it out. Use when the user says
-    'add TRAC-7 to the active sprint', 'move FE-12 to sprint <id>',
-    'pull TRAC-7 out of the sprint'. If the user references 'active'
-    or 'current' sprint without a UUID, call `list_sprints` first to
-    find the one whose status is 'active'. Pass null to remove from
-    sprint. Returns the updated task."""
-    client = get_client()
-    resolved = await resolve_task_identifier(task_identifier)
-    return await client.patch(
-        f"/tasks/{resolved['task_id']}",
-        json={"sprint_id": sprint_id},
-    )
+    return await client.patch(f"/tasks/{resolved['task_id']}", json=payload)
 
 
 @mcp.tool()
