@@ -34,8 +34,12 @@ class SupabaseAuthClient:
         provider: Provider,
         redirect_to: str,
         code_challenge: str,
-        state: str,
     ) -> str:
+        # NB: we do NOT pass our own `state`. Supabase manages its own signed
+        # OAuth state for the Supabase↔provider leg; injecting our own makes
+        # Supabase reject the provider callback with `bad_oauth_state`. We
+        # correlate our flow back at /callback via a first-party cookie
+        # instead. Supabase returns `?code=` to redirect_to (PKCE).
         if provider not in _ALLOWED_PROVIDERS:
             raise ValueError(f"unknown provider {provider!r}")
         params = {
@@ -43,7 +47,6 @@ class SupabaseAuthClient:
             "redirect_to": redirect_to,
             "code_challenge": code_challenge,
             "code_challenge_method": "S256",
-            "state": state,
         }
         return f"{self._base}/auth/v1/authorize?{urlencode(params)}"
 

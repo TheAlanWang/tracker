@@ -147,19 +147,37 @@ def build_oauth_router(
             provider=provider_raw,  # type: ignore[arg-type]
             redirect_to=f"{base}/callback",
             code_challenge=server_challenge,
-            state=new_state,
         )
-        return RedirectResponse(url, status_code=303)
+        # Correlate this flow at /callback via a first-party cookie (Supabase
+        # returns only ?code=, no echo of our state). SameSite=Lax so it's sent
+        # on the top-level redirect back from Supabase.
+        resp = RedirectResponse(url, status_code=303)
+        resp.set_cookie(
+            "mcp_flow",
+            new_state,
+            max_age=600,
+            httponly=True,
+            secure=True,
+            samesite="lax",
+            path="/",
+        )
+        return resp
 
     async def callback(request: Request) -> Response:
+        # Supabase redirects here with ?code= (PKCE). It does NOT echo our
+        # state, so we recover our flow from the mcp_flow cookie set at
+        # /authorize/start. A Supabase-side failure arrives as ?error=...
         sb_code = request.query_params.get("code", "")
-        sb_state = request.query_params.get("state", "")
-        if not sb_code or not sb_state:
-            return JSONResponse({"error": "missing code or state"}, status_code=400)
+        flow_id = request.cookies.get("mcp_flow", "")
+        if not sb_code:
+            err = request.query_params.get("error_description") or request.query_params.get("error") or "missing code"
+            return JSONResponse({"error": "oauth failed", "detail": err}, status_code=400)
+        if not flow_id:
+            return JSONResponse({"error": "missing flow cookie (start over)"}, status_code=400)
         try:
-            saved = store.pop_auth(sb_state)
+            saved = store.pop_auth(flow_id)
         except KeyError:
-            return JSONResponse({"error": "state expired or invalid"}, status_code=400)
+            return JSONResponse({"error": "flow expired or invalid"}, status_code=400)
 
         try:
             tokens = await supabase.exchange_code(
@@ -181,7 +199,9 @@ def build_oauth_router(
             "code": mcp_code,
             "state": saved.client_state,
         })
-        return RedirectResponse(loc, status_code=303)
+        resp = RedirectResponse(loc, status_code=303)
+        resp.delete_cookie("mcp_flow", path="/")
+        return resp
 
     async def token(request: Request) -> Response:
         form = await request.form()

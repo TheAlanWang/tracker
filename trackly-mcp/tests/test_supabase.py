@@ -23,14 +23,14 @@ def test_build_authorize_url_github(client):
         provider="github",
         redirect_to="https://mcp.test/callback",
         code_challenge="chal-abc",
-        state="state-xyz",
     )
     assert url.startswith("https://test.supabase.co/auth/v1/authorize")
     assert "provider=github" in url
     assert "redirect_to=https%3A%2F%2Fmcp.test%2Fcallback" in url
     assert "code_challenge=chal-abc" in url
     assert "code_challenge_method=S256" in url
-    assert "state=state-xyz" in url
+    # We must NOT pass our own state — Supabase manages its own (else bad_oauth_state).
+    assert "state=" not in url
 
 
 def test_build_authorize_url_google(client):
@@ -38,7 +38,6 @@ def test_build_authorize_url_google(client):
         provider="google",
         redirect_to="https://mcp.test/callback",
         code_challenge="c",
-        state="s",
     )
     assert "provider=google" in url
 
@@ -49,7 +48,6 @@ def test_build_authorize_url_rejects_unknown_provider(client):
             provider="microsoft",
             redirect_to="https://mcp.test/callback",
             code_challenge="c",
-            state="s",
         )
 
 
