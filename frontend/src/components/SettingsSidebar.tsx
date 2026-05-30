@@ -4,6 +4,7 @@
 // rails are visually interchangeable. WorkspaceLayout swaps between
 // them based on whether the route is a settings route.
 
+import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { Folder, LayoutGrid, User } from "lucide-react";
 
@@ -13,7 +14,7 @@ import { projectDotColor } from "@/lib/projectColor";
 import { useTheme } from "@/hooks/useTheme";
 
 export function SettingsSidebar({
-  collapsed,
+  collapsed: collapsedPinned,
   onToggle,
 }: {
   // Shared with WorkspaceLayout's SidebarNav so collapse state survives
@@ -58,17 +59,56 @@ export function SettingsSidebar({
   const firstSectionLabel =
     "flex items-center gap-1.5 px-2 pt-2 pb-1.5 text-[10px] uppercase tracking-[0.12em] text-slate-400 dark:text-neutral-500 font-semibold";
 
+  // Hover-to-peek — same behavior as SidebarNav: when pinned-collapsed,
+  // hovering the 48px rail floats the full rail over the content as an
+  // overlay (no <main> shift). `collapsed` below = pinned-collapsed AND not
+  // peeking, so all the rail/full content checks stay keyed on one flag.
+  const [peek, setPeek] = useState(false);
+  const peekTimer = useRef<number | null>(null);
+  const openPeek = () => {
+    if (peekTimer.current) window.clearTimeout(peekTimer.current);
+    peekTimer.current = window.setTimeout(() => setPeek(true), 120);
+  };
+  const closePeek = () => {
+    if (peekTimer.current) {
+      window.clearTimeout(peekTimer.current);
+      peekTimer.current = null;
+    }
+    setPeek(false);
+  };
+  useEffect(
+    () => () => {
+      if (peekTimer.current) window.clearTimeout(peekTimer.current);
+    },
+    [],
+  );
+  const collapsed = collapsedPinned && !peek;
+  const handleToggle = () => {
+    closePeek();
+    onToggle();
+  };
+
   return (
-    <aside
-      className={`group/sidebar relative ${collapsed ? "w-12" : "w-56"} shrink-0 border-r border-slate-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 p-2 flex flex-col gap-0.5 overflow-y-auto overflow-x-hidden transition-[width] duration-200 ease-out`}
-    >
+    <>
+      {/* Reserve the 48px gutter in flow when pinned-collapsed so <main>
+          doesn't shift; the <aside> floats over it and widens on hover. */}
+      {collapsedPinned && <div className="w-12 shrink-0" aria-hidden />}
+      <aside
+        onMouseEnter={collapsedPinned ? openPeek : undefined}
+        onMouseLeave={collapsedPinned ? closePeek : undefined}
+        className={`group/sidebar border-r border-slate-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 p-2 flex flex-col gap-0.5 overflow-y-auto overflow-x-hidden transition-[width] duration-200 ease-out ${
+          collapsedPinned
+            ? `absolute left-0 inset-y-0 z-30 ${peek ? "w-56 shadow-xl" : "w-12"}`
+            : "relative w-56 shrink-0"
+        }`}
+      >
       {/* Collapse toggle — same two-mode pattern as SidebarNav. Collapsed:
           always-visible expand button (only way back). Expanded: absolute
           top-right + hover-revealed (Linear / Notion pattern). */}
       {collapsed ? (
         <button
           type="button"
-          onClick={onToggle}
+          onClick={handleToggle}
           className="self-center w-7 h-7 flex items-center justify-center rounded text-slate-400 dark:text-neutral-500 hover:text-slate-900 dark:hover:text-neutral-100 hover:bg-slate-100 dark:hover:bg-neutral-800 mb-1 shrink-0"
           title="Expand sidebar"
           aria-label="Expand sidebar"
@@ -90,10 +130,10 @@ export function SettingsSidebar({
       ) : (
         <button
           type="button"
-          onClick={onToggle}
+          onClick={handleToggle}
           className="absolute top-2 right-2 z-10 w-7 h-7 flex items-center justify-center rounded text-slate-400 dark:text-neutral-500 hover:text-slate-900 dark:hover:text-neutral-100 hover:bg-slate-100 dark:hover:bg-neutral-800 transition-opacity opacity-0 group-hover/sidebar:opacity-100 focus:opacity-100"
-          title="Collapse sidebar"
-          aria-label="Collapse sidebar"
+          title={collapsedPinned ? "Pin sidebar open" : "Collapse sidebar"}
+          aria-label={collapsedPinned ? "Pin sidebar open" : "Collapse sidebar"}
         >
           <svg
             viewBox="0 0 24 24"
@@ -106,7 +146,7 @@ export function SettingsSidebar({
           >
             <rect x="3" y="4" width="18" height="16" rx="2" />
             <line x1="9" y1="4" x2="9" y2="20" />
-            <path d="M16 9l-3 3 3 3" />
+            <path d={collapsedPinned ? "M13 9l3 3-3 3" : "M16 9l-3 3 3 3"} />
           </svg>
         </button>
       )}
@@ -295,6 +335,7 @@ export function SettingsSidebar({
           )}
         </>
       )}
-    </aside>
+      </aside>
+    </>
   );
 }
