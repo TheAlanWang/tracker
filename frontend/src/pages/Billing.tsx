@@ -1,11 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
-import { Check } from "lucide-react";
+import { Check, ChevronDown } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { Select } from "@/components/ui/select";
 import {
   PLAN_LABEL,
   PLAN_LIMITS,
@@ -15,7 +14,11 @@ import {
 import { useCreateCheckout, useBillingPortal } from "@/features/billing/api";
 import { useMembers } from "@/features/members/api";
 import { useWorkspaceInvitations } from "@/features/invitations/api";
-import { useWorkspaces, useWorkspaceUsage } from "@/features/workspaces/api";
+import {
+  type Workspace,
+  useWorkspaces,
+  useWorkspaceUsage,
+} from "@/features/workspaces/api";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 
@@ -97,9 +100,8 @@ export default function Billing() {
 
   return (
     <div className="mx-auto max-w-3xl min-w-0">
-      {/* Header in the Profile-settings style: left-aligned title + subtitle.
-          The workspace switcher (billing acts on this one) sits on the right —
-          frameless when there are several, plain text otherwise. */}
+      {/* Header in the Profile-settings style: left-aligned title + subtitle,
+          with the billed-workspace chip on the right. */}
       <header className="mb-6 flex items-start justify-between gap-4">
         <div className="min-w-0">
           <h1 className="text-3xl font-semibold text-slate-900 dark:text-neutral-200">
@@ -109,21 +111,12 @@ export default function Billing() {
             Your workspace plan and usage.
           </p>
         </div>
-        <div className="flex shrink-0 items-center gap-1.5 pt-1.5 text-sm">
-          <span className="text-slate-500 dark:text-neutral-400">Workspace:</span>
-          {workspaces.length > 1 ? (
-            <Select
-              value={selectedWs.id}
-              onChange={setPickedId}
-              options={workspaces.map((w) => ({ value: w.id, label: w.name }))}
-              className="w-44"
-              triggerClassName="border-0 bg-transparent px-1.5 font-medium text-slate-900 dark:text-neutral-100 hover:bg-slate-100 dark:hover:bg-neutral-800 focus:ring-0"
-            />
-          ) : (
-            <span className="font-medium text-slate-900 dark:text-neutral-100">
-              {selectedWs.name}
-            </span>
-          )}
+        <div className="shrink-0 pt-1">
+          <WorkspaceChip
+            workspaces={workspaces}
+            value={selectedWs.id}
+            onChange={setPickedId}
+          />
         </div>
       </header>
 
@@ -284,6 +277,94 @@ export default function Billing() {
         </div>
       </div>
       </div>
+    </div>
+  );
+}
+
+// Small slate initial square for a workspace (matches the settings rail).
+function WsInitial({ name }: { name: string }) {
+  return (
+    <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded bg-slate-100 text-[10px] font-semibold text-slate-700 dark:bg-neutral-800 dark:text-neutral-300">
+      {name.charAt(0).toUpperCase() || "?"}
+    </span>
+  );
+}
+
+// The billed-workspace chip: initial + name + chevron. Opens a menu to switch
+// when there's more than one workspace; a static chip otherwise.
+function WorkspaceChip({
+  workspaces,
+  value,
+  onChange,
+}: {
+  workspaces: Workspace[];
+  value: string;
+  onChange: (id: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const onClick = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("mousedown", onClick);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onClick);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
+  const current = workspaces.find((w) => w.id === value);
+  const multi = workspaces.length > 1;
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        disabled={!multi}
+        onClick={() => multi && setOpen((v) => !v)}
+        className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-sm transition-colors hover:bg-slate-50 disabled:cursor-default disabled:hover:bg-white dark:border-neutral-700 dark:bg-neutral-900 dark:hover:bg-neutral-800 dark:disabled:hover:bg-neutral-900"
+      >
+        <WsInitial name={current?.name ?? "?"} />
+        <span className="max-w-[12rem] truncate font-medium text-slate-900 dark:text-neutral-100">
+          {current?.name ?? "—"}
+        </span>
+        {multi && (
+          <ChevronDown className="h-4 w-4 shrink-0 text-slate-400 dark:text-neutral-500" />
+        )}
+      </button>
+      {open && (
+        <div className="absolute right-0 z-20 mt-1 max-h-60 w-max min-w-full overflow-auto rounded-lg border border-slate-200 bg-white py-1 shadow-lg dark:border-neutral-800 dark:bg-neutral-900">
+          {workspaces.map((w) => (
+            <button
+              key={w.id}
+              type="button"
+              onClick={() => {
+                onChange(w.id);
+                setOpen(false);
+              }}
+              className={`flex w-full items-center gap-2 px-3 py-1.5 text-sm ${
+                w.id === value
+                  ? "bg-slate-50 dark:bg-neutral-800/40"
+                  : "hover:bg-slate-50 dark:hover:bg-neutral-800/50"
+              }`}
+            >
+              <WsInitial name={w.name} />
+              <span className="truncate text-slate-700 dark:text-neutral-200">
+                {w.name}
+              </span>
+              {w.id === value && (
+                <Check className="ml-auto h-3.5 w-3.5 shrink-0 text-blue-600 dark:text-blue-400" />
+              )}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
