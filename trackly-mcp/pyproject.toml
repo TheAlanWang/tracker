@@ -26,6 +26,7 @@ packages = ["src/trackly_mcp"]
 dev = [
     "pytest>=8",
     "pytest-asyncio>=0.23",
+    "respx>=0.21",
 ]
 
 [tool.pytest.ini_options]
