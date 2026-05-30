@@ -745,6 +745,10 @@ export function WorkspaceLayout() {
     location.pathname === `/w/${wsSlug}/profile` ||
     /^\/w\/[^/]+\/p\/[^/]+\/settings$/.test(location.pathname);
 
+  // Billing is a focused, full-width page — no left rail. The top header
+  // (logo + workspace switcher) is the way back.
+  const onBillingPage = location.pathname === `/w/${wsSlug}/billing`;
+
   // Scroll main to top on workspace switch (wsSlug) AND when moving between
   // settings sub-pages (Workspace ↔ Profile ↔ Project Settings) — those keep
   // the same wsSlug so only the pathname changes. Non-settings nav
@@ -1213,7 +1217,7 @@ export function WorkspaceLayout() {
             SectionSidebar overlay below — letting it float over <main>
             without pushing it right. */}
         <div className="flex flex-1 min-h-0 relative">
-          {onSettingsPage ? (
+          {onBillingPage ? null : onSettingsPage ? (
             <SettingsSidebar
               collapsed={sidebarCollapsed}
               onToggle={() => setSidebarCollapsed((v) => !v)}

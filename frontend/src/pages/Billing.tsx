@@ -97,31 +97,68 @@ export default function Billing() {
 
   return (
     <div className="max-w-3xl mx-auto space-y-10">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-slate-900 dark:text-neutral-100">
-          Billing
-        </h1>
-        {/* Billing acts on the selected workspace. With more than one, pick it
-            right here; otherwise just name it. */}
-        {workspaces.length > 1 ? (
-          <div className="mt-2 flex items-center gap-2 text-sm text-slate-500 dark:text-neutral-400">
-            <span>for</span>
-            <Select
-              value={selectedWs.id}
-              onChange={setPickedId}
-              options={workspaces.map((w) => ({ value: w.id, label: w.name }))}
-              className="w-52"
-            />
-          </div>
-        ) : (
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          <h1 className="text-2xl font-semibold tracking-tight text-slate-900 dark:text-neutral-100">
+            Billing
+          </h1>
           <p className="mt-1 text-sm text-slate-500 dark:text-neutral-400">
-            for{" "}
+            Plan &amp; usage for this workspace.
+          </p>
+        </div>
+        {/* Workspace context — billing acts on this one. A switcher when there
+            are several; a static chip when there's only one. */}
+        {workspaces.length > 1 ? (
+          <Select
+            value={selectedWs.id}
+            onChange={setPickedId}
+            options={workspaces.map((w) => ({ value: w.id, label: w.name }))}
+            renderOption={(o) => (
+              <span className="flex min-w-0 items-center gap-2">
+                <WsInitial name={o.label} />
+                <span className="truncate">{o.label}</span>
+              </span>
+            )}
+            className="w-56 shrink-0"
+          />
+        ) : (
+          <div className="flex shrink-0 items-center gap-2 rounded-lg border border-slate-200 px-3 py-1.5 text-sm dark:border-neutral-800">
+            <WsInitial name={selectedWs.name} />
             <span className="font-medium text-slate-700 dark:text-neutral-300">
               {selectedWs.name}
             </span>
-          </p>
+          </div>
         )}
       </div>
+
+      {/* Clear "you're on Pro" confirmation + the manage/cancel entry point. */}
+      {plan === "pro" && (
+        <div className="flex items-center justify-between gap-4 rounded-2xl border border-[#C9A227]/40 bg-[#C9A227]/[0.06] p-5">
+          <div className="flex items-center gap-3">
+            <span className="text-xl leading-none" style={{ color: GOLD }}>
+              ✦
+            </span>
+            <div>
+              <p className="font-semibold text-slate-900 dark:text-neutral-100">
+                You’re on Pro
+              </p>
+              <p className="text-sm text-slate-500 dark:text-neutral-400">
+                ${PLAN_PRICE.pro.toFixed(2)} / workspace / mo · billed monthly
+              </p>
+            </div>
+          </div>
+          {isOwner && (
+            <Button
+              variant="outline"
+              className="shrink-0"
+              disabled={portal.isPending}
+              onClick={openPortal}
+            >
+              {portal.isPending ? "Opening…" : "Manage billing"}
+            </Button>
+          )}
+        </div>
+      )}
 
       {/* Free vs Pro — what each tier costs and includes. */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 items-stretch">
@@ -187,9 +224,10 @@ export default function Billing() {
                 ))}
               </ul>
 
-              {/* Per-card CTA, pinned to the bottom so the two cards align. */}
-              <div className="mt-auto pt-6">
-                {p === "pro" && plan === "free" && (
+              {/* Upgrade CTA, pinned to the bottom so the cards align. Manage /
+                  cancel lives in the Pro banner above when already subscribed. */}
+              {p === "pro" && plan === "free" && (
+                <div className="mt-auto pt-6">
                   <Button
                     className="w-full"
                     disabled={!isOwner || checkout.isPending}
@@ -197,23 +235,8 @@ export default function Billing() {
                   >
                     {checkout.isPending ? "Redirecting…" : "Upgrade to Pro"}
                   </Button>
-                )}
-                {p === "pro" && plan === "pro" && (
-                  <Button
-                    variant="outline"
-                    className="w-full"
-                    disabled={!isOwner || portal.isPending}
-                    onClick={openPortal}
-                  >
-                    {portal.isPending ? "Opening…" : "Manage billing"}
-                  </Button>
-                )}
-                {p === "free" && plan === "pro" && isOwner && (
-                  <p className="text-xs text-slate-500 dark:text-neutral-400">
-                    Downgrade from “Manage billing”.
-                  </p>
-                )}
-              </div>
+                </div>
+              )}
             </div>
           );
         })}
@@ -263,6 +286,15 @@ export default function Billing() {
         </div>
       </div>
     </div>
+  );
+}
+
+// Small colored initial square for a workspace, matching the settings rail.
+function WsInitial({ name }: { name: string }) {
+  return (
+    <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded bg-slate-100 text-[10px] font-semibold text-slate-700 dark:bg-neutral-800 dark:text-neutral-300">
+      {name.charAt(0).toUpperCase()}
+    </span>
   );
 }
 
