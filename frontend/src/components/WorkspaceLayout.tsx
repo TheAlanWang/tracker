@@ -743,6 +743,7 @@ export function WorkspaceLayout() {
   const onSettingsPage =
     location.pathname === `/w/${wsSlug}/settings` ||
     location.pathname === `/w/${wsSlug}/profile` ||
+    location.pathname === `/w/${wsSlug}/billing` ||
     /^\/w\/[^/]+\/p\/[^/]+\/settings$/.test(location.pathname);
 
   // Scroll main to top on workspace switch (wsSlug) AND when moving between
