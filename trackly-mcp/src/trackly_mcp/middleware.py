@@ -1,4 +1,9 @@
-"""ASGI middleware that protects /mcp with HS256 Supabase JWT verification.
+"""ASGI middleware that protects /mcp with Supabase JWT verification.
+
+Supports both signing schemes Supabase may use (mirrors the backend's
+verify logic): HS256 with the shared legacy secret, and ES256 with the
+project's asymmetric JWT signing key fetched from its JWKS endpoint. The
+algorithm is chosen per-token from its header.
 
 Only paths under `protected_prefix` require auth. OAuth endpoints
 (/authorize, /callback, /token, /.well-known/*) bypass this entirely.
@@ -7,7 +12,9 @@ On success, sets CURRENT_BEARER + CURRENT_USER_ID contextvars for downstream
 tools to read. Resets on response, even on exception.
 """
 
+import anyio
 import jwt
+from jwt import PyJWKClient
 from starlette.types import ASGIApp, Receive, Scope, Send
 
 from .context import set_request_context, CURRENT_BEARER, CURRENT_USER_ID
@@ -25,6 +32,38 @@ class AuthMiddleware:
         self._secret = jwt_secret
         self._prefix = protected_prefix
         self._resource_metadata = resource_metadata_url
+        # JWKS clients cached per URL (they cache signing keys internally).
+        self._jwks_clients: dict[str, PyJWKClient] = {}
+
+    def _jwks_client(self, url: str) -> PyJWKClient:
+        c = self._jwks_clients.get(url)
+        if c is None:
+            c = PyJWKClient(url)
+            self._jwks_clients[url] = c
+        return c
+
+    def _decode(self, token: str) -> dict:
+        """Verify a Supabase JWT (HS256 shared secret or ES256 via JWKS),
+        chosen by the token's alg header. Mirrors the backend. Synchronous —
+        run via anyio.to_thread so the ES256 JWKS fetch doesn't block the loop.
+        """
+        alg = jwt.get_unverified_header(token).get("alg", "HS256")
+        if alg == "ES256":
+            iss = jwt.decode(token, options={"verify_signature": False}).get("iss", "")
+            jwks_url = iss.rstrip("/") + "/.well-known/jwks.json"
+            signing_key = self._jwks_client(jwks_url).get_signing_key_from_jwt(token)
+            return jwt.decode(
+                token,
+                signing_key.key,
+                algorithms=["ES256"],
+                audience="authenticated",
+            )
+        return jwt.decode(
+            token,
+            self._secret,
+            algorithms=["HS256"],
+            audience="authenticated",
+        )
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         if scope["type"] != "http":
@@ -41,13 +80,8 @@ class AuthMiddleware:
             return
 
         try:
-            payload = jwt.decode(
-                token,
-                self._secret,
-                algorithms=["HS256"],
-                audience="authenticated",
-            )
-        except jwt.PyJWTError:
+            payload = await anyio.to_thread.run_sync(self._decode, token)
+        except Exception:
             await self._reject(send, status=401, reason="invalid")
             return
 
