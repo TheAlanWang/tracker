@@ -28,7 +28,9 @@ const GOLD = "#C9A227";
 const CAP_LINES: ((p: Plan) => string)[] = [
   (p) => `${PLAN_LIMITS[p].members} members`,
   (p) => `${PLAN_LIMITS[p].storage_gb} GB storage`,
-  (p) => `${PLAN_LIMITS[p].mcp_calls_per_day.toLocaleString()} MCP calls / day`,
+  // MCP is unlimited on every plan — we want people using it as much as
+  // possible, so it's a shared perk, not a paid differentiator.
+  () => `Unlimited MCP calls`,
 ];
 
 export default function Billing() {
