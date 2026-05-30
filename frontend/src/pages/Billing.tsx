@@ -157,9 +157,12 @@ export default function Billing() {
         {(["free", "pro"] as const).map((p) => {
           const isCurrent = p === plan;
           const isUpsell = p === "pro" && plan === "free";
-          const cardClass = isUpsell
-            ? "border-[#C9A227]/40 dark:border-[#E8C766]/30 bg-[#C9A227]/[0.06] dark:bg-[#E8C766]/[0.06]"
-            : "border-slate-200 dark:border-neutral-800 bg-white dark:bg-neutral-900";
+          // The Pro tier card is always gold (it's the Pro identity); Free is
+          // neutral. (isUpsell still drives the "Recommended" label below.)
+          const cardClass =
+            p === "pro"
+              ? "border-[#C9A227]/40 dark:border-[#E8C766]/30 bg-[#C9A227]/[0.06] dark:bg-[#E8C766]/[0.06]"
+              : "border-slate-200 dark:border-neutral-800 bg-white dark:bg-neutral-900";
           return (
             <div
               key={p}
@@ -200,7 +203,7 @@ export default function Billing() {
                   >
                     <Check
                       className={`w-4 h-4 shrink-0 ${
-                        isUpsell
+                        p === "pro"
                           ? "text-[#C9A227] dark:text-[#E8C766]"
                           : "text-slate-400 dark:text-neutral-500"
                       }`}
