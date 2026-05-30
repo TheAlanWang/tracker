@@ -202,7 +202,7 @@ export function SettingsSidebar({
                     onClick={() => navigate(`/w/${w.slug}/settings`)}
                     className={`group flex items-center justify-center w-full rounded-md py-1 transition-colors ${
                       directActive
-                        ? "bg-slate-100 dark:bg-neutral-800"
+                        ? "ring-1 ring-slate-300 dark:ring-neutral-600"
                         : parentActive
                           ? "bg-slate-50 dark:bg-neutral-800/40"
                           : "hover:bg-slate-100 dark:hover:bg-neutral-800"
