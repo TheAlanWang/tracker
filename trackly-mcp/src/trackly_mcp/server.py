@@ -5,13 +5,13 @@ by matching the user's intent against these descriptions. Write them
 for an LLM reader, not a human one: lead with the verb, name the
 concept the user would say, mention input shapes.
 
-Run:
-    uv run trackly-mcp           # stdio transport (default)
+Run (v2, hosted):
+    uv run trackly-mcp           # boots uvicorn + streamable HTTP on /mcp
 
-Requires env:
-    TRACKLY_USER_ID       — UUID of your Trackly account (auth.users.id)
-    TRACKLY_JWT_SECRET    — same as backend SUPABASE_JWT_SECRET
-    TRACKLY_API_URL       — optional; defaults to prod
+Auth is per-request: clients connect via OAuth (see README) and the
+verified Supabase bearer is forwarded to the backend. The caller's user
+id comes from the request context (set by AuthMiddleware), not env. See
+config.py for the required server env vars.
 """
 
 import os
@@ -350,8 +350,8 @@ async def assign_task(
     """Assign a task to a user, or clear the assignee. Use when the user
     says 'assign TRAC-7 to me', 'unassign FE-12', 'give TRAC-7 to <uuid>'.
     Pass the literal string "me" as a shortcut for the current user
-    (resolved from env TRACKLY_USER_ID) — saves Claude an extra lookup.
-    Pass null to unassign. Returns the updated task."""
+    (resolved from the authenticated request context) — saves Claude an
+    extra lookup. Pass null to unassign. Returns the updated task."""
     client = get_client()
     resolved = await resolve_task_identifier(task_identifier)
     if assignee_id == "me":
@@ -402,7 +402,6 @@ def main() -> None:
     v1 had a stdio mode here; v2 is HTTP-only (see spec security invariants).
     Anyone wanting to use trackly-mcp connects via OAuth to the hosted URL.
     """
-    import os
     import uvicorn
 
     from .app import create_app

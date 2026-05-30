@@ -16,7 +16,6 @@ Security invariants enforced inline:
 import base64
 import hashlib
 import secrets
-from typing import Any
 from urllib.parse import urlencode
 
 from starlette.requests import Request
@@ -25,7 +24,7 @@ from starlette.routing import Route, Router
 
 from .picker import render_picker
 from .state import AuthState, StateStore, SupabaseTokens
-from .supabase import SupabaseAuthClient, SupabaseAuthError, Provider
+from .supabase import SupabaseAuthClient, SupabaseAuthError
 from .validators import InvalidRedirectURI, validate_redirect_uri
 
 
