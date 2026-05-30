@@ -1,7 +1,9 @@
 import { useEffect } from "react";
 import { createPortal } from "react-dom";
+import { Maximize2 } from "lucide-react";
 
 import { TaskDetailContent } from "@/pages/TaskDetail";
+import { useTask } from "@/features/tasks/api";
 
 function CloseIcon() {
   return (
@@ -26,6 +28,13 @@ type Props = {
 };
 
 export function TaskDetailModal({ taskId, onClose }: Props) {
+  // URL for the chrome-less standalone view (opened in a new tab by the
+  // expand button). The task is already in cache from the open content
+  // (same query key), so this adds no network; the empty arg keeps the
+  // query disabled until taskId resolves.
+  const { data: task } = useTask(taskId ?? "");
+  const fullUrl = task ? `/t/${task.identifier}` : null;
+
   // Esc to close
   useEffect(() => {
     if (!taskId) return;
@@ -60,6 +69,18 @@ export function TaskDetailModal({ taskId, onClose }: Props) {
         className="relative my-4 w-full max-w-5xl rounded-lg bg-white dark:bg-neutral-900 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
+        {fullUrl && (
+          <a
+            href={fullUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="absolute right-12 top-3 z-10 inline-flex h-8 w-8 items-center justify-center rounded text-slate-500 dark:text-neutral-400 hover:bg-slate-100 dark:hover:bg-neutral-800 hover:text-slate-900 dark:hover:text-neutral-100"
+            aria-label="Open in new tab"
+            title="Open in new tab"
+          >
+            <Maximize2 className="w-4 h-4" />
+          </a>
+        )}
         <button
           type="button"
           onClick={onClose}

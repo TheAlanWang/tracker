@@ -31,6 +31,13 @@ type Props = {
   maxLength?: number;
   className?: string;
   onKeyDown?: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
+  // Optional clipboard / drag-drop handlers — used to wire image upload
+  // (useImagePasteUpload) onto the composer. They don't interfere with the
+  // internal @-mention logic on the textarea.
+  onPaste?: (e: React.ClipboardEvent<HTMLTextAreaElement>) => void;
+  onDrop?: (e: React.DragEvent<HTMLTextAreaElement>) => void;
+  onDragOver?: (e: React.DragEvent<HTMLTextAreaElement>) => void;
+  onDragLeave?: (e: React.DragEvent<HTMLTextAreaElement>) => void;
 };
 
 // Derive the @-handle a member should be addressed by: prefer display_name's
@@ -62,7 +69,20 @@ function getActiveMention(
 
 export const MentionTextarea = forwardRef<HTMLTextAreaElement, Props>(
   function MentionTextarea(
-    { value, onChange, members, placeholder, rows = 3, maxLength, className, onKeyDown },
+    {
+      value,
+      onChange,
+      members,
+      placeholder,
+      rows = 3,
+      maxLength,
+      className,
+      onKeyDown,
+      onPaste,
+      onDrop,
+      onDragOver,
+      onDragLeave,
+    },
     ref,
   ) {
     const localRef = useRef<HTMLTextAreaElement>(null);
@@ -164,6 +184,10 @@ export const MentionTextarea = forwardRef<HTMLTextAreaElement, Props>(
             setTimeout(() => setMention(null), 150);
           }}
           onKeyDown={handleKey}
+          onPaste={onPaste}
+          onDrop={onDrop}
+          onDragOver={onDragOver}
+          onDragLeave={onDragLeave}
           placeholder={placeholder}
           rows={rows}
           maxLength={maxLength}
