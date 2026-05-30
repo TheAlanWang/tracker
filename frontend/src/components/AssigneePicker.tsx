@@ -28,9 +28,26 @@ export function AssigneePicker({
 }: Props) {
   const [open, setOpen] = useState(false);
   const [pos, setPos] = useState({ left: 0, top: 0 });
+  const [query, setQuery] = useState("");
   const triggerRef = useRef<HTMLButtonElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
   const update = useUpdateTask(taskId);
+
+  // Close the popover and clear the filter so it reopens fresh.
+  function close() {
+    setOpen(false);
+    setQuery("");
+  }
+
+  // Filter members by name/email (case-insensitive substring).
+  const q = query.trim().toLowerCase();
+  const filteredMembers = q
+    ? members.filter(
+        (m) =>
+          (m.display_name?.toLowerCase().includes(q) ?? false) ||
+          (m.email?.toLowerCase().includes(q) ?? false),
+      )
+    : members;
 
   useEffect(() => {
     if (!open) return;
@@ -61,9 +78,13 @@ export function AssigneePicker({
       if (popoverRef.current?.contains(target)) return;
       if (triggerRef.current?.contains(target)) return;
       setOpen(false);
+      setQuery("");
     };
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpen(false);
+      if (e.key === "Escape") {
+        setOpen(false);
+        setQuery("");
+      }
     };
     document.addEventListener("mousedown", onClick);
     document.addEventListener("keydown", onKey);
@@ -74,7 +95,7 @@ export function AssigneePicker({
   }, [open]);
 
   async function assign(userId: string | null) {
-    setOpen(false);
+    close();
     try {
       await update.mutateAsync({ assignee_id: userId } as never);
     } catch (err) {
@@ -98,64 +119,80 @@ export function AssigneePicker({
               top: pos.top,
               width: 240,
             }}
-            className="z-50 rounded-lg border border-slate-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-xl py-1 max-h-[320px] overflow-y-auto"
+            className="z-50 rounded-lg border border-slate-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-xl overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                assign(null);
-              }}
-              className={`w-full text-left px-3 py-2 text-sm hover:bg-slate-50 dark:hover:bg-neutral-800/50 flex items-center gap-2 ${
-                currentAssigneeId === null ? "bg-slate-50 dark:bg-neutral-800/40" : ""
-              }`}
-            >
-              <div className="w-6 h-6 rounded-full border-2 border-dashed border-slate-300 dark:border-neutral-700 shrink-0" />
-              <span className="text-slate-700 dark:text-neutral-300">Unassigned</span>
-              {currentAssigneeId === null && (
-                <span className="ml-auto text-blue-600 text-xs">✓</span>
+            {/* Search header — stays put while the member list scrolls. */}
+            <input
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search members…"
+              autoFocus
+              className="w-full px-3 py-2 text-sm outline-none border-b border-slate-100 dark:border-neutral-800 bg-white dark:bg-neutral-900 text-slate-900 dark:text-neutral-200 placeholder:text-slate-400"
+            />
+            <div className="py-1 max-h-[280px] overflow-y-auto">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  assign(null);
+                }}
+                className={`w-full text-left px-3 py-2 text-sm hover:bg-slate-50 dark:hover:bg-neutral-800/50 flex items-center gap-2 ${
+                  currentAssigneeId === null ? "bg-slate-50 dark:bg-neutral-800/40" : ""
+                }`}
+              >
+                <div className="w-6 h-6 rounded-full border-2 border-dashed border-slate-300 dark:border-neutral-700 shrink-0" />
+                <span className="text-slate-700 dark:text-neutral-300">Unassigned</span>
+                {currentAssigneeId === null && (
+                  <span className="ml-auto text-blue-600 text-xs">✓</span>
+                )}
+              </button>
+              {filteredMembers.length > 0 && (
+                <div className="my-1 border-t border-slate-100 dark:border-neutral-800" />
               )}
-            </button>
-            {members.length > 0 && (
-              <div className="my-1 border-t border-slate-100 dark:border-neutral-800" />
-            )}
-            {members.map((m) => {
-              const isCurrent = m.user_id === currentAssigneeId;
-              const label = m.display_name || m.email || m.user_id;
-              return (
-                <button
-                  key={m.user_id}
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    assign(m.user_id);
-                  }}
-                  className={`w-full text-left px-3 py-2 text-sm hover:bg-slate-50 dark:hover:bg-neutral-800/50 flex items-center gap-2 ${
-                    isCurrent ? "bg-slate-50 dark:bg-neutral-800/40" : ""
-                  }`}
-                >
-                  <Avatar
-                    displayName={m.display_name}
-                    email={m.email}
-                    avatarUrl={m.avatar_url}
-                    color={m.avatar_color}
-                    size={24}
-                  />
-                  <div className="min-w-0 flex-1">
-                    <p className="text-slate-900 dark:text-neutral-200 truncate">{label}</p>
-                    {m.display_name && m.email && (
-                      <p className="text-xs text-slate-400 dark:text-neutral-500 truncate">
-                        {m.email}
-                      </p>
+              {filteredMembers.map((m) => {
+                const isCurrent = m.user_id === currentAssigneeId;
+                const label = m.display_name || m.email || m.user_id;
+                return (
+                  <button
+                    key={m.user_id}
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      assign(m.user_id);
+                    }}
+                    className={`w-full text-left px-3 py-2 text-sm hover:bg-slate-50 dark:hover:bg-neutral-800/50 flex items-center gap-2 ${
+                      isCurrent ? "bg-slate-50 dark:bg-neutral-800/40" : ""
+                    }`}
+                  >
+                    <Avatar
+                      displayName={m.display_name}
+                      email={m.email}
+                      avatarUrl={m.avatar_url}
+                      color={m.avatar_color}
+                      size={24}
+                    />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-slate-900 dark:text-neutral-200 truncate">{label}</p>
+                      {m.display_name && m.email && (
+                        <p className="text-xs text-slate-400 dark:text-neutral-500 truncate">
+                          {m.email}
+                        </p>
+                      )}
+                    </div>
+                    {isCurrent && (
+                      <span className="text-blue-600 text-xs">✓</span>
                     )}
-                  </div>
-                  {isCurrent && (
-                    <span className="text-blue-600 text-xs">✓</span>
-                  )}
-                </button>
-              );
-            })}
+                  </button>
+                );
+              })}
+              {q && filteredMembers.length === 0 && (
+                <p className="px-3 py-2 text-sm text-slate-400 dark:text-neutral-500">
+                  No members match “{query.trim()}”.
+                </p>
+              )}
+            </div>
           </div>,
           document.body,
         )}
