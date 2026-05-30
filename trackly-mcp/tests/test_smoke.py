@@ -1,46 +1,30 @@
-"""Smoke tests — verify the pieces wire up without hitting the network.
+"""Smoke tests — verify the package imports and FastMCP wires up.
 
-End-to-end is covered by manually pointing a Claude Code session at
-the running server (see README); these tests catch the dumb stuff:
-JWT shape, env handling, client init.
+Real end-to-end is covered by manually pointing Claude Code at the running
+server (see README) and by the per-module unit tests.
 """
 
-import time
-
-import jwt
-import pytest
-
-from trackly_mcp.auth import mint_user_jwt
-from trackly_mcp.client import TrackerClient, get_client
+from trackly_mcp.server import mcp
 
 
-def test_mint_user_jwt_shape():
-    """Token decodes back with the same claims, in the Supabase user-session shape."""
-    secret = "test-secret-padded-for-hs256-checks-32b"
-    token = mint_user_jwt("user-abc", secret, ttl_seconds=60)
-    decoded = jwt.decode(token, secret, algorithms=["HS256"], audience="authenticated")
-    assert decoded["sub"] == "user-abc"
-    assert decoded["aud"] == "authenticated"
-    assert decoded["exp"] > time.time()
+def test_fastmcp_instance_imports():
+    assert mcp is not None
+    assert mcp.name == "trackly"
 
 
-def test_get_client_requires_env(monkeypatch):
-    """Missing env should fail loud, not silently produce a broken client."""
-    monkeypatch.delenv("TRACKLY_USER_ID", raising=False)
-    monkeypatch.delenv("TRACKLY_JWT_SECRET", raising=False)
-    # Bust the lru_cache so a previous test's value doesn't leak in.
-    get_client.cache_clear()
-    with pytest.raises(RuntimeError, match="TRACKLY_USER_ID"):
-        get_client()
-
-
-def test_client_builds_auth_header():
-    """A fresh JWT is minted on every call (no token cache to go stale)."""
-    secret = "test-secret-padded-for-hs256-checks-32b"
-    c = TrackerClient(api_url="https://example.test", user_id="u1", jwt_secret=secret)
-    h1 = c._auth_header()
-    time.sleep(1)
-    h2 = c._auth_header()
-    assert h1["Authorization"].startswith("Bearer ")
-    # Tokens minted 1s apart should differ (iat differs by ≥1).
-    assert h1["Authorization"] != h2["Authorization"]
+def test_tools_registered():
+    """All 19 tools should be on the FastMCP instance."""
+    # FastMCP exposes tools via mcp._tool_manager — name varies by mcp version;
+    # the resilient check is asking it to list:
+    import asyncio
+    tools = asyncio.get_event_loop().run_until_complete(mcp.list_tools())
+    names = {t.name for t in tools}
+    expected = {
+        "list_workspaces", "list_projects", "list_my_tasks", "get_task", "search",
+        "list_sprints", "list_tasks", "list_workspace_members",
+        "list_recent_activity", "get_project",
+        "create_task", "update_task_status", "update_task_title",
+        "update_task_description", "set_due_date", "set_priority",
+        "assign_task", "move_to_sprint", "add_comment",
+    }
+    assert expected.issubset(names), f"missing: {expected - names}"

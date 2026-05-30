@@ -1,97 +1,91 @@
 # trackly-mcp
 
-MCP server that exposes the [Trackly](https://tracker.thealanwang.xyz) task tracker to MCP clients (Claude Code, Claude Desktop, Cursor, etc.).
+Hosted MCP server that exposes the [Trackly](https://tracker.thealanwang.xyz) task tracker to MCP clients (Claude Desktop, Claude Code, Cursor, etc.).
 
-Drop it in your config and you can say things like *"create a tracker task in TRAC titled 'Fix login bug'"* or *"what's on my plate this week?"* directly in your editor — the client picks the right Trackly tool and runs it.
+Drop the URL in your config, sign in once with your Trackly account, and you can say things like *"create a tracker task in TRAC titled 'Fix login bug'"* directly in your editor — the client picks the right Trackly tool and runs it.
 
 ## Tools
 
-| Tool | What it does |
-|---|---|
-| `list_workspaces` | Every workspace you're a member of |
-| `list_projects` | Projects inside a workspace |
-| `list_my_tasks` | Tasks assigned to you, optionally filtered by status |
-| `get_task` | Full task details + recent comments, by identifier (e.g. `TRAC-7`) |
-| `search` | Substring search across tasks / projects / labels |
-| `create_task` | New task in a project |
-| `update_task_status` | Move a task to backlog / todo / in_progress / in_review / done / cancelled |
-| `add_comment` | Post a comment on a task (markdown) |
+19 tools across read + write. See `src/trackly_mcp/server.py` for the full list and the LLM-facing docstrings.
 
-## Setup
+## Setup (users)
 
-### 1. Install
+### 1. Register the server
 
-```bash
-cd trackly-mcp
-uv sync
-```
-
-### 2. Find your credentials
-
-- `TRACKLY_USER_ID` — your Trackly account's user UUID. Get it from Supabase → Authentication → Users (find your row, copy the id), or from any URL of yours that includes a user-id parameter, or from the `auth.users.id` column directly.
-- `TRACKLY_JWT_SECRET` — the same `SUPABASE_JWT_SECRET` the Trackly backend uses to verify tokens. From Supabase → Project Settings → API → JWT Settings → `JWT Secret` (the legacy HS256 one).
-
-### 3. Register the server
-
-**Claude Code** — `~/.claude.json`:
+**Claude Code / Claude Desktop / Cursor** — add to your MCP config:
 
 ```json
 {
   "mcpServers": {
     "trackly": {
-      "command": "uv",
-      "args": [
-        "--directory",
-        "/Users/alanwang/MyFiles/Project/tracker/trackly-mcp",
-        "run",
-        "trackly-mcp"
-      ],
-      "env": {
-        "TRACKLY_API_URL": "https://tracker-thealanwang.fly.dev",
-        "TRACKLY_USER_ID": "<your-supabase-user-uuid>",
-        "TRACKLY_JWT_SECRET": "<your-supabase-jwt-secret>"
-      }
+      "url": "https://trackly-mcp.fly.dev/mcp"
     }
   }
 }
 ```
 
-**Claude Desktop** — same JSON, in `~/Library/Application Support/Claude/claude_desktop_config.json`.
+That's it. No env vars, no secrets, no Python install.
 
-**Cursor** — same JSON, in `~/.cursor/mcp.json`.
-
-### 4. Try it
+### 2. First use
 
 Restart your MCP client. In a new conversation:
 
 ```
 > /mcp
-# should list "trackly" with 8 tools
-
-> What tasks do I have open in workspace my-workspace?
-# → list_my_tasks fires, returns your assigned tasks
-
-> Create a tracker task in TRAC titled "Try MCP integration"
-# → create_task fires, returns the new task + URL
-
-> Move TRAC-12 to in_progress
-# → update_task_status fires
-
-> Add a comment to TRAC-12: "Working on this now"
-# → add_comment fires
 ```
+
+The client will open your browser to a "Sign in to Trackly" page. Pick GitHub or Google — whichever you use for Trackly. Once signed in, you're done; the token is stored in your client's keychain and refreshed automatically.
+
+### 3. Try it
+
+```
+> What tasks do I have open in workspace my-workspace?
+> Create a tracker task in TRAC titled "Try MCP integration"
+> Move TRAC-12 to in_progress
+> Add a comment to TRAC-12: "Working on this now"
+```
+
+## Architecture
+
+MCP server is an OAuth 2.1 resource server. It proxies authorization to Supabase (where Trackly's user accounts live), validates the resulting access token on every `/mcp` request, and forwards the user's verified token to the existing Trackly REST API. The server holds no per-user state; tokens live in your MCP client's keychain.
+
+See `docs/superpowers/specs/2026-05-25-trackly-mcp-v2-design.md` for the detailed design.
 
 ## Development
 
 ```bash
-uv run pytest -q        # smoke tests
-uv run trackly-mcp      # run server in stdio mode (for debugging)
+cd trackly-mcp
+uv sync                  # install
+uv run pytest -v         # all unit + integration tests
 ```
 
-The smoke tests don't hit the network; for end-to-end verification, point Claude Code at the running server and confirm tools fire against the prod backend.
+To boot a local copy:
 
-## Notes
+```bash
+export SUPABASE_URL=https://yjngyftaaenftmksjxbn.supabase.co
+export SUPABASE_JWT_SECRET=...      # server-side ONLY (Fly secret in prod)
+export SUPABASE_ANON_KEY=...
+export TRACKLY_API_URL=https://tracker-thealanwang.fly.dev
+export SERVER_BASE_URL=http://localhost:8080
+export PORT=8080
+uv run trackly-mcp
+```
 
-- Auth: MCP mints a short-lived HS256 user-JWT (`aud=authenticated`, `sub=<your-user-id>`) on every request, signed with the shared `SUPABASE_JWT_SECRET`. The backend can't tell it apart from a real browser session token. **Keep the secret out of git** — it's an env var.
-- Transport: stdio. Each MCP client launches the server as a subprocess and talks JSON-RPC over its stdin/stdout pipe. Nothing listens on a port.
-- A future v2 will add an HTTP/SSE transport + OAuth so other people can use it without sharing your JWT secret.
+> **Security:** `SUPABASE_JWT_SECRET` is server-side only. It is never read on a user's machine. The user-facing config (above) contains no secrets.
+
+## Deployment
+
+Hosted on Fly.io as `trackly-mcp`. To redeploy:
+
+```bash
+fly deploy
+```
+
+Secrets are managed via `fly secrets set`. See `fly.toml`.
+
+## Differences from v1
+
+- v1 was a Python package users installed locally and ran via stdio, authenticated by minting JWTs with the shared Trackly `SUPABASE_JWT_SECRET` (which had to be copied to every user's machine).
+- v2 is hosted multi-tenant with OAuth. The shared secret stays on the server; users sign in with their own accounts.
+
+If you used v1, delete the `TRACKLY_USER_ID` / `TRACKLY_JWT_SECRET` env vars from your shell rc and update your MCP config to the URL above.

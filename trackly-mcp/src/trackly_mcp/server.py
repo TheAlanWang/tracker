@@ -5,13 +5,13 @@ by matching the user's intent against these descriptions. Write them
 for an LLM reader, not a human one: lead with the verb, name the
 concept the user would say, mention input shapes.
 
-Run:
-    uv run trackly-mcp           # stdio transport (default)
+Run (v2, hosted):
+    uv run trackly-mcp           # boots uvicorn + streamable HTTP on /mcp
 
-Requires env:
-    TRACKLY_USER_ID       — UUID of your Trackly account (auth.users.id)
-    TRACKLY_JWT_SECRET    — same as backend SUPABASE_JWT_SECRET
-    TRACKLY_API_URL       — optional; defaults to prod
+Auth is per-request: clients connect via OAuth (see README) and the
+verified Supabase bearer is forwarded to the backend. The caller's user
+id comes from the request context (set by AuthMiddleware), not env. See
+config.py for the required server env vars.
 """
 
 import os
@@ -69,7 +69,8 @@ async def list_my_tasks(
     title, status, priority, due_date, project_id, updated_at."""
     client = get_client()
     ws = await resolve_workspace(workspace_slug)
-    params: dict[str, Any] = {"assignee_id": client.user_id}
+    from .context import get_user_id
+    params: dict[str, Any] = {"assignee_id": get_user_id()}
     tasks = await client.get(
         f"/workspaces/{ws['id']}/tasks", params=params
     )
@@ -147,7 +148,8 @@ async def list_tasks(
     ws = await resolve_workspace(workspace_slug)
 
     if assignee_id == "me":
-        assignee_id = os.environ["TRACKLY_USER_ID"]
+        from .context import get_user_id
+        assignee_id = get_user_id()
 
     if project_key:
         # Project-scoped endpoint supports `status` natively; we do
@@ -348,12 +350,13 @@ async def assign_task(
     """Assign a task to a user, or clear the assignee. Use when the user
     says 'assign TRAC-7 to me', 'unassign FE-12', 'give TRAC-7 to <uuid>'.
     Pass the literal string "me" as a shortcut for the current user
-    (resolved from env TRACKLY_USER_ID) — saves Claude an extra lookup.
-    Pass null to unassign. Returns the updated task."""
+    (resolved from the authenticated request context) — saves Claude an
+    extra lookup. Pass null to unassign. Returns the updated task."""
     client = get_client()
     resolved = await resolve_task_identifier(task_identifier)
     if assignee_id == "me":
-        assignee_id = os.environ["TRACKLY_USER_ID"]
+        from .context import get_user_id
+        assignee_id = get_user_id()
     return await client.patch(
         f"/tasks/{resolved['task_id']}",
         json={"assignee_id": assignee_id},
@@ -394,10 +397,18 @@ async def add_comment(task_identifier: str, body: str) -> dict[str, Any]:
 
 
 def main() -> None:
-    """Entry point referenced by `pyproject.toml [project.scripts]`."""
-    # stdio transport — what Claude Code / Cursor / Claude Desktop
-    # all use for local MCP servers. No HTTP server, no port to bind.
-    mcp.run()
+    """Entry point — boot the streamable-HTTP MCP server.
+
+    v1 had a stdio mode here; v2 is HTTP-only (see spec security invariants).
+    Anyone wanting to use trackly-mcp connects via OAuth to the hosted URL.
+    """
+    import uvicorn
+
+    from .app import create_app
+
+    host = os.environ.get("HOST", "0.0.0.0")
+    port = int(os.environ.get("PORT", "8080"))
+    uvicorn.run(create_app(), host=host, port=port, log_level="info")
 
 
 if __name__ == "__main__":
