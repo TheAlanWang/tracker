@@ -1,10 +1,12 @@
 """Stripe billing — Checkout, Billing Portal, and webhook handling.
 
-v1: flat $4.99/month per workspace (Pro). The owner starts Checkout, and a
+v1: flat per-workspace monthly Pro. The owner starts Checkout, and a
 webhook flips `workspaces.plan`. Stripe's SDK async methods (`*_async`) are used
 so we don't block the event loop. Webhook writes use a raw service-role Supabase
 client (bypasses RLS) since there's no authenticated user on that request.
 """
+
+import json
 
 import stripe
 from supabase import AsyncClient, acreate_client
@@ -154,12 +156,16 @@ async def handle_event(
     stripe.api_key = settings.stripe_secret_key
 
     try:
-        event = stripe.Webhook.construct_event(
+        stripe.Webhook.construct_event(
             payload, sig_header, settings.stripe_webhook_secret
         )
     except (ValueError, stripe.error.SignatureVerificationError) as exc:
         raise BillingSignatureError() from exc
 
+    # Read fields off a plain dict: construct_event returns StripeObjects whose
+    # `.get()` isn't dict-compatible in this SDK version. We only use
+    # construct_event for signature verification above.
+    event = json.loads(payload)
     etype = event["type"]
     obj = event["data"]["object"]
 
