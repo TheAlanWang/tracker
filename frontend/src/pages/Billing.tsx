@@ -29,8 +29,8 @@ const CAP_LINES: ((p: Plan) => string)[] = [
   (p) => `${PLAN_LIMITS[p].emails_per_month.toLocaleString()} emails / month`,
 ];
 
-export default function PlanSettings() {
-  useDocumentTitle("Plan");
+export default function Billing() {
+  useDocumentTitle("Billing");
   const { wsSlug } = useParams();
   const { data: workspaces = [] } = useWorkspaces();
   const { data: me } = useCurrentUser();
@@ -53,7 +53,7 @@ export default function PlanSettings() {
   // On success the webhook may lag a beat, so refetch workspaces to pick up Pro.
   const [params, setParams] = useSearchParams();
   useEffect(() => {
-    const result = params.get("billing");
+    const result = params.get("checkout");
     if (!result) return;
     if (result === "success") {
       toast.success("You're on Pro now — thanks!");
@@ -61,7 +61,7 @@ export default function PlanSettings() {
     } else if (result === "cancelled") {
       toast("Checkout cancelled — no charge was made.");
     }
-    params.delete("billing");
+    params.delete("checkout");
     setParams(params, { replace: true });
     // Run once on the redirect; params/qc are stable enough for this.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -99,7 +99,7 @@ export default function PlanSettings() {
     <div className="max-w-3xl mx-auto space-y-10">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight text-slate-900 dark:text-neutral-100">
-          Plan
+          Billing
         </h1>
         {/* Billing acts on the selected workspace. With more than one, pick it
             right here; otherwise just name it. */}

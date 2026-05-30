@@ -6,7 +6,7 @@ import { apiClient } from "@/api/client";
 type BillingUrl = { url: string };
 
 // Upgrade to Pro: create a Checkout session and send the browser to Stripe.
-// On return, Stripe redirects to /w/:slug/plan?billing=success|cancelled
+// On return, Stripe redirects to /w/:slug/billing?checkout=success|cancelled
 // (built server-side from the workspace slug + FRONTEND_URL).
 export function useCreateCheckout() {
   return useMutation({

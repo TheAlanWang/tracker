@@ -93,8 +93,8 @@ async def create_checkout(
         # Mirror the id onto the subscription so the cancel webhook can map
         # back to the workspace without a DB lookup.
         subscription_data={"metadata": {"workspace_id": workspace_id}},
-        success_url=f"{base}/w/{slug}/plan?billing=success",
-        cancel_url=f"{base}/w/{slug}/plan?billing=cancelled",
+        success_url=f"{base}/w/{slug}/billing?checkout=success",
+        cancel_url=f"{base}/w/{slug}/billing?checkout=cancelled",
     )
     return session.url
 
@@ -119,7 +119,7 @@ async def create_portal(
     base = settings.frontend_url.rstrip("/")
     session = await stripe.billing_portal.Session.create_async(
         customer=customer_id,
-        return_url=f"{base}/w/{ws['slug']}/plan",
+        return_url=f"{base}/w/{ws['slug']}/billing",
     )
     return session.url
 

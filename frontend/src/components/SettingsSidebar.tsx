@@ -36,7 +36,7 @@ export function SettingsSidebar({
   // scoped (above the workspaces tree), so it suppresses the workspace-row
   // highlight even though the URL still contains wsSlug for context.
   const onProfileSettings = location.pathname.endsWith("/profile");
-  const onPlanPage = location.pathname.endsWith("/plan");
+  const onBillingPage = location.pathname.endsWith("/billing");
   const onProjectSettings = !!pKey;
 
   // Style tokens lifted from WorkspaceLayout's SidebarNav so the rails
@@ -173,14 +173,14 @@ export function SettingsSidebar({
           </button>
           <button
             type="button"
-            onClick={() => navigate(`/w/${wsSlug}/plan`)}
+            onClick={() => navigate(`/w/${wsSlug}/billing`)}
             className={`group flex items-center justify-center w-full rounded-md py-1.5 transition-colors ${
-              onPlanPage
+              onBillingPage
                 ? "bg-slate-100 dark:bg-neutral-800 text-slate-900 dark:text-neutral-200"
                 : "text-slate-500 dark:text-neutral-400 hover:text-slate-900 dark:hover:text-neutral-100 hover:bg-slate-100 dark:hover:bg-neutral-800"
             }`}
-            title="Plan"
-            aria-label="Plan"
+            title="Billing"
+            aria-label="Billing"
           >
             <CreditCard className="w-4 h-4" strokeWidth={1.7} />
           </button>
@@ -272,10 +272,10 @@ export function SettingsSidebar({
           </button>
           <button
             type="button"
-            onClick={() => navigate(`/w/${wsSlug}/plan`)}
-            className={onPlanPage ? itemActive : itemIdle}
+            onClick={() => navigate(`/w/${wsSlug}/billing`)}
+            className={onBillingPage ? itemActive : itemIdle}
           >
-            Plan
+            Billing
           </button>
 
           <p className={sectionLabel}>

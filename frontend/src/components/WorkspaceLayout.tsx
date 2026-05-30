@@ -1123,17 +1123,16 @@ export function WorkspaceLayout() {
                       Workspace / Project Settings) that did the same job
                       with more chrome. */}
                   <div className="py-1">
-                    {/* Quick access to the workspace-level Plan & Features
-                        sections — deep-linked into Workspace Settings, which
-                        scrolls to the matching section on arrival. */}
+                    {/* Quick access: Billing is its own page; Features
+                        deep-links into the Workspace Settings section. */}
                     <ProfileMenuItem
                       onClick={() => {
                         setProfileMenuOpen(false);
-                        navigate(`/w/${wsSlug}/plan`);
+                        navigate(`/w/${wsSlug}/billing`);
                       }}
                       icon={<CreditCard className="w-4 h-4" strokeWidth={1.7} />}
                     >
-                      Plan
+                      Billing
                     </ProfileMenuItem>
                     <ProfileMenuItem
                       onClick={() => {
