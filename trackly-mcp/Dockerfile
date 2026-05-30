@@ -14,8 +14,10 @@ COPY pyproject.toml uv.lock ./
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --frozen --no-install-project --no-dev
 
-# Now the project source
+# Now the project source. README.md is required because pyproject.toml's
+# `readme = "README.md"` is read by hatchling when it builds the package.
 COPY src ./src
+COPY README.md ./
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --frozen --no-dev
 
