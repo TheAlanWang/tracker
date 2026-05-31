@@ -106,9 +106,16 @@ export default function Billing() {
     }
   }
   async function openPortal() {
+    // Open the tab synchronously inside the click gesture so the popup blocker
+    // doesn't eat it, then point it at the portal URL once it's back. On focus
+    // return, the subscription query refetches so a cancel reflects right away.
+    const portalTab = window.open("", "_blank");
     try {
-      await portal.mutateAsync(wsId);
+      const url = await portal.mutateAsync(wsId);
+      if (portalTab) portalTab.location.href = url;
+      else window.location.href = url; // popup blocked → same-tab fallback
     } catch (err) {
+      portalTab?.close();
       toast.error(errDetail(err, "Couldn't open billing portal"));
     }
   }
@@ -149,7 +156,7 @@ export default function Billing() {
                 You’re on Pro
               </p>
               <p className="text-sm text-slate-500 dark:text-neutral-400">
-                ${PLAN_PRICE.pro.toFixed(2)} / workspace / mo · billed monthly
+                ${PLAN_PRICE.pro.toFixed(2)} per workspace · billed monthly
               </p>
               {sub?.current_period_end && (
                 <p className="mt-0.5 text-sm text-slate-500 dark:text-neutral-400">
@@ -214,11 +221,11 @@ export default function Billing() {
 
               <p className="mt-2 text-slate-900 dark:text-neutral-100">
                 <span className="text-3xl font-semibold tracking-tight">
-                  ${PLAN_PRICE[p].toFixed(2)}
+                  {p === "free" ? "$0" : `$${PLAN_PRICE[p].toFixed(2)}`}
                 </span>
                 <span className="text-sm text-slate-500 dark:text-neutral-400">
                   {" "}
-                  / workspace / mo
+                  per workspace / month
                 </span>
               </p>
 

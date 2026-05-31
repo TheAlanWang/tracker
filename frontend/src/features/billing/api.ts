@@ -18,6 +18,9 @@ export function useSubscription(workspaceId: string, enabled: boolean) {
   return useQuery({
     queryKey: ["subscription", workspaceId],
     enabled: enabled && !!workspaceId,
+    // The Billing Portal opens in a new tab; refetch when the user tabs back
+    // so a just-issued cancel ("won't renew") shows without a manual reload.
+    refetchOnWindowFocus: true,
     queryFn: async () => {
       const { data } = await apiClient.get<SubscriptionInfo>(
         "/billing/subscription",
@@ -46,7 +49,8 @@ export function useCreateCheckout() {
 }
 
 // Manage an existing subscription (update card / cancel) via the Stripe
-// Billing Portal.
+// Billing Portal. Returns the URL; the caller decides how to open it (a new
+// tab, opened synchronously on click to survive popup blockers).
 export function useBillingPortal() {
   return useMutation({
     mutationFn: async (workspaceId: string) => {
@@ -54,9 +58,6 @@ export function useBillingPortal() {
         workspace_id: workspaceId,
       });
       return data.url;
-    },
-    onSuccess: (url) => {
-      window.location.href = url;
     },
   });
 }
