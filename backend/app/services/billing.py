@@ -166,10 +166,18 @@ async def get_subscription(
             period_end = sub["items"]["data"][0]["current_period_end"]
         except (KeyError, IndexError, TypeError):
             period_end = None
+
+    # "Cancel at period end" surfaces two ways depending on API version / how
+    # the Customer Portal issues it: the `cancel_at_period_end` boolean, OR a
+    # `cancel_at` timestamp scheduling the end (what the current portal sets —
+    # the boolean stays false). Treat either as "won't renew", and when it's a
+    # scheduled cancel use that timestamp as the access-ends date.
+    cancel_at = getattr(sub, "cancel_at", None)
+    will_cancel = bool(getattr(sub, "cancel_at_period_end", False)) or bool(cancel_at)
     return {
         "status": sub.status,
-        "current_period_end": period_end,
-        "cancel_at_period_end": bool(sub.cancel_at_period_end),
+        "current_period_end": cancel_at or period_end,
+        "cancel_at_period_end": will_cancel,
     }
 
 
