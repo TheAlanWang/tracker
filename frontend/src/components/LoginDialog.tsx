@@ -47,46 +47,6 @@ function friendlyAuthError(raw: string, mode: Mode): string {
   return raw;
 }
 
-// Top-of-dialog icon — different shape per mode so the two states are
-// distinguishable at a glance even before reading the copy.
-function ModeIcon({ mode }: { mode: Mode }) {
-  if (mode === "signin") {
-    // Key icon — "let me in"
-    return (
-      <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-neutral-800 text-slate-700 dark:text-neutral-300 flex items-center justify-center">
-        <svg
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth={1.7}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          className="w-5 h-5"
-        >
-          <circle cx="8" cy="15" r="4" />
-          <path d="M10.85 12.15 19 4M18 5l3 3M15 8l3 3" />
-        </svg>
-      </div>
-    );
-  }
-  // Sparkles icon — "new account"
-  return (
-    <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center">
-      <svg
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth={1.7}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        className="w-5 h-5"
-      >
-        <path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1" />
-      </svg>
-    </div>
-  );
-}
-
 export function LoginDialog({
   initialMode = "signin",
   onClose,
@@ -100,10 +60,6 @@ export function LoginDialog({
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  // Email/password is collapsed by default so OAuth (Google/GitHub) is the
-  // obvious primary path — most people sign in without ever triggering an
-  // email (avoids the generic Supabase auth emails).
-  const [showEmail, setShowEmail] = useState(false);
   // Inline auth error (wrong password, email taken, etc). Errors *about this
   // form* belong here, not in a corner toast that can be missed.
   const [authError, setAuthError] = useState<string | null>(null);
@@ -119,7 +75,6 @@ export function LoginDialog({
     setMode(next);
     setAuthError(null);
     setSignupEmailSent(null);
-    setShowEmail(false);
   }
 
   useEffect(() => {
@@ -214,10 +169,8 @@ export function LoginDialog({
   }
 
   const isSignin = mode === "signin";
-  const title = isSignin ? "Welcome back" : "Create your account";
-  const sub = isSignin
-    ? "Sign in to continue."
-    : "Free, no credit card required.";
+  const title = isSignin ? "Log in" : "Create your account";
+  const sub = isSignin ? "Sign in to continue." : "";
 
   return (
     <div
@@ -226,7 +179,7 @@ export function LoginDialog({
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-sm rounded-2xl bg-white dark:bg-neutral-900 shadow-2xl p-6 relative"
+        className="w-full max-w-md rounded-2xl bg-white dark:bg-neutral-900 shadow-2xl p-7 sm:p-8 relative"
       >
         <button
           type="button"
@@ -269,7 +222,7 @@ export function LoginDialog({
             <Button
               type="button"
               variant="outline"
-              className="w-full rounded-md"
+              className="h-11 w-full rounded-md text-base"
               onClick={onClose}
             >
               Close
@@ -277,24 +230,18 @@ export function LoginDialog({
           </div>
         ) : (
         <>
-        <div className="mb-5 flex items-start gap-3">
-          <ModeIcon mode={mode} />
-          <div className="flex-1 min-w-0">
-            <p
-              className={`text-[10px] font-semibold uppercase tracking-[0.12em] ${isSignin ? "text-slate-500 dark:text-neutral-400" : "text-emerald-600"}`}
-            >
-              {isSignin ? "Sign in" : "Sign up"}
-            </p>
-            <h2 className="mt-0.5 text-xl font-bold tracking-tight text-slate-900 dark:text-neutral-200">
-              {title}
-            </h2>
-            <p className="mt-0.5 text-sm text-slate-500 dark:text-neutral-400">{sub}</p>
-          </div>
+        <div className="mb-5 text-center">
+          <h2 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-neutral-100">
+            {title}
+          </h2>
+          {sub && (
+            <p className="mt-1.5 text-sm text-slate-500 dark:text-neutral-400">{sub}</p>
+          )}
         </div>
 
         <Button
           variant="outline"
-          className="w-full justify-center gap-2 rounded-md"
+          className="h-11 w-full justify-center gap-2 rounded-md text-base"
           onClick={handleGoogle}
         >
           <svg viewBox="0 0 24 24" className="w-4 h-4" aria-hidden>
@@ -320,7 +267,7 @@ export function LoginDialog({
 
         <Button
           variant="outline"
-          className="mt-2 w-full justify-center gap-2 rounded-md"
+          className="mt-2 h-11 w-full justify-center gap-2 rounded-md text-base"
           onClick={handleGitHub}
         >
           <svg
@@ -333,31 +280,6 @@ export function LoginDialog({
           {isSignin ? "Continue with GitHub" : "Sign up with GitHub"}
         </Button>
 
-        {!isSignin && (
-          // Sign-up tab only: nudge users with an existing account toward
-          // the safe path. Signing up via GitHub creates a new user keyed
-          // on the GitHub email, which doesn't auto-merge into an existing
-          // password account whose email might differ — easy way to end
-          // up with two separate Trackly accounts. Once they've signed in
-          // and added GitHub from Profile Settings, future GitHub sign-ins
-          // resolve to the same user via provider+provider_id matching.
-          <p className="mt-2 text-xs text-slate-400 dark:text-neutral-500 leading-relaxed">
-            Already have an account? Sign in first, then link GitHub from
-            Profile Settings to avoid creating a duplicate.
-          </p>
-        )}
-
-        {!showEmail && (
-          <button
-            type="button"
-            onClick={() => setShowEmail(true)}
-            className="mt-3 w-full rounded-md border border-slate-200 dark:border-neutral-800 py-2 text-center text-sm text-slate-600 dark:text-neutral-300 hover:bg-slate-50 dark:hover:bg-neutral-800"
-          >
-            {isSignin ? "Continue with email" : "Sign up with email"}
-          </button>
-        )}
-
-        {showEmail && (
         <>
         <div className="relative my-4">
           <div className="absolute inset-0 flex items-center">
@@ -446,7 +368,7 @@ export function LoginDialog({
 
           <Button
             type="submit"
-            className={`w-full rounded-md ${!isSignin ? "bg-emerald-600 hover:bg-emerald-700" : ""}`}
+            className="h-11 w-full rounded-md text-base"
             disabled={submitting}
           >
             {submitting
@@ -464,7 +386,6 @@ export function LoginDialog({
           )}
         </form>
         </>
-        )}
 
         <p className="mt-5 text-center text-sm text-slate-500 dark:text-neutral-400">
           {isSignin ? (
