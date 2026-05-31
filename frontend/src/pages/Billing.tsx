@@ -11,7 +11,11 @@ import {
   PLAN_PRICE,
   type Plan,
 } from "@/features/billing/planLimits";
-import { useCreateCheckout, useBillingPortal } from "@/features/billing/api";
+import {
+  useCreateCheckout,
+  useBillingPortal,
+  useSubscription,
+} from "@/features/billing/api";
 import { useMembers } from "@/features/members/api";
 import { useWorkspaceInvitations } from "@/features/invitations/api";
 import {
@@ -52,6 +56,16 @@ export default function Billing() {
   const checkout = useCreateCheckout();
   const portal = useBillingPortal();
   const qc = useQueryClient();
+
+  // Live subscription summary (renewal date / cancel state). Owner-only on the
+  // backend, so only fetch it for an owner of a Stripe-backed Pro workspace.
+  const { data: sub } = useSubscription(
+    wsId,
+    selectedWs?.plan === "pro" &&
+      !!me &&
+      selectedWs?.owner_id === me.id &&
+      !!selectedWs?.has_billing,
+  );
 
   // Acknowledge the Stripe redirect (success_url / cancel_url carry ?billing=).
   // On success the webhook may lag a beat, so refetch workspaces to pick up Pro.
@@ -137,6 +151,17 @@ export default function Billing() {
               <p className="text-sm text-slate-500 dark:text-neutral-400">
                 ${PLAN_PRICE.pro.toFixed(2)} / workspace / mo · billed monthly
               </p>
+              {sub?.current_period_end && (
+                <p className="mt-0.5 text-sm text-slate-500 dark:text-neutral-400">
+                  {/* "Won't renew" covers a scheduled cancel AND any non-active
+                      status (e.g. already canceled while the downgrade webhook
+                      is still in flight) — never promise a renewal that's off. */}
+                  {sub.cancel_at_period_end ||
+                  (sub.status !== "active" && sub.status !== "trialing")
+                    ? `Pro until ${formatBillingDate(sub.current_period_end)} · won’t renew`
+                    : `Renews on ${formatBillingDate(sub.current_period_end)}`}
+                </p>
+              )}
             </div>
           </div>
           {/* Only when a real Stripe subscription backs it — a manually-granted
@@ -377,6 +402,15 @@ function errDetail(err: unknown, fallback: string): string {
     (err as { response?: { data?: { detail?: string } } }).response?.data
       ?.detail ?? fallback
   );
+}
+
+// Stripe period-end is unix seconds; render as e.g. "June 30, 2026".
+function formatBillingDate(unixSeconds: number): string {
+  return new Date(unixSeconds * 1000).toLocaleDateString(undefined, {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
 }
 
 // Human-readable byte size. MB under 1 GB, else GB.

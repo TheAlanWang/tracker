@@ -7,6 +7,7 @@ from app.schemas.billing import (
     BillingUrlResponse,
     CheckoutRequest,
     PortalRequest,
+    SubscriptionResponse,
 )
 from app.services.billing import (
     BillingNotConfiguredError,
@@ -14,6 +15,7 @@ from app.services.billing import (
     BillingStateError,
     create_checkout,
     create_portal,
+    get_subscription,
     handle_event,
 )
 from app.services.workspaces import (
@@ -71,6 +73,34 @@ async def portal(
     except BillingStateError as exc:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)
+        ) from exc
+    except WorkspacePermissionError as exc:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN) from exc
+    except WorkspaceNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND) from exc
+
+
+@router.get("/subscription", response_model=SubscriptionResponse)
+async def subscription(
+    workspace_id: str,
+    user_id: str = Depends(get_current_user_id),
+    supabase: AsyncClient = Depends(get_supabase_admin),
+    settings: Settings = Depends(get_settings),
+):
+    try:
+        data = await get_subscription(
+            supabase, settings, user_id=user_id, workspace_id=workspace_id
+        )
+        return SubscriptionResponse(**data)
+    except BillingNotConfiguredError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Billing is not configured",
+        ) from exc
+    except BillingStateError as exc:
+        # No subscription on the workspace — nothing to summarize.
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)
         ) from exc
     except WorkspacePermissionError as exc:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN) from exc

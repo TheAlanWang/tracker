@@ -137,6 +137,42 @@ async def create_portal(
     return session.url
 
 
+async def get_subscription(
+    supabase: AsyncClient,
+    settings: Settings,
+    *,
+    user_id: str,
+    workspace_id: str,
+) -> dict:
+    """Owner-only. Returns a live summary of the workspace's Pro subscription
+    (renewal date + cancel state) by reading it straight from Stripe — so the
+    Billing page always reflects the truth, including a just-issued cancel.
+    """
+    if not settings.stripe_secret_key:
+        raise BillingNotConfiguredError()
+    stripe.api_key = settings.stripe_secret_key
+
+    ws = await _owned_workspace(supabase, user_id=user_id, workspace_id=workspace_id)
+    sub_id = ws.get("stripe_subscription_id")
+    if not sub_id:
+        raise BillingStateError("workspace has no active subscription")
+
+    sub = await stripe.Subscription.retrieve_async(sub_id)
+    # `current_period_end` sat on the subscription in older API versions; the
+    # 2025+ versions moved the billing period onto each subscription item.
+    period_end = getattr(sub, "current_period_end", None)
+    if not period_end:
+        try:
+            period_end = sub["items"]["data"][0]["current_period_end"]
+        except (KeyError, IndexError, TypeError):
+            period_end = None
+    return {
+        "status": sub.status,
+        "current_period_end": period_end,
+        "cancel_at_period_end": bool(sub.cancel_at_period_end),
+    }
+
+
 async def _set_plan(
     settings: Settings, *, workspace_id: str, plan: str, subscription_id: str | None
 ) -> None:
