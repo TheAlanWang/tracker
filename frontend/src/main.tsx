@@ -3,6 +3,10 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 
 import App from "./App.tsx";
+// Actually load the UI font. Without this the `'Geist Variable'` family in
+// index.css never resolves and the app falls back to the generic `sans-serif`
+// (Helvetica/Arial on macOS).
+import "@fontsource-variable/geist/index.css";
 import "./index.css";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { Toaster } from "@/components/ui/sonner";

@@ -432,7 +432,7 @@ function MyIssuesContent() {
                       onClick={() => setOpenTaskId(issue.id)}
                     >
                       {show("id") && (
-                        <td className="px-3 py-2.5 font-mono text-xs text-slate-500 dark:text-neutral-400">
+                        <td className="px-3 py-2.5 text-xs text-slate-500 dark:text-neutral-400">
                           {issue.identifier}
                         </td>
                       )}

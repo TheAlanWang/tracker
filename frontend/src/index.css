@@ -134,6 +134,17 @@
   }
   html {
     font-family: var(--font-sans, sans-serif);
+    /* Crisper, lighter glyph rendering — the default macOS subpixel smoothing
+       makes the same font look heavier/muddier than premium product UIs. */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    /* Subtle negative tracking — the "designed product UI" tell. Gentle at the
+       base; large display text (page titles) can take a touch more via
+       `tracking-tight` per-component. */
+    letter-spacing: -0.011em;
+    /* Tabular figures app-wide so numbers line up (task keys, counts, usage,
+       dates) — set once here instead of a `tabular-nums` class on every spot. */
+    font-variant-numeric: tabular-nums;
     /* Reserve scrollbar gutter even when not scrolling. Without this,
        pages that are tall enough to scroll get a vertical scrollbar that
        narrows the viewport by ~15px, and `mx-auto`-centered content shifts

@@ -126,7 +126,7 @@ function TaskRow({
       onClick={() => onOpen(task.id)}
       className="w-full text-left flex items-center gap-2 rounded-md px-2 py-1.5 hover:bg-slate-50 dark:hover:bg-neutral-800/50"
     >
-      <span className="font-mono text-xs text-slate-400 dark:text-neutral-500 shrink-0">
+      <span className="text-xs text-slate-400 dark:text-neutral-500 shrink-0">
         {task.identifier}
       </span>
       <span className="flex-1 truncate text-sm text-slate-800 dark:text-neutral-200">

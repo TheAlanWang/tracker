@@ -447,7 +447,7 @@ export function TaskListContent({ archived = false }: { archived?: boolean } = {
                   onClick={() => setOpenTaskId(t.id)}
                 >
                   {show("id") && (
-                    <td className="px-3 py-2.5 font-mono text-xs text-slate-500 dark:text-neutral-400">
+                    <td className="px-3 py-2.5 text-xs text-slate-500 dark:text-neutral-400">
                       {t.identifier}
                     </td>
                   )}

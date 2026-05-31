@@ -910,7 +910,7 @@ function ActivityRow({
       <p className="flex-1 min-w-0 truncate text-xs text-slate-500 dark:text-neutral-400">
         <span className="text-slate-700 dark:text-neutral-300">{actor}</span>
         <span className="ml-1">{formatActivityAction(a)} </span>
-        <span className="font-mono text-[11px] px-1 py-0.5 rounded bg-slate-100 dark:bg-neutral-800 text-slate-600 dark:text-neutral-400 mx-0.5">
+        <span className="text-[11px] px-1 py-0.5 rounded bg-slate-100 dark:bg-neutral-800 text-slate-600 dark:text-neutral-400 mx-0.5">
           {a.task_identifier}
         </span>
         <span className="text-slate-700 dark:text-neutral-300"> {a.task_title}</span>

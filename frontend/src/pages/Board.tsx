@@ -383,7 +383,7 @@ function CardBody({
         className={`${task.due_date ? "mt-1" : "mt-2"} flex items-center justify-between gap-2`}
       >
         <div className="flex items-center gap-1.5 min-w-0">
-          <span className="font-mono text-[10px] text-slate-400 dark:text-neutral-500 tracking-wide">
+          <span className="text-[10px] text-slate-400 dark:text-neutral-500 tracking-wide">
             {task.identifier}
           </span>
           {isBlocked && <BlockedBadge />}

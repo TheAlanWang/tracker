@@ -321,7 +321,7 @@ if (!confirm(`Delete ${sprint.name}?`)) return;
                   className="cursor-pointer hover:bg-slate-50 dark:hover:bg-neutral-800/40 transition-colors"
                   onClick={() => setOpenTaskId(t.id)}
                 >
-                  <td className="px-3 py-2.5 font-mono text-xs text-slate-500 dark:text-neutral-400">
+                  <td className="px-3 py-2.5 text-xs text-slate-500 dark:text-neutral-400">
                     {t.identifier}
                   </td>
                   <td className="px-3 py-2.5 text-slate-800 dark:text-neutral-200" title={t.title}>

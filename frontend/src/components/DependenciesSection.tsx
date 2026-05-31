@@ -61,7 +61,7 @@ function TaskChip({
         disabled={!onOpen}
         className="flex-1 min-w-0 flex items-center gap-2 text-left disabled:cursor-default"
       >
-        <span className="font-mono text-[11px] text-slate-400 dark:text-neutral-500 shrink-0">
+        <span className="text-[11px] text-slate-400 dark:text-neutral-500 shrink-0">
           {task.identifier}
         </span>
         <span className="text-sm text-slate-800 dark:text-neutral-200 truncate">
@@ -180,7 +180,7 @@ function AddDependencyPopover({
               onClick={() => onPick(t)}
               className="w-full flex items-center gap-2 px-3 py-1.5 hover:bg-slate-50 dark:hover:bg-neutral-800/50 text-left"
             >
-              <span className="font-mono text-[11px] text-slate-400 dark:text-neutral-500 shrink-0">
+              <span className="text-[11px] text-slate-400 dark:text-neutral-500 shrink-0">
                 {t.identifier}
               </span>
               <span className="text-sm text-slate-800 dark:text-neutral-200 truncate flex-1">

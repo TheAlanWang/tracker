@@ -1170,7 +1170,7 @@ export function TaskDetailContent({
           <div className="flex items-center justify-between gap-4 min-h-[36px]">
             {task ? (
               <div className="flex items-center gap-2 min-w-0">
-                <p className="font-mono text-xs text-slate-500 dark:text-neutral-400 tracking-wide select-all">
+                <p className="text-xs text-slate-500 dark:text-neutral-400 tracking-wide select-all">
                   {task.identifier}
                 </p>
                 {task.archived_at && (

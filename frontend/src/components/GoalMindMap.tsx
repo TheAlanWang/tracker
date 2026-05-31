@@ -422,7 +422,7 @@ function GoalNodeCard({
                   onOpenTask(t.id);
                 }}
                 title={t.title}
-                className={`text-[10px] font-mono px-1.5 py-0.5 rounded ${STATUS[t.status].pill} hover:opacity-80`}
+                className={`text-[10px] px-1.5 py-0.5 rounded ${STATUS[t.status].pill} hover:opacity-80`}
               >
                 {t.identifier}
               </button>

@@ -526,7 +526,7 @@ function InboxPopover({
     return (
       <>
         <p className="mt-0.5 text-sm text-slate-900 dark:text-neutral-200 truncate">
-          <span className="font-mono text-xs text-slate-500 dark:text-neutral-400">{identifier}</span>
+          <span className="text-xs text-slate-500 dark:text-neutral-400">{identifier}</span>
           {title && <span className="ml-1.5 text-slate-800 dark:text-neutral-200">— {title}</span>}
         </p>
         {preview && (
