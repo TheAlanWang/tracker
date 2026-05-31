@@ -3,9 +3,8 @@
 // Visibility is controlled by Landing via the `?login=open` / `?login=signup`
 // URL param (single source of truth, no Provider needed). Sign-in mode shows
 // "Forgot password?" link; Sign-up mode adds a Name field that goes into
-// user_metadata.display_name (used app-wide for greetings + avatars) and a
-// green primary button + sparkles icon to visually differentiate the two
-// modes at a glance.
+// user_metadata.display_name (used app-wide for greetings + avatars). The
+// email/OAuth form is shown inline (no collapse) for both modes.
 //
 // Auth errors render inline as a red banner above the submit button (NOT
 // as toasts) so the user sees feedback in the dialog they're focused on.

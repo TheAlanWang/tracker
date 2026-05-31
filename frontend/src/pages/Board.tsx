@@ -215,10 +215,10 @@ function DueDateBadge({ date, status }: { date: string; status?: TaskStatus }) {
   );
 }
 
-// Small amber pill flagging a task that has at least one OPEN blocker
-// (a linked task whose status isn't done/cancelled). Same visual weight
-// as Priority/Due so it sits alongside them in the meta row, but warm
-// enough to draw the eye when scanning a column.
+// Small lock icon flagging a task that has at least one OPEN blocker
+// (a linked task whose status isn't done/cancelled). Sits in the meta row
+// next to the identifier in the same muted grey, so it reads as quiet
+// metadata rather than an alert.
 function BlockedBadge() {
   return (
     <span

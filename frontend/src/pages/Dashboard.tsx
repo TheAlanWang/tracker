@@ -159,13 +159,14 @@ function WorkloadHero({
   active: boolean;
   onClick: () => void;
 }) {
-  // Workload is the page's primary KPI; the blue accent makes that obvious
-  // and gives the Bento a focal point instead of a row of monochrome tiles.
+  // Workload is the page's primary KPI. All three stat cards now share one
+  // neutral card style (equal width); only the small icon chip carries an
+  // accent colour, so they read as a consistent set.
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`sm:col-span-2 text-left rounded-xl border bg-gradient-to-br from-white via-white to-blue-50/40 dark:from-neutral-900 dark:via-neutral-900 dark:to-blue-950/30 p-5 shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition-all hover:shadow-[0_4px_12px_rgba(15,23,42,0.06)] ${
+      className={`text-left rounded-xl border bg-white dark:bg-neutral-900 p-5 shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition-all hover:shadow-[0_4px_12px_rgba(15,23,42,0.06)] ${
         active
           ? "border-blue-400 dark:border-blue-700 ring-2 ring-blue-100 dark:ring-blue-900/40"
           : "border-blue-100 dark:border-transparent ring-1 ring-blue-50/60 dark:ring-0"
@@ -173,7 +174,7 @@ function WorkloadHero({
     >
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-[11px] uppercase tracking-[0.08em] text-blue-700 font-semibold flex items-center gap-1.5">
+          <p className="text-[11px] uppercase tracking-[0.08em] text-slate-500 dark:text-neutral-400 font-semibold flex items-center gap-1.5">
             Workload <Chevron active={active} />
           </p>
           <div className="mt-2 flex items-baseline gap-2">
@@ -222,7 +223,7 @@ function ThroughputTile({
     <button
       type="button"
       onClick={onClick}
-      className={`text-left rounded-xl border bg-gradient-to-br from-white via-white to-emerald-50/30 dark:from-neutral-900 dark:via-neutral-900 dark:to-emerald-950/30 p-5 shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition-all hover:shadow-[0_4px_12px_rgba(15,23,42,0.06)] ${
+      className={`text-left rounded-xl border bg-white dark:bg-neutral-900 p-5 shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition-all hover:shadow-[0_4px_12px_rgba(15,23,42,0.06)] ${
         active
           ? "border-emerald-400 dark:border-emerald-700 ring-2 ring-emerald-100 dark:ring-emerald-900/40"
           : accent
@@ -236,7 +237,7 @@ function ThroughputTile({
             Done this week <Chevron active={active} />
           </p>
           <p
-            className={`mt-2 text-3xl font-bold leading-none tabular-nums ${accent ? "text-emerald-700" : "text-slate-900 dark:text-neutral-200"}`}
+            className={`mt-2 text-4xl font-bold leading-none tabular-nums ${accent ? "text-emerald-700" : "text-slate-900 dark:text-neutral-200"}`}
           >
             {value}
           </p>
@@ -264,14 +265,13 @@ function RiskTile({
   active: boolean;
   onClick: () => void;
 }) {
-  // Amber, not red — overdue is "needs attention," not "error / something is
-  // broken." Red was reading as an alert / failure indicator.
+  // Amber (not red) icon chip — overdue is "needs attention," not "error."
   const accent = value > 0;
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`text-left rounded-xl border bg-gradient-to-br from-white via-white to-amber-50/30 dark:from-neutral-900 dark:via-neutral-900 dark:to-amber-950/30 p-5 shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition-all hover:shadow-[0_4px_12px_rgba(15,23,42,0.06)] ${
+      className={`text-left rounded-xl border bg-white dark:bg-neutral-900 p-5 shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition-all hover:shadow-[0_4px_12px_rgba(15,23,42,0.06)] ${
         active
           ? "border-amber-400 dark:border-amber-700 ring-2 ring-amber-100 dark:ring-amber-900/40"
           : accent
@@ -285,7 +285,7 @@ function RiskTile({
             Overdue <Chevron active={active} />
           </p>
           <p
-            className={`mt-2 text-3xl font-bold leading-none tabular-nums ${accent ? "text-amber-700" : "text-slate-900 dark:text-neutral-200"}`}
+            className={`mt-2 text-4xl font-bold leading-none tabular-nums ${accent ? "text-amber-700" : "text-slate-900 dark:text-neutral-200"}`}
           >
             {value}
           </p>
@@ -308,7 +308,7 @@ function StatsRow({
   onToggle: (key: ExpandKey) => void;
 }) {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
       <WorkloadHero
         stats={stats}
         active={expanded === "workload"}
@@ -1083,7 +1083,7 @@ export default function Dashboard() {
   );
 
   return (
-    <div className="space-y-6 max-w-6xl">
+    <div className="space-y-6 max-w-6xl mx-auto">
       <div>
         {/* Two-line hero: personalized greeting + actionable subtitle. The
             workspace name lives in the sidebar's switcher already, so
