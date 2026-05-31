@@ -124,22 +124,23 @@ export default function Billing() {
     <div className="mx-auto max-w-3xl min-w-0">
       {/* Header in the Profile-settings style: left-aligned title + subtitle,
           with the billed-workspace chip on the right. */}
-      <header className="mb-6 flex items-start justify-between gap-4">
-        <div className="min-w-0">
-          <h1 className="text-3xl font-semibold text-slate-900 dark:text-neutral-200">
-            Billing
-          </h1>
-          <p className="mt-2 text-slate-500 dark:text-neutral-400">
-            Your workspace plan and usage.
-          </p>
-        </div>
-        <div className="shrink-0 pt-1">
+      <header className="mb-6">
+        <h1 className="text-3xl font-semibold text-slate-900 dark:text-neutral-200">
+          Billing
+        </h1>
+        <div className="mt-4 flex items-center gap-2">
+          <span className="text-lg font-semibold text-slate-700 dark:text-neutral-300">
+            Workspace:
+          </span>
           <WorkspaceChip
             workspaces={workspaces}
             value={selectedWs.id}
             onChange={setPickedId}
           />
         </div>
+        <p className="mt-2 text-slate-500 dark:text-neutral-400">
+          Your workspace plan and usage.
+        </p>
       </header>
 
       <div className="space-y-10">
@@ -202,32 +203,40 @@ export default function Billing() {
               key={p}
               className={`flex flex-col rounded-2xl border p-6 shadow-sm ${cardClass}`}
             >
-              <div className="flex items-center gap-2">
+              <div className="flex items-center justify-between gap-2">
                 <h2 className="text-base font-semibold text-slate-900 dark:text-neutral-100">
                   {PLAN_LABEL[p]}
                 </h2>
                 {isCurrent ? (
-                  <span className="text-[10px] uppercase tracking-wider font-semibold text-slate-400 dark:text-neutral-500">
+                  <span className="text-xs uppercase tracking-wider font-semibold text-slate-400 dark:text-neutral-500">
                     Current
                   </span>
                 ) : (
                   isUpsell && (
-                    <span className="text-[10px] uppercase tracking-wider font-semibold text-[#C9A227] dark:text-[#E8C766]">
+                    <span className="text-xs uppercase tracking-wider font-semibold text-[#C9A227] dark:text-[#E8C766]">
                       Recommended
                     </span>
                   )
                 )}
               </div>
 
-              <p className="mt-2 text-slate-900 dark:text-neutral-100">
+              <div className="mt-2 text-slate-900 dark:text-neutral-100">
                 <span className="text-3xl font-semibold tracking-tight">
-                  {p === "free" ? "$0" : `$${PLAN_PRICE[p].toFixed(2)}`}
+                  {p === "free" ? (
+                    "$0"
+                  ) : (
+                    <>
+                      <span className="mr-2 text-xl font-normal text-slate-400 line-through dark:text-neutral-500">
+                        $19.99
+                      </span>
+                      ${PLAN_PRICE[p].toFixed(2)}
+                    </>
+                  )}
                 </span>
-                <span className="text-sm text-slate-500 dark:text-neutral-400">
-                  {" "}
+                <span className="mt-0.5 block text-sm text-slate-500 dark:text-neutral-400">
                   per workspace / month
                 </span>
-              </p>
+              </div>
 
               <ul className="mt-5 space-y-2.5">
                 {CAP_LINES.map((line, i) => (
@@ -257,7 +266,7 @@ export default function Billing() {
                     disabled={!isOwner || checkout.isPending}
                     onClick={startCheckout}
                   >
-                    {checkout.isPending ? "Redirecting…" : "Upgrade to Pro"}
+                    {checkout.isPending ? "Redirecting…" : "Upgrade"}
                   </Button>
                 </div>
               )}
