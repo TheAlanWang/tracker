@@ -1182,7 +1182,6 @@ export function WorkspaceLayout() {
                         setProfileMenuOpen(false);
                         signOut();
                       }}
-                      variant="danger"
                       icon={
                         <svg
                           viewBox="0 0 24 24"
@@ -1241,7 +1240,7 @@ export function WorkspaceLayout() {
               fewer) shows / hides a vertical scrollbar inside <main>,
               shifting the inner mx-auto-centered content horizontally by
               ~15px. */}
-          <main ref={mainRef} className="flex-1 p-8 overflow-y-auto overflow-x-hidden bg-white dark:bg-neutral-950 text-slate-900 dark:text-neutral-200 [scrollbar-gutter:stable]">
+          <main ref={mainRef} className="flex-1 px-8 pt-5 pb-8 overflow-y-auto overflow-x-hidden bg-white dark:bg-neutral-950 text-slate-900 dark:text-neutral-200 [scrollbar-gutter:stable]">
             <Outlet />
           </main>
         </div>

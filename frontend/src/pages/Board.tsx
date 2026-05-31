@@ -223,7 +223,7 @@ function BlockedBadge() {
   return (
     <span
       title="Blocked by another task"
-      className="inline-flex items-center justify-center text-amber-600 dark:text-amber-400"
+      className="inline-flex items-center justify-center text-slate-400 dark:text-neutral-500"
     >
       <svg
         viewBox="0 0 24 24"

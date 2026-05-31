@@ -59,18 +59,16 @@ export function AssigneePicker({
       // sitting near the right edge of the window otherwise clips the
       // member list. Same idea as Floating-UI's "shift" middleware.
       const POPOVER_W = 240;
-      const POPOVER_MAX_H = 320;
       const MARGIN = 8;
       let left = r.left;
       if (left + POPOVER_W + MARGIN > window.innerWidth) {
         // Right-align to the trigger instead of left-align.
         left = Math.max(MARGIN, r.right - POPOVER_W);
       }
-      let top = r.bottom + 4;
-      if (top + POPOVER_MAX_H + MARGIN > window.innerHeight) {
-        // Flip above the trigger.
-        top = Math.max(MARGIN, r.top - POPOVER_MAX_H - 4);
-      }
+      // Always open BELOW the trigger — never flip up (that felt jarring).
+      // If it runs past the bottom we just let it extend / overlap downward;
+      // the member list scrolls inside its own max-height.
+      const top = r.bottom + 4;
       setPos({ left, top });
     }
     const onClick = (e: MouseEvent) => {
