@@ -76,7 +76,7 @@ export function ProjectLayout() {
 
   const tabClass = ({ isActive }: { isActive: boolean }) =>
     isActive
-      ? "inline-flex items-center gap-1.5 h-9 border-b-2 border-slate-900 dark:border-neutral-100 px-3 text-sm font-medium text-slate-900 dark:text-neutral-200"
+      ? "inline-flex items-center gap-1.5 h-9 border-b-2 border-[var(--brand)] px-3 text-sm font-medium text-[var(--brand)]"
       : "inline-flex items-center gap-1.5 h-9 border-b-2 border-transparent px-3 text-sm text-slate-500 dark:text-neutral-400 hover:text-slate-900 dark:hover:text-neutral-100";
 
   return (
