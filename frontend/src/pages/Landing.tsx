@@ -60,7 +60,7 @@ function BoardMock() {
             <div
               key={col.label}
               className={`rounded-lg p-2 min-h-[150px] ${
-                col.highlight ? "bg-blue-50/70 dark:bg-blue-950/20 ring-1 ring-blue-200/70 dark:ring-blue-800/30" : "bg-slate-100 dark:bg-neutral-800"
+                col.highlight ? "bg-blue-50/70 ring-1 ring-blue-200/70 dark:bg-neutral-800 dark:ring-neutral-600" : "bg-slate-100 dark:bg-neutral-800"
               }`}
             >
               <p className="mb-2 px-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-500 dark:text-neutral-400">
