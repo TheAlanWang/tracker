@@ -26,8 +26,20 @@ export default function AuthCallback() {
       await supabase.auth.updateUser({ data: { display_name: oauthName } });
     }
 
+    // A password-recovery link carries `type=recovery` and fires a
+    // PASSWORD_RECOVERY event. Those users must land on the set-new-password
+    // page, NOT home (which would sign them in without ever letting them
+    // choose a new password).
+    const isRecovery =
+      window.location.hash.includes("type=recovery") ||
+      new URLSearchParams(window.location.search).get("type") === "recovery";
+
     const sub = supabase.auth.onAuthStateChange((event) => {
-      if (event === "SIGNED_IN") {
+      if (event === "PASSWORD_RECOVERY") {
+        navigate("/reset-password", { replace: true });
+        return;
+      }
+      if (event === "SIGNED_IN" && !isRecovery) {
         // Fire autofill in the background — if it succeeds the user lands
         // on the home page with their name pre-populated; if it fails
         // (network, race, anything), the home page still loads, the user
@@ -39,11 +51,16 @@ export default function AuthCallback() {
     });
 
     supabase.auth.getSession().then(({ data }) => {
-      if (data.session) {
-        autofillDisplayName().finally(() => {
-          navigate("/", { replace: true });
-        });
+      if (!data.session) return;
+      if (isRecovery) {
+        // getSession can resolve before PASSWORD_RECOVERY fires — guard the
+        // recovery case here too so we don't bounce to home first.
+        navigate("/reset-password", { replace: true });
+        return;
       }
+      autofillDisplayName().finally(() => {
+        navigate("/", { replace: true });
+      });
     });
 
     return () => sub.data.subscription.unsubscribe();

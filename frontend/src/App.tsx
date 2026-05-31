@@ -24,6 +24,7 @@ import Billing from "@/pages/Billing";
 import NotFound from "@/pages/NotFound";
 import ProfileSettings from "@/pages/ProfileSettings";
 import ProjectSettings from "@/pages/ProjectSettings";
+import ResetPassword from "@/pages/ResetPassword";
 import SprintDetail from "@/pages/SprintDetail";
 import SprintList from "@/pages/SprintList";
 import WorkspaceHome from "@/pages/WorkspaceHome";
@@ -59,6 +60,7 @@ export default function App() {
           element={<Navigate to="/?login=open" replace />}
         />
         <Route path="/auth/callback" element={<AuthCallback />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/" element={<RootRoute />} />
         <Route
           path="/browse/:identifier"
