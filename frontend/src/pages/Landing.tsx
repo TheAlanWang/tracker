@@ -9,6 +9,7 @@
 // to a protected route bounce here via /?login=open and have the modal
 // auto-open.
 
+import { useEffect, useState } from "react";
 import { Moon, Sun } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 
@@ -97,6 +98,211 @@ function BoardMock() {
 
 // ---- Feature card ----
 
+// Animated chat mock: you type a question, the assistant calls a tool and
+// types back your tasks — a looping "this is what MCP feels like" demo. Driven
+// by a single tick counter so the whole timeline (type → tool → reply → hold →
+// loop) is deterministic; collapses to the final frame for reduced-motion.
+function McpShowcase() {
+  const USER = "What are my tasks today?";
+  const AI = "You have 3 open in ENG. Top two:";
+  const PAUSE = 14; // hold after the question lands
+  const TOOL = 16; // tool-call pill shows before the reply types
+  const HOLD = 54; // hold the finished thread before looping
+  const aiStart = USER.length + PAUSE + TOOL;
+  const total = aiStart + AI.length + HOLD;
+
+  const [tick, setTick] = useState(0);
+  useEffect(() => {
+    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) {
+      setTick(total);
+      return;
+    }
+    const id = window.setInterval(() => setTick((t) => (t + 1) % total), 55);
+    return () => window.clearInterval(id);
+  }, [total]);
+
+  const userText = USER.slice(0, Math.min(tick, USER.length));
+  const userTyping = tick < USER.length;
+  const showTool = tick >= USER.length + PAUSE;
+  const aiText = AI.slice(0, Math.min(Math.max(tick - aiStart, 0), AI.length));
+  const aiTyping = tick >= aiStart && tick < aiStart + AI.length;
+  const showCards = tick >= aiStart + AI.length;
+
+  const caret = (
+    <span className="ml-0.5 inline-block h-[1em] w-[2px] translate-y-[2px] bg-current animate-pulse" />
+  );
+
+  return (
+    <div className="rounded-2xl border border-slate-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-2xl shadow-slate-900/10 overflow-hidden">
+      <div className="flex items-center gap-2 border-b border-slate-100 dark:border-neutral-800 px-4 h-10">
+        <span className="flex gap-1.5">
+          <span className="w-3 h-3 rounded-full bg-slate-200 dark:bg-neutral-700" />
+          <span className="w-3 h-3 rounded-full bg-slate-200 dark:bg-neutral-700" />
+          <span className="w-3 h-3 rounded-full bg-slate-200 dark:bg-neutral-700" />
+        </span>
+        <span className="ml-2 text-xs text-slate-400 dark:text-neutral-500">
+          AI assistant · Trackly MCP
+        </span>
+      </div>
+      <div className="p-5 space-y-4 text-sm h-[300px]">
+        <div className="flex justify-end">
+          <div className="max-w-[85%] rounded-2xl rounded-br-sm bg-slate-100 dark:bg-neutral-800 px-3.5 py-2 text-slate-700 dark:text-neutral-200">
+            {userText}
+            {userTyping && caret}
+          </div>
+        </div>
+        {showTool && (
+          <div className="space-y-2.5">
+            <div className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 dark:border-neutral-700 px-2.5 py-1 text-xs text-slate-500 dark:text-neutral-400">
+              <span className="w-1.5 h-1.5 rounded-full bg-[var(--brand)]" />
+              called <span className="font-medium text-slate-700 dark:text-neutral-200">list_my_tasks</span>
+            </div>
+            {aiText && (
+              <p className="text-slate-700 dark:text-neutral-200">
+                {aiText}
+                {aiTyping && caret}
+              </p>
+            )}
+            {showCards && (
+              <div className="space-y-2 animate-in fade-in-0 slide-in-from-bottom-1 duration-300">
+                {[
+                  {
+                    id: "ENG-42",
+                    title: "Fix OAuth redirect on Safari",
+                    tag: "High",
+                    tagCls: "text-amber-600 dark:text-amber-500",
+                  },
+                  {
+                    id: "ENG-39",
+                    title: "Realtime activity feed",
+                    tag: "In progress",
+                    tagCls: "text-[var(--brand)]",
+                  },
+                ].map((t) => (
+                  <div
+                    key={t.id}
+                    className="rounded-lg border border-slate-200 dark:border-neutral-800 bg-slate-50/60 dark:bg-neutral-800/40 px-3 py-2.5"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] tracking-wide text-slate-400 dark:text-neutral-500">
+                        {t.id}
+                      </span>
+                      <span className={`text-[11px] font-medium ${t.tagCls}`}>
+                        {t.tag}
+                      </span>
+                    </div>
+                    <p className="mt-0.5 text-slate-700 dark:text-neutral-200">
+                      {t.title}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// How each MCP client connects to Trackly. `cmd` is a single, copyable line;
+// Cursor has no add-command so we hand over the URL plus where to paste it.
+// To show brand logos, drop an SVG in /public and set `logo` (e.g.
+// "/clients/claude.svg") — the button renders it before the name.
+const MCP_CLIENTS: Array<{
+  id: string;
+  name: string;
+  cmd: string;
+  hint?: string;
+  logo?: string;
+}> = [
+  {
+    id: "claude",
+    name: "Claude Code",
+    cmd: "claude mcp add --transport http trackly https://mcp.gettrackly.dev/mcp",
+  },
+  {
+    id: "cursor",
+    name: "Cursor",
+    cmd: "https://mcp.gettrackly.dev/mcp",
+    hint: "Settings → Tools & MCP → New MCP Server (transport: HTTP), then paste the URL.",
+  },
+  {
+    id: "codex",
+    name: "Codex",
+    cmd: "codex mcp add trackly --url https://mcp.gettrackly.dev/mcp",
+  },
+];
+
+// Tutorial-style connect picker: pick your client, its one-line setup reveals
+// below (animated), copyable in a click.
+function McpConnect() {
+  const [active, setActive] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+  const current = MCP_CLIENTS.find((c) => c.id === active);
+
+  async function copy(text: string) {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      /* clipboard unavailable — no-op */
+    }
+  }
+
+  return (
+    <div className="mt-6">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500 dark:text-neutral-400">
+        Connect it
+      </p>
+      <div className="mt-2 flex flex-wrap gap-2">
+        {MCP_CLIENTS.map((c) => (
+          <button
+            key={c.id}
+            type="button"
+            onClick={() => {
+              setActive(active === c.id ? null : c.id);
+              setCopied(false);
+            }}
+            className={`inline-flex items-center gap-2 rounded-lg border px-3.5 py-2 text-sm font-medium transition-colors ${
+              active === c.id
+                ? "border-[var(--brand)] bg-[var(--brand)]/[0.06] text-[var(--brand)]"
+                : "border-slate-200 dark:border-neutral-800 text-slate-700 dark:text-neutral-300 hover:border-slate-300 dark:hover:border-neutral-700"
+            }`}
+          >
+            {c.logo && (
+              <img src={c.logo} alt="" className="w-4 h-4 dark:invert" />
+            )}
+            {c.name}
+          </button>
+        ))}
+      </div>
+      {current && (
+        <div className="mt-3 animate-in fade-in-0 slide-in-from-top-1 duration-200">
+          <div className="flex items-center gap-3 rounded-lg bg-slate-100 dark:bg-neutral-800/60 px-3.5 py-2.5">
+            <code className="flex-1 overflow-x-auto whitespace-nowrap font-mono text-[13px] text-slate-700 dark:text-neutral-200 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              {current.cmd}
+            </code>
+            <button
+              type="button"
+              onClick={() => copy(current.cmd)}
+              className="shrink-0 rounded-md px-2 py-1 text-xs font-medium text-slate-500 hover:bg-slate-200/70 hover:text-slate-900 dark:text-neutral-400 dark:hover:bg-neutral-700/60 dark:hover:text-neutral-100 transition-colors"
+            >
+              {copied ? "Copied" : "Copy"}
+            </button>
+          </div>
+          {current.hint && (
+            <p className="mt-2 text-sm text-slate-500 dark:text-neutral-400">
+              {current.hint}
+            </p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function FeatureCard({
   icon,
   title,
@@ -170,8 +376,8 @@ const FEATURES: Array<{
     ),
   },
   {
-    title: "Inbox, not email",
-    body: "A real notification center. See who assigned what, who commented, who changed your due date.",
+    title: "Inbox and email",
+    body: "A real in-app notification center — who assigned what, who commented, who moved your due date. Plus email alerts for the urgent assignments you can't miss.",
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} className="w-5 h-5">
         <path d="M6 8a6 6 0 1 1 12 0v5l1.5 3H4.5L6 13z" />
@@ -317,6 +523,49 @@ export default function Landing() {
               </div>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* MCP / built-for-AI */}
+      <section className="border-t border-slate-100 dark:border-neutral-800">
+        <div className="max-w-7xl mx-auto px-6 py-14 sm:py-20 grid lg:grid-cols-2 gap-10 lg:gap-16 items-start">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500 dark:text-neutral-400">
+              Built for AI
+            </p>
+            <h2 className="mt-2 text-3xl sm:text-4xl font-bold tracking-tight">
+              Your AI assistant works here too.
+            </h2>
+            <p className="mt-4 text-lg leading-relaxed text-slate-500 dark:text-neutral-400">
+              Connect Claude, Cursor, or any MCP client to Trackly. Your assistant
+              reads the board, creates and updates tasks, and pulls in each
+              project&rsquo;s context and links — so it works like a teammate that
+              already knows your setup.
+            </p>
+            <McpConnect />
+            <div className="mt-6">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500 dark:text-neutral-400">
+                What it can do
+              </p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {[
+                  "Read your board",
+                  "Create & update tasks",
+                  "Search tasks & projects",
+                  "Comment & check off items",
+                  "Pull project context",
+                ].map((c) => (
+                  <span
+                    key={c}
+                    className="rounded-full border border-slate-200 dark:border-neutral-800 px-3 py-1 text-xs text-slate-600 dark:text-neutral-300"
+                  >
+                    {c}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
+          <McpShowcase />
         </div>
       </section>
 
