@@ -25,7 +25,7 @@ def create_app() -> Starlette:
     cfg = load_config()
 
     # Init the singleton REST client; tools call get_client() to fetch it.
-    init_client(api_url=cfg.trackly_api_url)
+    init_client(api_url=cfg.trackly_api_url, web_url=cfg.web_url)
 
     store = StateStore(ttl_seconds=90.0)
     supabase = SupabaseAuthClient(

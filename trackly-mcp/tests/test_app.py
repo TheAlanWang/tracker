@@ -24,6 +24,7 @@ def configured_app(monkeypatch):
     monkeypatch.setenv("SUPABASE_ANON_KEY", "anon")
     monkeypatch.setenv("TRACKLY_API_URL", "https://tracker.test")
     monkeypatch.setenv("SERVER_BASE_URL", "https://mcp.test")
+    monkeypatch.setenv("WEB_URL", "https://app.test")
     from trackly_mcp.app import create_app
     return create_app()
 

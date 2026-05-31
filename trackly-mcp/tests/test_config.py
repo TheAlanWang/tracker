@@ -11,6 +11,7 @@ REQUIRED = {
     "SUPABASE_ANON_KEY": "anon-key",
     "TRACKLY_API_URL": "https://tracker.test",
     "SERVER_BASE_URL": "https://mcp.test",
+    "WEB_URL": "https://app.test",
 }
 
 
@@ -24,6 +25,7 @@ def test_load_config_all_present(monkeypatch):
     assert cfg.supabase_anon_key == "anon-key"
     assert cfg.trackly_api_url == "https://tracker.test"
     assert cfg.server_base_url == "https://mcp.test"
+    assert cfg.web_url == "https://app.test"
 
 
 @pytest.mark.parametrize("missing", list(REQUIRED.keys()))
@@ -45,3 +47,4 @@ def test_config_trims_trailing_slashes(monkeypatch):
     assert cfg.supabase_url == "https://test.supabase.co"
     assert cfg.trackly_api_url == "https://tracker.test"
     assert cfg.server_base_url == "https://mcp.test"
+    assert cfg.web_url == "https://app.test"

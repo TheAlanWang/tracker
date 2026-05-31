@@ -13,6 +13,7 @@ _REQUIRED = (
     "SUPABASE_ANON_KEY",
     "TRACKLY_API_URL",
     "SERVER_BASE_URL",
+    "WEB_URL",
 )
 
 
@@ -23,6 +24,10 @@ class Config:
     supabase_anon_key: str
     trackly_api_url: str
     server_base_url: str
+    # Frontend origin used to build human-facing task links (e.g.
+    # https://gettrackly.dev/browse/TRAC-7). Kept in env so a domain change
+    # is a config edit, not a code change.
+    web_url: str
 
 
 def load_config() -> Config:
@@ -38,4 +43,5 @@ def load_config() -> Config:
         supabase_anon_key=os.environ["SUPABASE_ANON_KEY"],
         trackly_api_url=os.environ["TRACKLY_API_URL"].rstrip("/"),
         server_base_url=os.environ["SERVER_BASE_URL"].rstrip("/"),
+        web_url=os.environ["WEB_URL"].rstrip("/"),
     )

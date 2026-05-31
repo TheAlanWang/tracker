@@ -17,8 +17,11 @@ class TracklyError(Exception):
 
 
 class TrackerClient:
-    def __init__(self, api_url: str) -> None:
+    def __init__(self, api_url: str, web_url: str = "") -> None:
         self.api_url = api_url.rstrip("/")
+        # Frontend origin for building human-facing task links; injected from
+        # config at startup. Empty only in unit tests that don't need links.
+        self.web_url = web_url.rstrip("/")
         self._http: httpx.AsyncClient | None = None
 
     async def _client(self) -> httpx.AsyncClient:
@@ -70,9 +73,9 @@ class TrackerClient:
 _CLIENT: TrackerClient | None = None
 
 
-def init_client(api_url: str) -> TrackerClient:
+def init_client(api_url: str, web_url: str = "") -> TrackerClient:
     global _CLIENT
-    _CLIENT = TrackerClient(api_url=api_url)
+    _CLIENT = TrackerClient(api_url=api_url, web_url=web_url)
     return _CLIENT
 
 

@@ -79,7 +79,7 @@ async def list_projects(workspace_slug: str) -> list[dict[str, Any]]:
     """List the projects inside a workspace. Returns each project's
     id, key (the uppercase prefix shown in task identifiers — e.g.
     'TRAC' in 'TRAC-7'), name, and description. `workspace_slug` is
-    the URL-friendly handle shown in tracker.thealanwang.xyz/w/<slug>."""
+    the URL-friendly handle shown in gettrackly.dev/w/<slug>."""
     client = get_client()
     ws = await resolve_workspace(workspace_slug)
     return await client.get(f"/workspaces/{ws['id']}/projects")
@@ -113,17 +113,31 @@ async def list_my_tasks(
 @mcp.tool()
 async def get_task(task_identifier: str) -> dict[str, Any]:
     """Fetch full details for a task by its human identifier (e.g.
-    'TRAC-7'). Returns the task plus its recent comments. Use when
-    the user says 'show me TRAC-7' or wants to know what a specific
-    task is about before doing something with it."""
+    'TRAC-7'). Returns the task, its recent comments, and a `project`
+    object carrying the parent project's context — its `description` and
+    `environments` (production/staging URLs, repo, docs, design links, each
+    tagged by `type`) — so you understand what the project is about and can
+    grab the right link without a separate get_project call. Use when the
+    user says 'show me TRAC-7' or wants to know what a specific task is
+    about before doing something with it."""
     client = get_client()
     resolved = await resolve_task_identifier(task_identifier)
     task = await client.get(f"/tasks/{resolved['task_id']}")
     comments = await client.get(f"/tasks/{resolved['task_id']}/comments")
+    # Pull the parent project so the task carries its context inline. List
+    # tools stay lean (no per-row project blob); this deep single-task view
+    # is where the project's description + environment links are worth it.
+    project = await client.get(f"/projects/{task['project_id']}")
     return {
         **task,
+        "project": {
+            "key": project.get("key"),
+            "name": project.get("name"),
+            "description": project.get("description"),
+            "environments": project.get("environments", []),
+        },
         "comments": comments,
-        "url": f"https://tracker.thealanwang.xyz/browse/{task_identifier}",
+        "url": f"{client.web_url}/browse/{task_identifier}",
     }
 
 
@@ -282,7 +296,7 @@ async def create_task(
     task = await client.post(f"/projects/{project['id']}/tasks", json=payload)
     return {
         **task,
-        "url": f"https://tracker.thealanwang.xyz/browse/{task['identifier']}",
+        "url": f"{client.web_url}/browse/{task['identifier']}",
     }
 
 
