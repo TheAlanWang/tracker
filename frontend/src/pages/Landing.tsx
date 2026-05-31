@@ -284,13 +284,6 @@ export default function Landing() {
             >
               Get Started
             </Button>
-            <button
-              type="button"
-              onClick={() => setDialog("signin")}
-              className="text-base font-medium text-slate-700 dark:text-neutral-300 hover:text-slate-900 dark:hover:text-neutral-100 px-3 py-2"
-            >
-              Already have an account? Log in
-            </button>
           </div>
         </div>
         <div className="relative max-w-6xl mx-auto px-6 pb-16 sm:pb-20">
