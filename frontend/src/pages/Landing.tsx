@@ -303,6 +303,36 @@ function McpConnect() {
   );
 }
 
+// Product walkthrough video. Autoplays muted + looping like a silent demo, but
+// keeps native controls so visitors can scrub or unmute. Honors reduced-motion:
+// when set we don't autoplay — just show the poster frame and let them press
+// play. webm is listed first so modern browsers take the smaller file; mp4 is
+// the universal fallback. aspect-ratio reserves the box up front to avoid CLS.
+function ProductDemo() {
+  const reduceMotion =
+    typeof window !== "undefined" &&
+    window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+
+  return (
+    <div className="rounded-2xl border border-slate-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-2xl shadow-slate-900/10 overflow-hidden">
+      <video
+        className="w-full block"
+        style={{ aspectRatio: "2560 / 1438" }}
+        poster="/demo/trackly-demo-poster.jpg"
+        controls
+        loop
+        muted
+        playsInline
+        autoPlay={!reduceMotion}
+        preload="metadata"
+      >
+        <source src="/demo/trackly-demo.webm" type="video/webm" />
+        <source src="/demo/trackly-demo.mp4" type="video/mp4" />
+      </video>
+    </div>
+  );
+}
+
 function FeatureCard({
   icon,
   title,
@@ -566,6 +596,23 @@ export default function Landing() {
             </div>
           </div>
           <McpShowcase />
+        </div>
+      </section>
+
+      {/* Product demo video */}
+      <section className="border-t border-slate-100 dark:border-neutral-800">
+        <div className="max-w-7xl mx-auto px-6 py-14 sm:py-20">
+          <div className="max-w-2xl">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500 dark:text-neutral-400">
+              See it in action
+            </p>
+            <h2 className="mt-2 text-3xl sm:text-4xl font-bold tracking-tight">
+              A quick tour of Trackly.
+            </h2>
+          </div>
+          <div className="mt-8">
+            <ProductDemo />
+          </div>
         </div>
       </section>
 
