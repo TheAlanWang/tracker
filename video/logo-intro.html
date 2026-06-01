@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Trackly — logo intro</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --navy-1: #122e63;
+    --cycle: 4.8s;          /* full loop length */
+    --shift: 170px;         /* how far right the logo sits while centered, before sliding to its lockup spot */
+    --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  * { margin: 0; box-sizing: border-box; }
+  body {
+    min-height: 100vh; display: grid; place-items: center;
+    background: #1c1c1e;    /* dark page → easy to frame/crop the stage */
+    font-family: "Geist", system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Crop Screen Studio to this 1280×720 box. */
+  .stage {
+    position: relative; width: 1280px; height: 720px; overflow: hidden;
+    border-radius: 16px;
+    background: radial-gradient(120% 120% at 50% 38%, #fff 0%, #f4f6fb 100%);
+  }
+
+  /* The real logo mark. Final resting spot is left-of-center (470,360);
+     the keyframes drop it in at stage-centre (+--shift) first, then slide it
+     here so the wordmark can take the right side. */
+  .logo {
+    position: absolute; top: 360px; left: 470px;
+    width: 120px; height: 120px;
+    opacity: 0;
+    animation: logoSeq var(--cycle) var(--ease) infinite;
+  }
+  .logo svg { width: 100%; height: 100%; display: block; }
+
+  @keyframes logoSeq {
+    /* appear at top */
+    0%   { opacity: 0; transform: translate(-50%, -50%) translate(var(--shift), -460px) scale(0.97);
+           animation-timing-function: ease-out; }
+    5%   { opacity: 1; transform: translate(-50%, -50%) translate(var(--shift), -460px) scale(0.97);
+           animation-timing-function: cubic-bezier(0.45, 0, 0.7, 1); } /* gravity: accelerate into the fall */
+    /* damped landing bounce */
+    27%  { transform: translate(-50%, -50%) translate(var(--shift), 24px) scale(1);
+           animation-timing-function: cubic-bezier(0.25, 0, 0.25, 1); } /* overshoot down */
+    35%  { transform: translate(-50%, -50%) translate(var(--shift), -8px) scale(1);
+           animation-timing-function: ease-in-out; }                    /* rebound up */
+    42%  { transform: translate(-50%, -50%) translate(var(--shift), 0) scale(1);
+           animation-timing-function: cubic-bezier(0.6, 0, 0.2, 1); }   /* settle, then glide left */
+    50%  { transform: translate(-50%, -50%) translate(var(--shift), 0) scale(1);
+           animation-timing-function: cubic-bezier(0.6, 0, 0.2, 1); }   /* brief hold centre */
+    61%  { transform: translate(-50%, -50%) translate(-10px, 0) scale(1);
+           animation-timing-function: ease-out; }                       /* slight overshoot past the lockup spot */
+    67%  { transform: translate(-50%, -50%) translate(0px, 0) scale(1); } /* settle into lockup */
+    90%  { opacity: 1; transform: translate(-50%, -50%) translate(0px, 0) scale(1);
+           animation-timing-function: ease-in; }
+    97%  { opacity: 0; transform: translate(-50%, -50%) translate(0px, 0) scale(1.015); }
+    100% { opacity: 0; }
+  }
+
+  .word {
+    position: absolute; top: 360px; left: 560px;
+    transform: translateY(-50%);
+    transform-origin: left center;
+    font-size: 80px; font-weight: 700; letter-spacing: -0.03em;
+    color: var(--navy-1); white-space: nowrap;
+    opacity: 0;
+    animation: wordIn var(--cycle) var(--ease) infinite;
+  }
+  @keyframes wordIn {
+    0%,57% { opacity: 0; transform: translateY(-50%) scale(0.84);
+             animation-timing-function: cubic-bezier(0.34, 1.3, 0.64, 1); }
+    65%    { opacity: 1; transform: translateY(-50%) scale(1.04);
+             animation-timing-function: ease-in-out; }   /* pop */
+    71%    { opacity: 1; transform: translateY(-50%) scale(0.995);
+             animation-timing-function: ease-in-out; }   /* damped settle */
+    76%    { transform: translateY(-50%) scale(1); }
+    90%    { opacity: 1; transform: translateY(-50%) scale(1); }
+    97%    { opacity: 0; }
+    100%   { opacity: 0; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .logo, .word { animation: none; opacity: 1; }
+    .logo { transform: translate(-50%, -50%); }
+    .word { transform: translateY(-50%); }
+  }
+</style>
+</head>
+<body>
+  <div class="stage">
+    <div class="logo">
+      <svg viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="g" x1="512" y1="202" x2="512" y2="822" gradientUnits="userSpaceOnUse">
+            <stop offset="0" stop-color="#061A3F"/>
+            <stop offset="0.48" stop-color="#122E63"/>
+            <stop offset="1" stop-color="#31579C"/>
+          </linearGradient>
+        </defs>
+        <path fill-rule="evenodd" clip-rule="evenodd"
+          d="M260 205 H764 C823.647 205 872 253.353 872 313 V711 C872 770.647 823.647 819 764 819 H260 C200.353 819 152 770.647 152 711 V313 C152 253.353 200.353 205 260 205 Z M327 294 C288.34 294 257 325.34 257 364 V660 C257 698.66 288.34 730 327 730 H697 C735.66 730 767 698.66 767 660 V364 C767 325.34 735.66 294 697 294 H436 V372 C436 422.81 394.81 464 344 464 H257 V364 C257 325.34 288.34 294 327 294 Z"
+          fill="url(#g)"/>
+      </svg>
+    </div>
+    <div class="word">Trackly</div>
+  </div>
+</body>
+</html>
