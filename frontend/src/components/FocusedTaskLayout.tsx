@@ -1,5 +1,11 @@
 import { useState } from "react";
-import { Link, Outlet, useNavigate, useParams } from "react-router-dom";
+import {
+  Link,
+  Outlet,
+  useLocation,
+  useNavigate,
+  useParams,
+} from "react-router-dom";
 import { ArrowLeft, Sparkles } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -16,7 +22,15 @@ import { useProjects } from "@/features/projects/api";
 export function FocusedTaskLayout() {
   const { wsSlug, pKey, identifier } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const [agentOpen, setAgentOpen] = useState(false);
+
+  // Back must work even when this page was opened in a fresh tab (the "open in
+  // new tab" button), where there's no history to pop — navigate(-1) would
+  // no-op. So go to where we came from if the caller passed it, else fall back
+  // to the project board. Always a real destination.
+  const from = (location.state as { from?: { path: string } } | null)?.from;
+  const backTo = from?.path ?? `/w/${wsSlug}/p/${pKey}/board`;
 
   const { data: workspaces = [] } = useWorkspaces();
   const ws = workspaces.find((w) => w.slug === wsSlug);
@@ -28,7 +42,7 @@ export function FocusedTaskLayout() {
       <header className="sticky top-0 z-20 flex items-center gap-3 border-b border-slate-200 dark:border-neutral-800 bg-white/90 dark:bg-neutral-950/90 backdrop-blur px-4 py-2">
         <button
           type="button"
-          onClick={() => navigate(-1)}
+          onClick={() => navigate(backTo)}
           className="inline-flex items-center gap-1.5 text-sm text-slate-500 dark:text-neutral-400 hover:text-slate-900 dark:hover:text-neutral-100"
         >
           <ArrowLeft className="h-4 w-4" />
