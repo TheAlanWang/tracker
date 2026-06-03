@@ -104,20 +104,19 @@ async def get_workspace(
 async def list_workspaces_for_user(
     supabase: AsyncClient, *, user_id: str
 ) -> list[WorkspaceResponse]:
-    member_rows = (
-        await supabase.table("workspace_members")
-        .select("workspace_id")
-        .eq("user_id", user_id)
-        .execute()
-    ).data
-    if not member_rows:
-        return []
-
-    ws_ids = [r["workspace_id"] for r in member_rows]
+    # Single embedded join, NOT "fetch member rows -> look up workspaces by id".
+    # The old two-step form built a `workspaces?id=in.(<every id>)` request whose
+    # URL grew with membership count; past a few thousand workspaces it blew the
+    # request-length limit, PostgREST 400'd, and the uncaught error took /me — and
+    # thus every page — down. Embedding pushes the join into Postgres, so the URL
+    # stays a fixed small size no matter how many workspaces the user belongs to.
+    # `!inner` keeps only workspaces with a matching member row; the nested
+    # workspace_members key it adds to each row is an extra field WorkspaceResponse
+    # ignores.
     rows = (
         await supabase.table("workspaces")
-        .select("*")
-        .in_("id", ws_ids)
+        .select("*, workspace_members!inner(user_id)")
+        .eq("workspace_members.user_id", user_id)
         .execute()
     ).data
     return [WorkspaceResponse(**r) for r in rows]

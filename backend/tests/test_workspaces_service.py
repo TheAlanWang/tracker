@@ -93,28 +93,23 @@ async def test_get_workspace_returns_workspace_if_member(mock_supabase):
 
 
 async def test_list_workspaces_for_user_returns_users_workspaces(mock_supabase):
-    # Membership query returns list of workspace_ids
+    # Single embedded join: workspaces.select("*, workspace_members!inner(...)")
+    #   .eq("workspace_members.user_id", ...).execute(). Each row carries the
+    # workspace columns plus the nested workspace_members the embed adds.
     mock_supabase.table.return_value.select.return_value.eq.return_value.execute.return_value.data = [
-        {"workspace_id": "ws-1"},
-        {"workspace_id": "ws-2"},
+        {**_fake_workspace_row(id="ws-1", slug="a"), "workspace_members": [{"user_id": "user-1"}]},
+        {**_fake_workspace_row(id="ws-2", slug="b"), "workspace_members": [{"user_id": "user-1"}]},
     ]
-    # Workspaces lookup returns 2 rows
-    workspaces_query = MagicMock()
-    workspaces_query.select.return_value.in_.return_value.execute.return_value.data = [
-        _fake_workspace_row(id="ws-1", slug="a"),
-        _fake_workspace_row(id="ws-2", slug="b"),
-    ]
-    def table_router(name):
-        if name == "workspace_members":
-            return mock_supabase.table.return_value
-        if name == "workspaces":
-            return workspaces_query
-        raise AssertionError(f"unexpected table: {name}")
-    mock_supabase.table.side_effect = table_router
 
     result = await list_workspaces_for_user(mock_supabase, user_id="user-1")
+
     assert len(result) == 2
     assert {w.slug for w in result} == {"a", "b"}
+    # Must be one query against `workspaces` with an embedded join — never a
+    # `workspace_members` round-trip that feeds an unbounded `id=in.(...)` filter.
+    assert [c.args[0] for c in mock_supabase.table.call_args_list] == ["workspaces"]
+    select_arg = mock_supabase.table.return_value.select.call_args.args[0]
+    assert "workspace_members!inner" in select_arg
 
 
 async def test_update_workspace_happy_path(mock_supabase):
