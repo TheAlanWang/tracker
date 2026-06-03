@@ -253,7 +253,7 @@ function McpConnect() {
 
   return (
     <div className="mt-6">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500 dark:text-neutral-400">
+      <p className="text-sm font-medium text-slate-700 dark:text-neutral-300">
         Connect it
       </p>
       <div className="mt-2 flex flex-wrap gap-2">
@@ -343,19 +343,15 @@ function FeatureCard({
   body: string;
 }) {
   return (
-    <div className="rounded-xl border border-slate-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 p-6 transition-shadow hover:shadow-sm">
-      <div className="w-10 h-10 rounded-lg bg-slate-50 dark:bg-neutral-800/40 text-slate-700 dark:text-neutral-300 flex items-center justify-center">
-        {icon}
-      </div>
-      <h3 className="mt-4 text-base font-semibold text-slate-900 dark:text-neutral-200">{title}</h3>
-      <p className="mt-1.5 text-sm leading-relaxed text-slate-500 dark:text-neutral-400">{body}</p>
+    <div>
+      <div className="text-[var(--brand)]">{icon}</div>
+      <h3 className="mt-3 text-base font-semibold text-slate-900 dark:text-neutral-200">{title}</h3>
+      <p className="mt-1.5 text-sm leading-relaxed text-slate-600 dark:text-neutral-400">{body}</p>
     </div>
   );
 }
 
 // ---- Feature list (data) ----
-// Defined as a module-level constant so the marquee track can render it twice
-// (for a seamless infinite loop) without duplicating six JSX blocks inline.
 
 const FEATURES: Array<{
   title: string;
@@ -509,8 +505,8 @@ export default function Landing() {
             <br />
             and your AI
           </h1>
-          <p className="mt-5 text-lg leading-relaxed text-slate-500 dark:text-neutral-400 max-w-3xl mx-auto">
-            Start with a simple task list. Turn on features only when you need them.
+          <p className="mt-5 text-lg leading-relaxed text-slate-600 dark:text-neutral-300 max-w-3xl mx-auto">
+            A project tracker for your team and the AI working alongside them. Same board, same tasks, over MCP.
           </p>
           <div className="mt-8 flex flex-col items-center gap-3">
             <Button
@@ -530,29 +526,14 @@ export default function Landing() {
       {/* Features */}
       <section className="max-w-7xl mx-auto px-6 py-14 sm:py-20">
         <div className="max-w-2xl">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500 dark:text-neutral-400">
-            What you get
-          </p>
-          <h2 className="mt-2 text-3xl sm:text-4xl font-bold tracking-tight">
+          <h2 className="text-3xl sm:text-4xl font-bold tracking-tight">
             Everything to plan a week, nothing to slow it down.
           </h2>
         </div>
-        {/* Auto-scrolling feature row (marquee). Track renders FEATURES
-            twice and animates -50% for a seamless loop. Pauses on hover;
-            respects prefers-reduced-motion (motion-safe: prefix). */}
-        <div
-          className="mt-10 relative overflow-hidden group"
-          aria-label="Feature highlights"
-        >
-          <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-16 bg-gradient-to-r from-white dark:from-neutral-900 to-transparent" />
-          <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-16 bg-gradient-to-l from-white dark:from-neutral-900 to-transparent" />
-          <div className="flex w-max gap-4 motion-safe:animate-marquee group-hover:[animation-play-state:paused]">
-            {[...FEATURES, ...FEATURES].map((f, i) => (
-              <div key={i} className="w-80 shrink-0" aria-hidden={i >= FEATURES.length}>
-                <FeatureCard title={f.title} body={f.body} icon={f.icon} />
-              </div>
-            ))}
-          </div>
+        <div className="mt-12 grid gap-x-8 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
+          {FEATURES.map((f) => (
+            <FeatureCard key={f.title} title={f.title} body={f.body} icon={f.icon} />
+          ))}
         </div>
       </section>
 
@@ -560,10 +541,7 @@ export default function Landing() {
       <section className="border-t border-slate-100 dark:border-neutral-800">
         <div className="max-w-7xl mx-auto px-6 py-14 sm:py-20 grid lg:grid-cols-2 gap-10 lg:gap-16 items-start">
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500 dark:text-neutral-400">
-              Built for AI
-            </p>
-            <h2 className="mt-2 text-3xl sm:text-4xl font-bold tracking-tight">
+            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight">
               Your AI assistant works here too.
             </h2>
             <p className="mt-4 text-lg leading-relaxed text-slate-500 dark:text-neutral-400">
@@ -574,7 +552,7 @@ export default function Landing() {
             </p>
             <McpConnect />
             <div className="mt-6">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500 dark:text-neutral-400">
+              <p className="text-sm font-medium text-slate-700 dark:text-neutral-300">
                 What it can do
               </p>
               <div className="mt-2 flex flex-wrap gap-2">
@@ -603,10 +581,7 @@ export default function Landing() {
       <section className="border-t border-slate-100 dark:border-neutral-800">
         <div className="max-w-7xl mx-auto px-6 py-14 sm:py-20">
           <div className="max-w-2xl">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500 dark:text-neutral-400">
-              See it in action
-            </p>
-            <h2 className="mt-2 text-3xl sm:text-4xl font-bold tracking-tight">
+            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight">
               A quick tour of Trackly.
             </h2>
           </div>
@@ -639,7 +614,7 @@ export default function Landing() {
 
       {/* Footer */}
       <footer className="border-t border-slate-100 dark:border-neutral-800">
-        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between text-xs text-slate-400 dark:text-neutral-500">
+        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between text-xs text-slate-500 dark:text-neutral-400">
           <Logo size="sm" className="text-slate-500 dark:text-neutral-400" />
           <div className="flex items-center gap-4">
             <button
