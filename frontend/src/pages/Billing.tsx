@@ -470,11 +470,9 @@ function UsageRow({
   isOver?: boolean;
   fraction?: number;
 }) {
-  const barColor = isOver
-    ? "#dc2626"
-    : fraction != null && fraction >= 0.8
-      ? GOLD
-      : "#94a3b8";
+  // Antique gold by default (matches the Plan section's Pro treatment),
+  // turning red once over the cap.
+  const barColor = isOver ? "#dc2626" : GOLD;
   return (
     <div className="px-5 py-3.5">
       <div className="flex items-center justify-between">
