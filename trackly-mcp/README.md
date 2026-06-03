@@ -18,7 +18,7 @@ Drop the URL in your config, sign in once with your Trackly account, and you can
 {
   "mcpServers": {
     "trackly": {
-      "url": "https://trackly-mcp.fly.dev/mcp"
+      "url": "https://mcp.gettrackly.dev/mcp"
     }
   }
 }
@@ -63,9 +63,9 @@ To boot a local copy:
 
 ```bash
 export SUPABASE_URL=https://yjngyftaaenftmksjxbn.supabase.co
-export SUPABASE_JWT_SECRET=...      # server-side ONLY (Fly secret in prod)
+export SUPABASE_JWT_SECRET=...      # server-side ONLY (Railway variable in prod)
 export SUPABASE_ANON_KEY=...
-export TRACKLY_API_URL=https://tracker-thealanwang.fly.dev
+export TRACKLY_API_URL=https://api.gettrackly.dev
 export SERVER_BASE_URL=http://localhost:8080
 export PORT=8080
 uv run trackly-mcp
@@ -75,13 +75,9 @@ uv run trackly-mcp
 
 ## Deployment
 
-Hosted on Fly.io as `trackly-mcp`. To redeploy:
+Hosted on Railway as the `trackly-mcp` service (`mcp.gettrackly.dev`), auto-deployed from GitHub on push to `main`. Built from this directory's `Dockerfile`.
 
-```bash
-fly deploy
-```
-
-Secrets are managed via `fly secrets set`. See `fly.toml`.
+Secrets/env are managed in the Railway dashboard (service → Variables).
 
 ## Differences from v1
 

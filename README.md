@@ -2,11 +2,13 @@
 
 An opinionated task tracker, built around one principle: **flat tasks by default, methodology-specific features as opt-in flags.**
 
-**Live demo:** [tracker.thealanwang.xyz](https://tracker.thealanwang.xyz) — sign up with email or Google.
+**Live demo:** [gettrackly.dev](https://gettrackly.dev) — sign up with email or Google.
 
-![License](https://img.shields.io/badge/license-PolyForm%20Noncommercial-blue) ![Vite](https://img.shields.io/badge/Vite-7-646CFF?logo=vite&logoColor=white) ![React](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=white) ![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white) ![FastAPI](https://img.shields.io/badge/FastAPI-0.110+-009688?logo=fastapi&logoColor=white) ![Supabase](https://img.shields.io/badge/Supabase-Postgres+Auth-3ECF8E?logo=supabase&logoColor=white) ![Fly.io](https://img.shields.io/badge/Fly.io-backend-8B5CF6?logo=fly.io&logoColor=white) ![Vercel](https://img.shields.io/badge/Vercel-frontend-000000?logo=vercel&logoColor=white)
+![License](https://img.shields.io/badge/license-PolyForm%20Noncommercial-blue) ![Vite](https://img.shields.io/badge/Vite-7-646CFF?logo=vite&logoColor=white) ![React](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=white) ![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white) ![FastAPI](https://img.shields.io/badge/FastAPI-0.110+-009688?logo=fastapi&logoColor=white) ![Supabase](https://img.shields.io/badge/Supabase-Postgres+Auth-3ECF8E?logo=supabase&logoColor=white) ![Railway](https://img.shields.io/badge/Railway-backend-0B0D0E?logo=railway&logoColor=white) ![Vercel](https://img.shields.io/badge/Vercel-frontend-000000?logo=vercel&logoColor=white)
 
 Built local-first with a clean path to cloud deployment. Vite + React + TypeScript on the front, FastAPI on the back, Supabase (Postgres + Auth + Storage + Realtime) for data.
+
+It's also **built for your team and your AI**: every workspace is fully operable over an [MCP server](#mcp-server), so an assistant works the same board and tasks your team does — no separate integration.
 
 ## Why
 
@@ -48,7 +50,7 @@ The bet: onboarding friction matters more than feature completeness, and opinion
 | Frontend | Backend | Data | Hosting |
 | --- | --- | --- | --- |
 | Vite + React 18 + TS | FastAPI (Python 3.12+) | Supabase Postgres + RLS | Frontend: Vercel + custom domain |
-| Tailwind v3 + shadcn | uv (deps), pytest | Supabase Auth (email + Google OAuth, JWKS) | Backend: Fly.io (Dockerfile) |
+| Tailwind v3 + shadcn | uv (deps), pytest | Supabase Auth (email + Google OAuth, JWKS) | Backend: Railway (Dockerfile) |
 | React Query v5 | PyJWT (ES256 via JWKS, HS256 for service tokens) | Supabase Storage (avatars) | DB / Auth: Supabase Cloud |
 | react-router v6 | python-dotenv (`APP_ENV=dev/prd`) | Realtime via Supabase channels | Email: Resend SMTP |
 
@@ -98,7 +100,7 @@ backend/
   app/schemas/        Pydantic models
   tests/              pytest suite
 supabase/migrations/  Versioned SQL migrations
-trackly-mcp/          MCP server (in development) — see below
+trackly-mcp/          MCP server — see below
 ```
 
 ## Architecture notes
@@ -110,28 +112,32 @@ trackly-mcp/          MCP server (in development) — see below
 - **Dependencies**: BFS over the directed dep graph at save-time to reject cycles.
 - **JWKS-cached auth**: backend caches one `PyJWKClient` per issuer URL (`core/security.py`) — first JWT verify hits Supabase JWKS, subsequent ones reuse the cached key for 10 minutes. Avoids a per-request TLS round-trip on every authenticated call.
 
-## MCP server (in development)
+## MCP server
 
-`trackly-mcp/` exposes the Trackly REST API as a [Model Context Protocol](https://modelcontextprotocol.io) server so Claude Code / Claude Desktop / Cursor can drive the tracker directly from chat — "create a task in TRAC titled 'Fix login bug'", "what's on my plate this week?", "mark TRAC-7 done".
+`trackly-mcp/` exposes Trackly as a [Model Context Protocol](https://modelcontextprotocol.io) server, so Claude Code / Claude Desktop / Cursor can drive the tracker directly from chat — "create a task in RAG titled 'Fix login bug'", "what's on my plate this week?", "mark RAG-7 done".
 
-Stack: Python + the official `mcp[cli]` SDK, `httpx` for the API client, `PyJWT` for HS256 user-token minting (same shape as a Supabase session, signed with the shared backend secret).
+It's live and hosted at `https://mcp.gettrackly.dev/mcp` over HTTP, with an OAuth 2.1 flow (Dynamic Client Registration) so anyone connects their own Trackly account — no shared secrets. From Claude Code:
 
-V1 ships 8 tools — `list_workspaces`, `list_projects`, `list_my_tasks`, `get_task`, `search`, `create_task`, `update_task_status`, `add_comment` — over the stdio transport. Auth is a single-user dev model: the JWT secret lives on the user's machine in `~/.claude.json`, so the server speaks to the backend as the configured user.
+```bash
+claude mcp add --transport http trackly https://mcp.gettrackly.dev/mcp
+```
 
-V2 (planned): switch to HTTP/SSE transport, add an OAuth 2.1 flow so anyone can connect their own Trackly account without sharing secrets, and deploy the MCP server alongside the backend.
+It exposes the full toolset: list / get workspaces, projects, tasks, and sprints; search; create and update tasks; comment; manage checklists; and read recent activity and workspace members.
 
-See `trackly-mcp/README.md` for setup + Claude Code / Cursor / Desktop registration JSON.
+Stack: Python + the official `mcp` SDK, `httpx` for the API client, `PyJWT` (ES256 via JWKS) for auth.
+
+See `trackly-mcp/README.md` for setup + Claude Code / Cursor / Desktop registration.
 
 ## Deployment
 
 Everything in this repo deploys on `git push`:
 
-- **Frontend** → Vercel (Vite preset auto-detects everything; SPA rewrites are built-in). Served from `tracker.thealanwang.xyz` via Vercel-managed DNS.
-- **Backend** → Fly.io via GitHub Actions (`.github/workflows/fly-deploy.yml`). One `shared-cpu-1x` machine in `iad` with 512MB RAM. Dockerfile uses `uv` for fast deps installs.
+- **Frontend** → Vercel (Vite preset auto-detects everything; SPA rewrites are built-in). Served from `gettrackly.dev` via Vercel-managed DNS.
+- **Backend** → Railway, auto-deployed from GitHub on push to `main`. Two services: `trackly-api` (`api.gettrackly.dev`) built from `backend/`, and `trackly-mcp` (`mcp.gettrackly.dev`) built from `trackly-mcp/`. Each builds from its own Dockerfile (uses `uv` for fast deps installs).
 - **Supabase** → GitHub Integration auto-applies new SQL in `supabase/migrations/` on push to `main`.
 - **Email** → Resend SMTP wired into Supabase Auth (sender domain verified via SPF + DKIM).
 
-Env vars are managed per platform (Render env tab, `fly secrets`, Supabase Dashboard). No prod `.env` files in the repo — see `backend/.env.example` and `frontend/.env.example` for the dev template, and the `APP_ENV` switch in `backend/app/core/config.py` for how `.env.dev` / `.env.prd` are selected.
+Env vars are managed per platform (Vercel env tab, Railway service Variables, Supabase Dashboard). No prod `.env` files in the repo — see `backend/.env.example` and `frontend/.env.example` for the dev template, and the `APP_ENV` switch in `backend/app/core/config.py` for how `.env.dev` / `.env.prd` are selected.
 
 ## License
 
@@ -142,5 +148,5 @@ You may use, modify, and share Trackly for **noncommercial purposes** —
 personal projects, research, education, hobby, internal team use at
 noncommercial organizations. For **commercial use** (embedding in a
 revenue-generating product, offering as SaaS, internal use at a
-for-profit company), please contact **wang.h5@northeastern.edu** for
+for-profit company), please contact **alanwang166@gmail.com** for
 a commercial license.

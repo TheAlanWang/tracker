@@ -120,7 +120,7 @@ size limit / mime types.
 4. **Commit** the migration file with the related code change. Don't
    leave the migration uncommitted — Cloud sync is the next step.
 5. **Apply to Cloud** via Dashboard SQL Editor. Verify in Cloud Studio.
-6. **Push the commit** (Vercel + Fly redeploy the app code; the schema
+6. **Push the commit** (Vercel + Railway redeploy the app code; the schema
    you just pushed in step 5 is already there waiting).
 
 Steps 5 and 6 are independent on the timeline but must both happen for
