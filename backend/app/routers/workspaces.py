@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from supabase import AsyncClient
 
 from app.core.deps import get_current_user_id, get_supabase_admin
+from app.services.usage import get_agent_usage
 from app.schemas.workspace import (
     WorkspaceCreate,
     WorkspaceResponse,
@@ -67,10 +68,16 @@ async def usage(
     supabase: AsyncClient = Depends(get_supabase_admin),
 ):
     try:
+        # Storage call enforces membership (raises on non-member), so the
+        # agent-usage read after it is already gated.
         storage_bytes = await get_workspace_storage_bytes(
             supabase, user_id=user_id, workspace_id=ws_id
         )
-        return WorkspaceUsageResponse(storage_bytes=storage_bytes)
+        agent_usage = await get_agent_usage(supabase, workspace_id=ws_id)
+        return WorkspaceUsageResponse(
+            storage_bytes=storage_bytes,
+            agent_messages_used=agent_usage.used,
+        )
     except WorkspacePermissionError as exc:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN) from exc
 

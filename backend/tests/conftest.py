@@ -35,6 +35,11 @@ def _env(monkeypatch):
     monkeypatch.setenv("SUPABASE_PUBLISHABLE_KEY", "anon-test")
     monkeypatch.setenv("SUPABASE_SERVICE_KEY", "service-test")
     monkeypatch.setenv("SUPABASE_JWT_SECRET", TEST_JWT_SECRET)
+    # Neutralize optional external-service keys so tests don't pick up real
+    # values from a developer's .env.dev (Settings loads that file). Empty
+    # string is falsy, so "not configured" paths (e.g. the agent route's 503)
+    # stay deterministic; a test that needs the key set overrides it.
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "")
     # clear cached settings so each test re-reads env
     from app.core.config import get_settings
     from app.db.supabase import get_supabase_admin

@@ -1,0 +1,158 @@
+from unittest.mock import MagicMock
+
+import pytest
+
+from app.core.plan_limits import get_limit
+from app.services.agent import AgentError, _resolve_task_id, _summarize
+from app.services.usage import (
+    AgentQuotaExceededError,
+    AgentUsage,
+    consume_agent_message,
+)
+
+
+def _workspace_plan_chain(plan: str) -> MagicMock:
+    chain = MagicMock()
+    (
+        chain.select.return_value.eq.return_value.single.return_value.execute.return_value.data
+    ) = {"plan": plan}
+    return chain
+
+
+# ── usage / metering ─────────────────────────────────────────────────────
+
+
+async def test_consume_agent_message_allows_under_cap():
+    supabase = MagicMock()
+    ws_chain = _workspace_plan_chain("free")
+    supabase.table.side_effect = lambda name: {"workspaces": ws_chain}[name]
+    # RPC returns the single-row table the SQL function produces.
+    supabase.rpc.return_value.execute.return_value.data = [
+        {"allowed": True, "used": 1}
+    ]
+
+    free_cap = get_limit("free", "agent_messages_per_month")
+    usage = await consume_agent_message(supabase, workspace_id="ws-1")
+
+    assert isinstance(usage, AgentUsage)
+    assert usage.used == 1
+    assert usage.cap == free_cap  # read from plan_limits, not hardcoded
+    assert usage.remaining == free_cap - 1
+    # The cap is passed to the RPC so the increment is gated atomically.
+    assert supabase.rpc.call_args.args[0] == "consume_agent_message"
+    assert supabase.rpc.call_args.args[1] == {
+        "p_workspace_id": "ws-1",
+        "p_limit": free_cap,
+    }
+
+
+async def test_consume_agent_message_raises_over_cap():
+    supabase = MagicMock()
+    ws_chain = _workspace_plan_chain("free")
+    supabase.table.side_effect = lambda name: {"workspaces": ws_chain}[name]
+    free_cap = get_limit("free", "agent_messages_per_month")
+    supabase.rpc.return_value.execute.return_value.data = [
+        {"allowed": False, "used": free_cap}
+    ]
+
+    with pytest.raises(AgentQuotaExceededError) as exc:
+        await consume_agent_message(supabase, workspace_id="ws-1")
+    assert exc.value.plan == "free"
+    assert exc.value.cap == free_cap
+    assert exc.value.used == free_cap
+
+
+async def test_consume_agent_message_pro_uses_pro_cap():
+    supabase = MagicMock()
+    ws_chain = _workspace_plan_chain("pro")
+    supabase.table.side_effect = lambda name: {"workspaces": ws_chain}[name]
+    supabase.rpc.return_value.execute.return_value.data = [
+        {"allowed": True, "used": 1}
+    ]
+
+    usage = await consume_agent_message(supabase, workspace_id="ws-1")
+    assert usage.cap == get_limit("pro", "agent_messages_per_month")
+
+
+# ── project-bound task resolution ──────────────────────────────────────────
+
+
+async def test_resolve_task_id_resolves_identifier_in_project():
+    supabase = MagicMock()
+    chain = supabase.table.return_value
+    (
+        chain.select.return_value.eq.return_value.ilike.return_value.limit.return_value.execute.return_value.data
+    ) = [{"id": "task-uuid"}]
+
+    task_id = await _resolve_task_id(supabase, project_id="p-1", ref="RAG-6")
+    assert task_id == "task-uuid"
+
+
+async def test_resolve_task_id_rejects_ref_not_in_project():
+    supabase = MagicMock()
+    chain = supabase.table.return_value
+    # No row → the ref doesn't belong to the bound project.
+    (
+        chain.select.return_value.eq.return_value.ilike.return_value.limit.return_value.execute.return_value.data
+    ) = []
+
+    with pytest.raises(AgentError):
+        await _resolve_task_id(supabase, project_id="p-1", ref="OTHER-9")
+
+
+# ── summaries (pure) ───────────────────────────────────────────────────────
+
+
+def test_summarize_variants():
+    assert "create" in _summarize("create_task", {"title": "Ship it"}).lower()
+    assert "RAG-6" in _summarize("update_task", {"task": "RAG-6", "status": "done"})
+    assert _summarize("list_tasks", {}) == "list tasks"
+    assert "Remembered" in _summarize("remember", {"fact": "likes high priority"})
+
+
+# ── long-term memory store ─────────────────────────────────────────────────
+
+
+async def test_add_memory_inserts_when_under_cap():
+    from app.services import agent_store
+
+    supabase = MagicMock()
+    tbl = supabase.table.return_value
+    (
+        tbl.select.return_value.eq.return_value.eq.return_value.order.return_value.execute.return_value.data
+    ) = [{"id": "m1"}]  # only one existing, well under cap
+
+    await agent_store.add_memory(
+        supabase, workspace_id="ws", user_id="u", content="prefers high priority"
+    )
+
+    tbl.insert.assert_called_once()
+    tbl.delete.assert_not_called()  # no eviction needed
+
+
+async def test_add_memory_evicts_oldest_at_cap():
+    from app.services import agent_store
+
+    supabase = MagicMock()
+    tbl = supabase.table.return_value
+    # At the cap (40) → adding one must evict the oldest to make room.
+    (
+        tbl.select.return_value.eq.return_value.eq.return_value.order.return_value.execute.return_value.data
+    ) = [{"id": f"m{i}"} for i in range(40)]
+
+    await agent_store.add_memory(
+        supabase, workspace_id="ws", user_id="u", content="new fact"
+    )
+
+    tbl.delete.assert_called()  # oldest dropped
+    tbl.insert.assert_called_once()
+
+
+async def test_add_memory_skips_empty():
+    from app.services import agent_store
+
+    supabase = MagicMock()
+    await agent_store.add_memory(
+        supabase, workspace_id="ws", user_id="u", content="   "
+    )
+    supabase.table.return_value.insert.assert_not_called()

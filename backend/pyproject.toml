@@ -12,6 +12,7 @@ dependencies = [
   "supabase>=2.5",
   "resend>=2.0",
   "stripe>=10",
+  "anthropic>=0.105.2",
 ]
 
 [dependency-groups]

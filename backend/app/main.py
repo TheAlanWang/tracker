@@ -1,6 +1,7 @@
 import logging
 import os
 
+import anthropic
 import stripe
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -9,7 +10,7 @@ from postgrest.exceptions import APIError
 
 logger = logging.getLogger("app")
 
-from app.routers import activity, billing, charts, checklist, comments, dependencies, tasks, goals, invitations, labels, me, members, notifications, projects, resolve, search, sprints, watchers, workspaces
+from app.routers import activity, agent, billing, charts, checklist, comments, dependencies, tasks, goals, invitations, labels, me, members, notifications, projects, resolve, search, sprints, watchers, workspaces
 
 app = FastAPI(title="tracker-api")
 
@@ -78,12 +79,31 @@ async def handle_stripe_error(request, exc: stripe.error.StripeError):
     )
 
 
+@app.exception_handler(anthropic.AnthropicError)
+async def handle_anthropic_error(request, exc: "anthropic.AnthropicError"):
+    """Turn any failed Anthropic API call into a clean, CORS-safe 502.
+
+    Same rationale as the Stripe handler: an uncaught SDK error escapes the
+    agent route past CORSMiddleware and surfaces in the browser as a CORS
+    failure, hiding the real cause. Handled here it gets CORS headers; we log
+    the detail server-side and return a generic message. Note the in-stream
+    error event covers failures that happen mid-stream — this catches failures
+    before streaming begins (auth, bad request, model not found).
+    """
+    logger.error("Anthropic API call failed: %s", exc, exc_info=True)
+    return JSONResponse(
+        status_code=502,
+        content={"detail": "AI provider error. Please try again later."},
+    )
+
+
 @app.get("/health")
 def health() -> dict[str, str]:
     return {"status": "ok"}
 
 
 app.include_router(activity.router)
+app.include_router(agent.router)
 app.include_router(billing.router)
 app.include_router(charts.router)
 app.include_router(checklist.router)
