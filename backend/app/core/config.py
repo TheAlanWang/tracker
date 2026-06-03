@@ -43,6 +43,17 @@ class Settings(BaseSettings):
     stripe_webhook_secret: str | None = None
     stripe_pro_price_id: str | None = None
 
+    # ---- Anthropic (in-app AI agent) ----
+    # Optional — when unset the /agent route returns 503, so the app still
+    # boots in local/CI without an Anthropic account. Set in .env.dev to
+    # enable the in-project AI assistant.
+    #   anthropic_api_key  sk-ant-…  (console.anthropic.com → API keys)
+    anthropic_api_key: str | None = None
+    # Default model for the agent loop. Sonnet 4.6 balances cost and quality
+    # for tool-use; override to claude-haiku-4-5 for a cheaper option or an
+    # Opus model for higher quality.
+    agent_model: str = "claude-sonnet-4-6"
+
     model_config = SettingsConfigDict(
         env_file=f".env.{APP_ENV}",
         env_file_encoding="utf-8",

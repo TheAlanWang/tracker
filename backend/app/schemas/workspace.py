@@ -52,3 +52,7 @@ class WorkspaceUsageResponse(BaseModel):
     # (user-global). Display-only — not enforced. Extensible: add
     # emails_this_month etc. here when those counters land.
     storage_bytes: int
+    # In-app AI agent messages spent this calendar month. Unlike storage,
+    # this one IS enforced (the /agent route 402s at the cap); shown here so
+    # the Billing usage panel reflects the live counter.
+    agent_messages_used: int = 0

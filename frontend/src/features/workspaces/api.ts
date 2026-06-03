@@ -79,7 +79,10 @@ export function useWorkspace(wsId: string) {
 
 // Display-only usage figures for the Plan section. Currently just storage
 // (task-image bytes); extensible as more counters land server-side.
-export type WorkspaceUsage = { storage_bytes: number };
+export type WorkspaceUsage = {
+  storage_bytes: number;
+  agent_messages_used: number;
+};
 
 export function useWorkspaceUsage(wsId: string) {
   return useQuery<WorkspaceUsage>({

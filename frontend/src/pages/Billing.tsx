@@ -35,6 +35,10 @@ const CAP_LINES: ((p: Plan) => string)[] = [
   // MCP is unlimited on every plan — we want people using it as much as
   // possible, so it's a shared perk, not a paid differentiator.
   () => `Unlimited MCP calls`,
+  // AI agent messages are metered (real LLM cost) — the one cap that's a
+  // genuine paid differentiator.
+  (p) =>
+    `${PLAN_LIMITS[p].agent_messages_per_month.toLocaleString()} AI messages / month`,
 ];
 
 export default function Billing() {
@@ -97,6 +101,7 @@ export default function Billing() {
   const overBy = usedSeats - limits.members;
   const storageBytes = usage?.storage_bytes ?? null;
   const storageCapBytes = limits.storage_gb * 1024 * 1024 * 1024;
+  const agentUsed = usage?.agent_messages_used ?? null;
 
   async function startCheckout() {
     try {
@@ -310,6 +315,13 @@ export default function Billing() {
             cap={`${limits.storage_gb} GB`}
             fraction={storageBytes != null ? storageBytes / storageCapBytes : undefined}
             isOver={storageBytes != null && storageBytes > storageCapBytes}
+          />
+          <UsageRow
+            label="AI messages"
+            used={agentUsed != null ? String(agentUsed) : "—"}
+            cap={`${limits.agent_messages_per_month.toLocaleString()} / mo`}
+            fraction={agentUsed != null ? agentUsed / limits.agent_messages_per_month : undefined}
+            isOver={agentUsed != null && agentUsed >= limits.agent_messages_per_month}
           />
         </div>
       </div>

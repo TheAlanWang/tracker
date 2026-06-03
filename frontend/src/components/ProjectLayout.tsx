@@ -1,8 +1,10 @@
 import { NavLink, Outlet, useNavigate, useParams } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
-import { Archive, Inbox, Kanban, List as ListIcon, Zap } from "lucide-react";
+import { Archive, Inbox, Kanban, List as ListIcon, Sparkles, Zap } from "lucide-react";
 import { toast } from "sonner";
 
+import { AgentLauncher } from "@/components/AgentLauncher";
+import { AgentPanel } from "@/components/AgentPanel";
 import { ProjectDetailPopover } from "@/components/ProjectDetailPopover";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -35,6 +37,7 @@ export function ProjectLayout() {
   const [taskTitle, setTaskTitle] = useState("");
   const [taskDesc, setTaskDesc] = useState("");
   const [projectDetailOpen, setProjectDetailOpen] = useState(false);
+  const [agentOpen, setAgentOpen] = useState(false);
   const projectNameRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
@@ -120,17 +123,28 @@ export function ProjectLayout() {
             anchorRef={projectNameRef}
           />
         </div>
-        <Button
-          type="button"
-          className="shrink-0"
-          onClick={() => {
-            setTaskTitle("");
-            setTaskDesc("");
-            setNewTaskOpen(true);
-          }}
-        >
-          + New Task
-        </Button>
+        <div className="flex shrink-0 items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            aria-label="AI assistant"
+            onClick={() => setAgentOpen(true)}
+            className="gap-1.5"
+          >
+            <Sparkles className="h-4 w-4 text-[var(--brand)]" strokeWidth={2} />
+            Ask AI
+          </Button>
+          <Button
+            type="button"
+            onClick={() => {
+              setTaskTitle("");
+              setTaskDesc("");
+              setNewTaskOpen(true);
+            }}
+          >
+            + New Task
+          </Button>
+        </div>
       </div>
       <nav className="mt-2 flex items-center gap-1 border-b border-slate-200 dark:border-neutral-800">
         {tabs.map((t) => (
@@ -148,6 +162,19 @@ export function ProjectLayout() {
       <div className="pt-4">
         <Outlet />
       </div>
+
+      {/* Floating launcher: when the panel is collapsed, a draggable button
+          (default bottom-right) re-opens it. Lives in ProjectLayout, so it
+          only appears on project pages. */}
+      {!agentOpen && <AgentLauncher onOpen={() => setAgentOpen(true)} />}
+
+      <AgentPanel
+        open={agentOpen}
+        onClose={() => setAgentOpen(false)}
+        projectId={currentProject.id}
+        projectName={currentProject.name}
+        wsSlug={wsSlug ?? ""}
+      />
 
       {newTaskOpen && (
         <div

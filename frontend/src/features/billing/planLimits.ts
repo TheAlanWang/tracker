@@ -12,6 +12,7 @@ export const PLAN_LIMITS: Record<
     emails_per_month: number;
     storage_gb: number;
     mcp_calls_per_day: number;
+    agent_messages_per_month: number;
   }
 > = {
   free: {
@@ -19,12 +20,14 @@ export const PLAN_LIMITS: Record<
     emails_per_month: 100,
     storage_gb: 1,
     mcp_calls_per_day: 100,
+    agent_messages_per_month: 10,
   },
   pro: {
     members: 50,
     emails_per_month: 5_000,
     storage_gb: 100,
     mcp_calls_per_day: 10_000,
+    agent_messages_per_month: 500,
   },
 };
 

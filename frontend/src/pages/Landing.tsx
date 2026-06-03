@@ -10,7 +10,7 @@
 // auto-open.
 
 import { useEffect, useState } from "react";
-import { Moon, Sun } from "lucide-react";
+import { Moon, Sparkles, Sun } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 
 import { LoginDialog } from "@/components/LoginDialog";
@@ -200,6 +200,67 @@ function McpShowcase() {
             )}
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+// Static mock of the in-app assistant panel — mirrors the real AgentPanel's
+// chrome (Sparkles header, bubbles, tool-call pills). Brand rule: cobalt is
+// the one accent (the "Remembered" pill uses a cobalt mark, NOT gold — gold
+// stays Pro-only); created-task pills use the same green dot the app uses for
+// a completed tool call.
+function AssistantShowcase() {
+  const CREATED = [
+    "Write hero + feature copy",
+    "Build the responsive layout",
+    "Wire up the signup CTA",
+    "QA on mobile + dark mode",
+  ];
+  return (
+    <div className="rounded-2xl border border-slate-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-2xl shadow-slate-900/10 overflow-hidden">
+      <div className="flex items-center gap-2 border-b border-slate-100 dark:border-neutral-800 px-4 h-11">
+        <Sparkles className="h-4 w-4 text-[var(--brand)]" strokeWidth={2} />
+        <span className="text-sm font-medium text-slate-800 dark:text-neutral-200">
+          AI assistant
+        </span>
+        <span className="text-xs text-slate-400 dark:text-neutral-500">
+          · Engineering
+        </span>
+        <span className="ml-auto rounded-full bg-slate-100 dark:bg-neutral-800 px-2 py-0.5 text-[11px] text-slate-500 dark:text-neutral-400">
+          7 left
+        </span>
+      </div>
+      <div className="p-5 space-y-3.5 text-sm">
+        <div className="flex justify-end">
+          <div className="max-w-[85%] rounded-2xl rounded-br-sm bg-slate-100 dark:bg-neutral-800 px-3.5 py-2 text-slate-700 dark:text-neutral-200">
+            Break &ldquo;launch the landing page&rdquo; into tasks and assign
+            them to me.
+          </div>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {CREATED.map((t) => (
+            <span
+              key={t}
+              className="inline-flex max-w-full items-center gap-1.5 rounded-full border border-slate-200 dark:border-neutral-700 px-2.5 py-1 text-xs text-slate-500 dark:text-neutral-400"
+            >
+              <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-500" />
+              <span className="truncate">Created &ldquo;{t}&rdquo;</span>
+            </span>
+          ))}
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 dark:border-neutral-700 px-2.5 py-1 text-xs text-slate-500 dark:text-neutral-400">
+            <Sparkles className="h-3 w-3 shrink-0 text-[var(--brand)]" strokeWidth={2} />
+            Remembered{" "}
+            <span className="font-medium text-slate-700 dark:text-neutral-200">
+              assigns work to you by default
+            </span>
+          </span>
+        </div>
+        <p className="text-slate-700 dark:text-neutral-200">
+          Done — 4 tasks on your{" "}
+          <span className="font-medium">Engineering</span> board, assigned to
+          you and set to high priority. Want due dates?
+        </p>
       </div>
     </div>
   );
@@ -537,18 +598,56 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* MCP / built-for-AI */}
+      {/* In-app AI assistant */}
       <section className="border-t border-slate-100 dark:border-neutral-800">
         <div className="max-w-7xl mx-auto px-6 py-14 sm:py-20 grid lg:grid-cols-2 gap-10 lg:gap-16 items-start">
           <div>
             <h2 className="text-3xl sm:text-4xl font-bold tracking-tight">
-              Your AI assistant works here too.
+              An assistant built into every board.
             </h2>
             <p className="mt-4 text-lg leading-relaxed text-slate-500 dark:text-neutral-400">
-              Connect Claude, Cursor, or any MCP client to Trackly. Your assistant
-              reads the board, creates and updates tasks, and pulls in each
-              project&rsquo;s context and links — so it works like a teammate that
-              already knows your setup.
+              Open the assistant inside any project and just say what you want.
+              It sees the board, breaks goals into tasks, creates and assigns
+              them, and remembers how you work — no setup, nothing to paste.
+            </p>
+            <div className="mt-6">
+              <p className="text-sm font-medium text-slate-700 dark:text-neutral-300">
+                What it does
+              </p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {[
+                  "Break goals into tasks",
+                  "Create & assign",
+                  "Move & update tasks",
+                  "Remembers how you work",
+                  "Scoped to your project",
+                ].map((c) => (
+                  <span
+                    key={c}
+                    className="rounded-full border border-slate-200 dark:border-neutral-800 px-3 py-1 text-xs text-slate-600 dark:text-neutral-300"
+                  >
+                    {c}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
+          <AssistantShowcase />
+        </div>
+      </section>
+
+      {/* MCP / bring-your-own-AI */}
+      <section className="border-t border-slate-100 dark:border-neutral-800">
+        <div className="max-w-7xl mx-auto px-6 py-14 sm:py-20 grid lg:grid-cols-2 gap-10 lg:gap-16 items-start">
+          <div>
+            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight">
+              Or bring your own AI.
+            </h2>
+            <p className="mt-4 text-lg leading-relaxed text-slate-500 dark:text-neutral-400">
+              Prefer Claude, Cursor, or another MCP client? Connect it to
+              Trackly. Your assistant reads the board, creates and updates
+              tasks, and pulls in each project&rsquo;s context and links — so it
+              works like a teammate that already knows your setup.
             </p>
             <McpConnect />
             <div className="mt-6">
