@@ -4,6 +4,8 @@ import { Maximize2 } from "lucide-react";
 
 import { TaskDetailContent } from "@/pages/TaskDetail";
 import { useTask } from "@/features/tasks/api";
+import { useWorkspaces } from "@/features/workspaces/api";
+import { useProjects } from "@/features/projects/api";
 
 function CloseIcon() {
   return (
@@ -28,12 +30,22 @@ type Props = {
 };
 
 export function TaskDetailModal({ taskId, onClose }: Props) {
-  // URL for the chrome-less standalone view (opened in a new tab by the
-  // expand button). The task is already in cache from the open content
-  // (same query key), so this adds no network; the empty arg keeps the
-  // query disabled until taskId resolves.
+  // Canonical URL for the expand button (opens the task in a new tab inside
+  // its workspace). We build it from the task's workspace + project — derived
+  // from already-warm caches — rather than a bare /t/identifier shortlink, so
+  // the new tab is unambiguous even when another workspace shares the same
+  // project key + task number. The task is already cached from the open
+  // content (same query key), so this adds no network; empty args keep the
+  // dependent queries disabled until they resolve.
   const { data: task } = useTask(taskId ?? "");
-  const fullUrl = task ? `/t/${task.identifier}` : null;
+  const { data: workspaces = [] } = useWorkspaces();
+  const ws = workspaces.find((w) => w.id === task?.workspace_id);
+  const { data: projects = [] } = useProjects(ws?.id ?? "");
+  const project = projects.find((p) => p.id === task?.project_id);
+  const fullUrl =
+    task && ws && project
+      ? `/w/${ws.slug}/p/${project.key}/tasks/${task.identifier}`
+      : null;
 
   // Esc to close
   useEffect(() => {

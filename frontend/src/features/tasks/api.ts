@@ -153,16 +153,50 @@ export type ResolvedIdentifier = {
   identifier: string;
 };
 
-export function useResolveIdentifier(identifier: string) {
+// Bare-identifier resolver for the /browse shortlink (and MCP-shared links),
+// where the workspace/project isn't in the URL. A bare identifier isn't
+// globally unique (two workspaces can each have RAG-10), so the backend
+// disambiguates with an optional preferred-workspace slug hint — pass the
+// caller's current/last workspace so the common case lands on the right task.
+// For the in-app canonical route, use useResolveScoped instead.
+export function useResolveIdentifier(
+  identifier: string,
+  preferWorkspace?: string,
+) {
   return useQuery<ResolvedIdentifier>({
-    queryKey: ["resolve", identifier],
+    queryKey: ["resolve", identifier, preferWorkspace ?? null],
     queryFn: async () => {
+      const qs = preferWorkspace
+        ? `?prefer_workspace=${encodeURIComponent(preferWorkspace)}`
+        : "";
       const { data } = await apiClient.get<ResolvedIdentifier>(
-        `/resolve/identifier/${identifier}`,
+        `/resolve/identifier/${identifier}${qs}`,
       );
       return data;
     },
     enabled: !!identifier,
+    retry: false,
+  });
+}
+
+// Strict resolver for the canonical route /w/:wsSlug/p/:pKey/tasks/:identifier.
+// Resolves through workspace slug → project key → identifier, each a unique
+// constraint, so it returns exactly one task or 404 — immune to the
+// cross-workspace identifier collision that the bare resolver can hit.
+export function useResolveScoped(
+  wsSlug: string,
+  pKey: string,
+  identifier: string,
+) {
+  return useQuery<ResolvedIdentifier>({
+    queryKey: ["resolve", "scoped", wsSlug, pKey, identifier],
+    queryFn: async () => {
+      const { data } = await apiClient.get<ResolvedIdentifier>(
+        `/resolve/scoped/${wsSlug}/${pKey}/${identifier}`,
+      );
+      return data;
+    },
+    enabled: !!wsSlug && !!pKey && !!identifier,
     retry: false,
   });
 }

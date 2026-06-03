@@ -111,7 +111,9 @@ async def list_my_tasks(
 
 
 @mcp.tool()
-async def get_task(task_identifier: str) -> dict[str, Any]:
+async def get_task(
+    task_identifier: str, workspace_slug: str | None = None
+) -> dict[str, Any]:
     """Fetch full details for a task by its human identifier (e.g.
     'TRAC-7'). Returns the task, its recent comments, and a `project`
     object carrying the parent project's context — its `description` and
@@ -119,9 +121,14 @@ async def get_task(task_identifier: str) -> dict[str, Any]:
     tagged by `type`) — so you understand what the project is about and can
     grab the right link without a separate get_project call. Use when the
     user says 'show me TRAC-7' or wants to know what a specific task is
-    about before doing something with it."""
+    about before doing something with it.
+
+    Pass `workspace_slug` whenever you know which workspace the task is in
+    (e.g. you got it from list_tasks): identifiers aren't unique across
+    workspaces, so this pins the exact task. Omit it only for single-workspace
+    users."""
     client = get_client()
-    resolved = await resolve_task_identifier(task_identifier)
+    resolved = await resolve_task_identifier(task_identifier, workspace_slug)
     task = await client.get(f"/tasks/{resolved['task_id']}")
     comments = await client.get(f"/tasks/{resolved['task_id']}/comments")
     # Pull the parent project so the task carries its context inline. List
@@ -303,6 +310,7 @@ async def create_task(
 @mcp.tool()
 async def update_task(
     task_identifier: str,
+    workspace_slug: str | None = None,
     status: Literal[
         "backlog", "todo", "in_progress", "in_review", "done", "cancelled"
     ]
@@ -337,7 +345,12 @@ async def update_task(
     Clearing: `description`, `due_date`, `assignee_id`, and `sprint_id` accept
     null to CLEAR them ('unassign FE-12', 'clear the deadline', 'pull out of the
     sprint'). Omitting an argument leaves that field unchanged. Returns the
-    updated task; the server enforces workspace membership."""
+    updated task; the server enforces workspace membership.
+
+    Pass `workspace_slug` whenever you know it (e.g. from list_tasks). Task
+    identifiers aren't unique across workspaces, so for a multi-workspace user
+    this is what guarantees the edit lands on the intended task rather than a
+    same-numbered task in another workspace."""
     payload: dict[str, Any] = {}
     if status is not None:
         payload["status"] = status
@@ -364,18 +377,21 @@ async def update_task(
         )
 
     client = get_client()
-    resolved = await resolve_task_identifier(task_identifier)
+    resolved = await resolve_task_identifier(task_identifier, workspace_slug)
     return await client.patch(f"/tasks/{resolved['task_id']}", json=payload)
 
 
 @mcp.tool()
-async def add_comment(task_identifier: str, body: str) -> dict[str, Any]:
+async def add_comment(
+    task_identifier: str, body: str, workspace_slug: str | None = None
+) -> dict[str, Any]:
     """Post a comment on a task. Markdown is rendered. Use when the
     user says 'comment on TRAC-7 with ...', 'add a note to ...', or
     when reporting back about work done on a task. Returns the new
-    comment row."""
+    comment row. Pass `workspace_slug` when known so the comment lands on the
+    intended task (identifiers aren't unique across workspaces)."""
     client = get_client()
-    resolved = await resolve_task_identifier(task_identifier)
+    resolved = await resolve_task_identifier(task_identifier, workspace_slug)
     return await client.post(
         f"/tasks/{resolved['task_id']}/comments",
         json={"body": body},
@@ -383,23 +399,29 @@ async def add_comment(task_identifier: str, body: str) -> dict[str, Any]:
 
 
 @mcp.tool()
-async def list_checklist(task_identifier: str) -> list[dict[str, Any]]:
+async def list_checklist(
+    task_identifier: str, workspace_slug: str | None = None
+) -> list[dict[str, Any]]:
     """List a task's checklist items (its subtasks/acceptance criteria). Use
     when the user asks 'what's on the checklist for TRAC-7', 'show the
     subtasks', or — importantly — BEFORE checking/unchecking or deleting an
-    item, to get its `id`. Returns each item's id, text, done, position."""
+    item, to get its `id`. Returns each item's id, text, done, position. Pass
+    `workspace_slug` when known to pin the exact task across workspaces."""
     client = get_client()
-    resolved = await resolve_task_identifier(task_identifier)
+    resolved = await resolve_task_identifier(task_identifier, workspace_slug)
     return await client.get(f"/tasks/{resolved['task_id']}/checklist")
 
 
 @mcp.tool()
-async def add_checklist_item(task_identifier: str, text: str) -> dict[str, Any]:
+async def add_checklist_item(
+    task_identifier: str, text: str, workspace_slug: str | None = None
+) -> dict[str, Any]:
     """Add a checklist item (subtask) to a task. Use when the user says 'add a
     checklist item to TRAC-7: …', 'add subtask …', or breaks a task into
-    steps. Returns the new item (id, text, done=false, position)."""
+    steps. Returns the new item (id, text, done=false, position). Pass
+    `workspace_slug` when known to pin the exact task across workspaces."""
     client = get_client()
-    resolved = await resolve_task_identifier(task_identifier)
+    resolved = await resolve_task_identifier(task_identifier, workspace_slug)
     return await client.post(
         f"/tasks/{resolved['task_id']}/checklist",
         json={"text": text},

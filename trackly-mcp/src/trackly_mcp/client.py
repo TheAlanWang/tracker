@@ -95,8 +95,23 @@ async def resolve_workspace(slug: str) -> dict[str, Any]:
     raise TracklyError(f"No workspace with slug {slug!r} accessible to you.")
 
 
-async def resolve_task_identifier(identifier: str) -> dict[str, Any]:
+async def resolve_task_identifier(
+    identifier: str, workspace_slug: str | None = None
+) -> dict[str, Any]:
     client = get_client()
+    # With a workspace, resolve strictly: the identifier already encodes the
+    # project key (e.g. "RAG-10" → "RAG"), so workspace + project + identifier
+    # pins down exactly one task — no cross-workspace ambiguity, and a wrong
+    # workspace 404s loudly rather than touching some other workspace's task.
+    if workspace_slug:
+        project_key = identifier.rsplit("-", 1)[0]
+        return await client.get(
+            f"/resolve/scoped/{workspace_slug}/{project_key}/{identifier}"
+        )
+    # No workspace given: resolve across all the user's workspaces. Identifiers
+    # aren't globally unique, so on a collision the backend returns the oldest
+    # match. Harmless for single-workspace users; pass workspace_slug to
+    # disambiguate when a user spans several workspaces that reuse project keys.
     return await client.get(f"/resolve/identifier/{identifier}")
 
 
