@@ -135,7 +135,8 @@ async def test_list_tasks_no_filter(mock_supabase):
         {"role": "member"}
     ]
     tasks_chain = MagicMock()
-    tasks_chain.select.return_value.eq.return_value.order.return_value.limit.return_value.execute.return_value.data = [
+    # select → eq(project_id) → is_(archived_at, active) → order → limit
+    tasks_chain.select.return_value.eq.return_value.is_.return_value.order.return_value.limit.return_value.execute.return_value.data = [
         _task_row()
     ]
 
@@ -161,7 +162,8 @@ async def test_list_tasks_filters_by_sprint_null(mock_supabase):
     members_chain = MagicMock()
     members_chain.select.return_value.eq.return_value.eq.return_value.execute.return_value.data = [{"role": "member"}]
     tasks_chain = MagicMock()
-    tasks_chain.select.return_value.eq.return_value.is_.return_value.order.return_value.limit.return_value.execute.return_value.data = [
+    # select → eq(project_id) → is_(archived_at, active) → is_(sprint_id, null) → order → limit
+    tasks_chain.select.return_value.eq.return_value.is_.return_value.is_.return_value.order.return_value.limit.return_value.execute.return_value.data = [
         _task_row(sprint_id=None)
     ]
 
@@ -174,8 +176,8 @@ async def test_list_tasks_filters_by_sprint_null(mock_supabase):
 
     result = await list_tasks(mock_supabase, user_id="u-1", project_id="p-1", sprint="null")
     assert len(result) == 1
-    # Verify .is_("sprint_id", None) was called
-    tasks_chain.select.return_value.eq.return_value.is_.assert_called_with("sprint_id", "null")
+    # The backlog filter is the second .is_() (after the archived_at filter).
+    tasks_chain.select.return_value.eq.return_value.is_.return_value.is_.assert_called_with("sprint_id", "null")
 
 
 async def test_get_task_member_ok(mock_supabase):

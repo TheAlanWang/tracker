@@ -88,6 +88,9 @@ export function CreateWorkspaceForm({
           placeholder="Acme Inc."
           autoFocus={autoFocus}
         />
+        <p className="text-xs text-slate-500 dark:text-neutral-400">
+          You can rename it anytime.
+        </p>
       </div>
       <div className="space-y-1">
         <Label htmlFor="create-ws-slug">URL</Label>
