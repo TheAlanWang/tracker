@@ -36,7 +36,9 @@ class Settings(BaseSettings):
     # boots in local/CI without a Stripe account. Test-mode keys are fine:
     #   stripe_secret_key   sk_test_…   (Stripe Dashboard → Developers → API keys)
     #   stripe_webhook_secret whsec_…   (`stripe listen` output, or a dashboard endpoint)
-    #   stripe_pro_price_id price_…     (the recurring $4.99/mo "Trackly Pro" price)
+    #   stripe_pro_price_id price_…     (the recurring "Trackly Pro" price — must be ACTIVE;
+    #                                    archived prices are rejected by Checkout. Changing the
+    #                                    displayed price means a NEW price id — update this too.)
     stripe_secret_key: str | None = None
     stripe_webhook_secret: str | None = None
     stripe_pro_price_id: str | None = None
