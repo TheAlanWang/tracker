@@ -412,10 +412,17 @@ async def _caller_identity(supabase: AsyncClient, user_id: str) -> str:
 
 
 async def _build_page_context(
-    supabase: AsyncClient, *, user_id: str, project: dict, project_id: str
+    supabase: AsyncClient,
+    *,
+    user_id: str,
+    project: dict,
+    project_id: str,
+    focus_task: str | None = None,
 ) -> str:
     """Compact snapshot of the project + its board, injected so the agent
-    sees the page (and knows who it's talking to) without being asked."""
+    sees the page (and knows who it's talking to) without being asked. When
+    focus_task names a task on this board, its full detail is appended and the
+    agent is told to center on it."""
     try:
         rows = await tasks_svc.list_tasks(
             supabase, user_id=user_id, project_id=project_id
@@ -424,12 +431,35 @@ async def _build_page_context(
         rows = []
     briefs = [_task_brief(t) for t in rows[:_PAGE_SNAPSHOT_LIMIT]]
     identity = await _caller_identity(supabase, user_id)
-    return (
+    base = (
         f"{identity}\n"
         f"Current project: {project.get('name', '')} "
         f"(key {project.get('key', '')}).\n"
         f"Board snapshot ({len(briefs)} of {len(rows)} tasks):\n"
         f"{json.dumps(briefs, indent=0)}"
+    )
+
+    if not focus_task:
+        return base
+
+    # Find the focused task on the board (case-insensitive identifier match).
+    # Unresolvable focus is silently ignored — never break the chat.
+    focused = next(
+        (t for t in rows if t.identifier.upper() == focus_task.strip().upper()),
+        None,
+    )
+    if focused is None:
+        return base
+
+    detail = {
+        **_task_brief(focused),
+        "description": focused.description or "",
+    }
+    return (
+        f"{base}\n\n"
+        f"The user is currently viewing task {focused.identifier}. Focus your "
+        f"help on it unless they ask otherwise. Its full detail:\n"
+        f"{json.dumps(detail, indent=0)}"
     )
 
 
@@ -449,6 +479,7 @@ async def run_agent_stream(
     ws_slug: str,
     thread: list,
     usage: AgentUsage,
+    focus_task: str | None = None,
 ) -> AsyncIterator[str]:
     """Run the tool-use loop, yielding SSE-formatted event strings.
 
@@ -471,7 +502,8 @@ async def run_agent_stream(
     yield _sse({"type": "quota", "used": usage.used, "cap": usage.cap, "remaining": usage.remaining})
 
     page_context = await _build_page_context(
-        supabase, user_id=user_id, project=project, project_id=project_id
+        supabase, user_id=user_id, project=project, project_id=project_id,
+        focus_task=focus_task,
     )
     # Long-term memory: durable facts the user's agent has saved in this
     # workspace, injected so it carries understanding across conversations.

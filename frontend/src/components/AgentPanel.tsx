@@ -27,6 +27,9 @@ type Props = {
   projectId: string;
   projectName: string;
   wsSlug: string;
+  // When opened from a task page, the identifier of the task in view. Focuses
+  // the (still project-scoped) assistant on that task. Omitted elsewhere.
+  focusTask?: string;
 };
 
 export function AgentPanel({
@@ -35,9 +38,10 @@ export function AgentPanel({
   projectId,
   projectName,
   wsSlug,
+  focusTask,
 }: Props) {
   const { messages, isStreaming, quota, blocked, send, stop, clearChat } =
-    useAgentChat(projectId);
+    useAgentChat(projectId, focusTask);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -239,7 +243,15 @@ export function AgentPanel({
               }
               onInput={(e) => autoGrow(e.currentTarget)}
               onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
+                // Don't submit mid-IME-composition: with a Chinese/Japanese/
+                // Korean input method, Enter confirms the candidate the user is
+                // composing — it isn't a "send". isComposing stays true until
+                // the candidate is committed.
+                if (
+                  e.key === "Enter" &&
+                  !e.shiftKey &&
+                  !e.nativeEvent.isComposing
+                ) {
                   e.preventDefault();
                   if (!isStreaming) submit();
                 }

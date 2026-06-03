@@ -55,3 +55,6 @@ docs/
 .agents/
 skills-lock.json
 .impeccable/
+
+# brainstorming visual companion scratch
+.superpowers/

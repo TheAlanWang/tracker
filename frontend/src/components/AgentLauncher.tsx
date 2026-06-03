@@ -3,8 +3,8 @@ import { Sparkles } from "lucide-react";
 
 // Draggable floating launcher for the AI assistant. Defaults to the
 // bottom-right corner; the user can drag it anywhere and the position sticks
-// (localStorage). A click (no drag) opens the panel. Only rendered on project
-// pages, by ProjectLayout, when the panel is collapsed.
+// (localStorage). A click (no drag) opens the panel. Rendered when the panel
+// is collapsed — by ProjectLayout (board pages) and FocusedTaskLayout.
 
 const SIZE = 48; // px — the round button's width/height
 const MARGIN = 24; // px — keep this far from the viewport edges
