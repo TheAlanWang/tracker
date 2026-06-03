@@ -637,7 +637,7 @@ export default function WorkspaceSettings() {
                   : undefined
               }
             />
-            <div className="flex items-center justify-end gap-3 px-5 py-3 bg-blue-50/40 dark:bg-blue-950/15">
+            <div className="flex items-center justify-end gap-3 px-5 py-3 bg-slate-50 dark:bg-neutral-800/30">
               {featuresDirty && (
                 <span className="text-xs text-slate-500 dark:text-neutral-400">
                   Unsaved changes

@@ -946,7 +946,7 @@ export function WorkspaceLayout() {
                       }}
                       className="w-full text-left px-3 py-1.5 text-sm text-blue-600 hover:bg-blue-50"
                     >
-                      + New workspace
+                      + New Workspace
                     </button>
                   </div>
                 </div>
@@ -1202,7 +1202,7 @@ export function WorkspaceLayout() {
             onClick={(e) => e.stopPropagation()}
             className="w-full max-w-sm rounded-lg bg-white dark:bg-neutral-900 shadow-xl p-5 space-y-4"
           >
-            <h2 className="text-lg font-semibold text-slate-900 dark:text-neutral-200">New workspace</h2>
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-neutral-200">New Workspace</h2>
             <CreateWorkspaceForm
               autoFocus
               onCancel={() => setNewWsModalOpen(false)}
