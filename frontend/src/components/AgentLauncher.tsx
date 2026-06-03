@@ -1,18 +1,17 @@
 import { useEffect, useRef, useState } from "react";
 import { Sparkles } from "lucide-react";
 
-// Draggable floating launcher for the AI assistant. Defaults to a corner (the
-// caller picks which); the user can drag it anywhere and the position sticks
-// (localStorage, under a caller-supplied key so different mount points keep
-// independent positions). A click (no drag) opens the panel. Rendered when the
-// panel is collapsed — by ProjectLayout (board pages) and FocusedTaskLayout.
+// Draggable floating launcher for the AI assistant. Defaults to the
+// bottom-right corner; the user can drag it anywhere and the position sticks
+// (localStorage). A click (no drag) opens the panel. Rendered when the panel
+// is collapsed — by ProjectLayout (board pages) and FocusedTaskLayout.
 
 const SIZE = 48; // px — the round button's width/height
 const MARGIN = 24; // px — keep this far from the viewport edges
+const KEY = "agentLauncherPos";
 const DRAG_THRESHOLD = 4; // px moved before a press counts as a drag, not a click
 
 type Pos = { x: number; y: number };
-type Corner = "bottom-right" | "bottom-left";
 
 function clamp(p: Pos): Pos {
   const maxX = Math.max(MARGIN, window.innerWidth - SIZE - MARGIN);
@@ -23,32 +22,24 @@ function clamp(p: Pos): Pos {
   };
 }
 
-function defaultPos(corner: Corner): Pos {
+function defaultPos(): Pos {
   return {
-    x: corner === "bottom-left" ? MARGIN : window.innerWidth - SIZE - MARGIN,
+    x: window.innerWidth - SIZE - MARGIN,
     y: window.innerHeight - SIZE - MARGIN,
   };
 }
 
-export function AgentLauncher({
-  onOpen,
-  storageKey = "agentLauncherPos",
-  defaultCorner = "bottom-right",
-}: {
-  onOpen: () => void;
-  storageKey?: string;
-  defaultCorner?: Corner;
-}) {
+export function AgentLauncher({ onOpen }: { onOpen: () => void }) {
   const [pos, setPos] = useState<Pos>(() => {
     try {
-      const saved = JSON.parse(localStorage.getItem(storageKey) || "null");
+      const saved = JSON.parse(localStorage.getItem(KEY) || "null");
       if (saved && typeof saved.x === "number" && typeof saved.y === "number") {
         return clamp(saved);
       }
     } catch {
       /* malformed — fall through to default */
     }
-    return defaultPos(defaultCorner);
+    return defaultPos();
   });
   const posRef = useRef(pos);
   posRef.current = pos;
@@ -82,7 +73,7 @@ export function AgentLauncher({
       window.removeEventListener("mouseup", onUp);
       document.body.style.userSelect = "";
       if (start.moved) {
-        localStorage.setItem(storageKey, JSON.stringify(posRef.current));
+        localStorage.setItem(KEY, JSON.stringify(posRef.current));
       } else {
         onOpen(); // a press with no drag = open
       }

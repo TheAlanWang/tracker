@@ -65,15 +65,9 @@ export function FocusedTaskLayout() {
         </div>
       </main>
 
-      {/* Draggable launcher when the panel is collapsed — mirrors the board's,
-          but defaults to the bottom-left corner with its own saved position. */}
-      {!agentOpen && (
-        <AgentLauncher
-          onOpen={() => setAgentOpen(true)}
-          storageKey="agentLauncherPosTask"
-          defaultCorner="bottom-left"
-        />
-      )}
+      {/* Draggable launcher when the panel is collapsed — same as the board's
+          (bottom-right default, shared saved position). */}
+      {!agentOpen && <AgentLauncher onOpen={() => setAgentOpen(true)} />}
 
       <AgentPanel
         open={agentOpen}
