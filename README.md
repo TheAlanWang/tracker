@@ -8,7 +8,7 @@ An opinionated task tracker, built around one principle: **flat tasks by default
 
 Built local-first with a clean path to cloud deployment. Vite + React + TypeScript on the front, FastAPI on the back, Supabase (Postgres + Auth + Storage + Realtime) for data.
 
-It's also **built for your team and your AI**: every workspace is fully operable over an [MCP server](#mcp-server), so an assistant works the same board and tasks your team does — no separate integration.
+It's also **built for your team and your AI**: there's an [AI assistant](#ai-assistant) built into every board that turns goals into tasks, and every workspace is fully operable over an [MCP server](#mcp-server) — so your own AI tools drive the same board your team does, no separate integration.
 
 ## Why
 
@@ -30,6 +30,7 @@ The bet: onboarding friction matters more than feature completeness, and opinion
 
 ### Core
 
+- **AI assistant** — an in-app, project-scoped chat that breaks goals into tasks, creates and assigns them, updates the board, and remembers how you work. Metered per plan. See [AI assistant](#ai-assistant).
 - **Tasks** with status, priority, assignee, due date, labels, watchers, mentions.
 - **Workspaces & projects** — multi-tenant from the start; per-project boards and lists.
 - **Lightweight checklists** on each task (decoupled from task status, soft reminder if you close a task with unchecked items).
@@ -111,6 +112,17 @@ trackly-mcp/          MCP server — see below
 - **Activity history**: triggers in `supabase/migrations/` capture field-level diffs into `task_activity`; one row per saved field.
 - **Dependencies**: BFS over the directed dep graph at save-time to reject cycles.
 - **JWKS-cached auth**: backend caches one `PyJWKClient` per issuer URL (`core/security.py`) — first JWT verify hits Supabase JWKS, subsequent ones reuse the cached key for 10 minutes. Avoids a per-request TLS round-trip on every authenticated call.
+
+## AI assistant
+
+Every project has a built-in assistant — open the panel on any board and say what you want. It's a Claude tool-use loop running server-side (no framework), streamed into a chat panel. It:
+
+- sees a snapshot of the current board, so you don't paste context;
+- breaks goals into tasks, creates and assigns them, moves/updates existing ones, and comments — all through the same services and Row Level Security as the human UI, acting **as you** (it can't touch anything you can't);
+- proposes before it creates, and the board updates live as it works;
+- persists your conversation per project, and a long-term memory of your preferences per workspace — isolated per user, never crossing the workspace (tenant) boundary.
+
+Tool names mirror the MCP server's, so behavior stays in parity across the human UI, MCP, and the in-app agent. Usage is metered as a per-plan monthly cap (Free / Pro), enforced before each turn. Enable it by setting `ANTHROPIC_API_KEY` on the backend (`AGENT_MODEL` is configurable, default `claude-sonnet-4-6`); unset, the panel shows a graceful "not configured" state and the rest of the app is unaffected.
 
 ## MCP server
 
