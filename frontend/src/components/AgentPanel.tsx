@@ -27,6 +27,9 @@ type Props = {
   projectId: string;
   projectName: string;
   wsSlug: string;
+  // When opened from a task page, the identifier of the task in view. Focuses
+  // the (still project-scoped) assistant on that task. Omitted elsewhere.
+  focusTask?: string;
 };
 
 export function AgentPanel({
@@ -35,9 +38,10 @@ export function AgentPanel({
   projectId,
   projectName,
   wsSlug,
+  focusTask,
 }: Props) {
   const { messages, isStreaming, quota, blocked, send, stop, clearChat } =
-    useAgentChat(projectId);
+    useAgentChat(projectId, focusTask);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 

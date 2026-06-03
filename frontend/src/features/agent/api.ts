@@ -34,7 +34,7 @@ export type AgentBlockedReason = "quota" | "not_configured" | null;
 // useUpdateTask invalidate.
 const WRITE_TOOLS = new Set(["create_task", "update_task", "add_comment"]);
 
-export function useAgentChat(projectId: string) {
+export function useAgentChat(projectId: string, focusTask?: string) {
   const qc = useQueryClient();
   const [messages, setMessages] = useState<AgentChatMessage[]>([]);
   const [isStreaming, setStreaming] = useState(false);
@@ -150,7 +150,11 @@ export function useAgentChat(projectId: string) {
               "Content-Type": "application/json",
               ...(token ? { Authorization: `Bearer ${token}` } : {}),
             },
-            body: JSON.stringify({ messages: thread }),
+            body: JSON.stringify(
+              focusTask
+                ? { messages: thread, focus_task: focusTask }
+                : { messages: thread },
+            ),
             signal: ctrl.signal,
           },
         );
@@ -217,7 +221,7 @@ export function useAgentChat(projectId: string) {
         abortRef.current = null;
       }
     },
-    [messages, isStreaming, projectId, handleEvent, updateLast],
+    [messages, isStreaming, projectId, focusTask, handleEvent, updateLast],
   );
 
   const stop = useCallback(() => {
