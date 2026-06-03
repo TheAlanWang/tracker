@@ -1,4 +1,10 @@
-import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import {
+  BrowserRouter,
+  Navigate,
+  Route,
+  Routes,
+  useParams,
+} from "react-router-dom";
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/react";
 
@@ -17,7 +23,6 @@ import Goals from "@/pages/Goals";
 import Home from "@/pages/Home";
 import Landing from "@/pages/Landing";
 import TaskDetail from "@/pages/TaskDetail";
-import TaskStandalone from "@/pages/TaskStandalone";
 import TaskList from "@/pages/TaskList";
 import MyIssues from "@/pages/MyIssues";
 import Billing from "@/pages/Billing";
@@ -29,6 +34,16 @@ import SprintDetail from "@/pages/SprintDetail";
 import SprintList from "@/pages/SprintList";
 import WorkspaceHome from "@/pages/WorkspaceHome";
 import WorkspaceSettings from "@/pages/WorkspaceSettings";
+
+// Legacy /t/:identifier shortlink. The bare-identifier resolver it used could
+// silently load the wrong task when two of the user's workspaces share a
+// project key + number, so the standalone view is retired. Redirect old links
+// to /browse, which resolves the workspace/project and bounces to the
+// canonical /w/:wsSlug/p/:pKey/tasks/:identifier URL.
+function TaskShortlinkRedirect() {
+  const { identifier } = useParams();
+  return <Navigate to={`/browse/${identifier}`} replace />;
+}
 
 // Root route: anonymous visitors see the marketing landing; signed-in users
 // flow into the workspace via Home (which redirects to the last workspace).
@@ -70,13 +85,13 @@ export default function App() {
             </ProtectedRoute>
           }
         />
-        {/* Chrome-less standalone task view (opened in a new tab from the
-            task modal's expand button). No workspace sidebar / header. */}
+        {/* Legacy shortlink — redirect to /browse, which resolves to the
+            canonical workspace/project task URL. */}
         <Route
           path="/t/:identifier"
           element={
             <ProtectedRoute>
-              <TaskStandalone />
+              <TaskShortlinkRedirect />
             </ProtectedRoute>
           }
         />

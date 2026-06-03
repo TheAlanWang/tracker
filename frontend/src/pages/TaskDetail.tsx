@@ -70,7 +70,7 @@ import {
   TaskStatus,
   useDeleteTask,
   useTask,
-  useResolveIdentifier,
+  useResolveScoped,
   useUpdateTask,
 } from "@/features/tasks/api";
 import { wouldEmailOnSave } from "@/features/tasks/wouldEmailOnSave";
@@ -1955,11 +1955,14 @@ export default function TaskDetail() {
   const navigate = useNavigate();
   const location = useLocation();
 
+  // Scope the lookup by workspace + project (both already in the URL) so the
+  // identifier resolves to exactly this workspace's task — never another
+  // workspace's task that happens to share the same project key + number.
   const {
     data: resolved,
     isLoading: resolving,
     isError: resolveError,
-  } = useResolveIdentifier(identifier ?? "");
+  } = useResolveScoped(wsSlug ?? "", pKey ?? "", identifier ?? "");
 
   // Callers (List, My Tasks, Inbox, Sprint detail) pass where they came from.
   // Falls back to the project board when accessed directly (deep link, refresh).

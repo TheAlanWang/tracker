@@ -1,78 +1,52 @@
-"""Resolve an issue identifier across all the user's workspaces."""
+"""Resolve task identifiers to their canonical workspace/project location."""
 
-from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import BaseModel
+from fastapi import APIRouter, Depends, Query
 from supabase import AsyncClient
 
 from app.core.deps import get_current_user_id, get_supabase_admin
+from app.services.resolve import (
+    ResolveResponse,
+    resolve_identifier,
+    resolve_scoped,
+)
 
 router = APIRouter(tags=["resolve"])
 
 
-class ResolveResponse(BaseModel):
-    workspace_slug: str
-    project_key: str
-    task_id: str
-    identifier: str
-
-
 @router.get("/resolve/identifier/{identifier}", response_model=ResolveResponse)
-async def resolve_identifier(
+async def resolve_identifier_route(
+    identifier: str,
+    prefer_workspace: str | None = Query(None),
+    user_id: str = Depends(get_current_user_id),
+    supabase: AsyncClient = Depends(get_supabase_admin),
+) -> ResolveResponse:
+    """Bare-identifier shortlink resolver (``/browse``, MCP). Ambiguous across
+    workspaces; ``prefer_workspace`` disambiguates, else oldest match wins."""
+    return await resolve_identifier(
+        supabase,
+        user_id=user_id,
+        identifier=identifier,
+        prefer_workspace=prefer_workspace,
+    )
+
+
+@router.get(
+    "/resolve/scoped/{ws_slug}/{project_key}/{identifier}",
+    response_model=ResolveResponse,
+)
+async def resolve_scoped_route(
+    ws_slug: str,
+    project_key: str,
     identifier: str,
     user_id: str = Depends(get_current_user_id),
     supabase: AsyncClient = Depends(get_supabase_admin),
 ) -> ResolveResponse:
-    # Find all workspaces the user is a member of
-    member_rows = (
-        await supabase.table("workspace_members")
-        .select("workspace_id")
-        .eq("user_id", user_id)
-        .execute()
-    ).data
-    if not member_rows:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
-
-    ws_ids = [r["workspace_id"] for r in member_rows]
-
-    # Find the task by identifier within those workspaces
-    task_row = (
-        await supabase.table("tasks")
-        .select("id, identifier, workspace_id, project_id")
-        .eq("identifier", identifier)
-        .in_("workspace_id", ws_ids)
-        .limit(1)
-        .execute()
-    ).data
-    if not task_row:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
-
-    task = task_row[0]
-
-    # Fetch workspace slug
-    ws_row = (
-        await supabase.table("workspaces")
-        .select("slug")
-        .eq("id", task["workspace_id"])
-        .single()
-        .execute()
-    ).data
-    if not ws_row:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
-
-    # Fetch project key
-    proj_row = (
-        await supabase.table("projects")
-        .select("key")
-        .eq("id", task["project_id"])
-        .single()
-        .execute()
-    ).data
-    if not proj_row:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
-
-    return ResolveResponse(
-        workspace_slug=ws_row["slug"],
-        project_key=proj_row["key"],
-        task_id=task["id"],
-        identifier=task["identifier"],
+    """Strict resolver for the canonical in-app route — resolves to exactly one
+    task or 404, immune to cross-workspace identifier collisions."""
+    return await resolve_scoped(
+        supabase,
+        user_id=user_id,
+        ws_slug=ws_slug,
+        project_key=project_key,
+        identifier=identifier,
     )

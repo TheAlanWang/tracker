@@ -16,7 +16,16 @@ export default function Browse() {
   const { identifier } = useParams<{ identifier: string }>();
   const navigate = useNavigate();
 
-  const { data, isError, isPending } = useResolveIdentifier(identifier ?? "");
+  // A bare identifier can match tasks in several of the user's workspaces
+  // (same project key + number). Hint the resolver with the workspace the user
+  // was last in (set by WorkspaceLayout) so the overwhelmingly common case —
+  // browsing a link from your current workspace — lands on the right task.
+  const preferWorkspace =
+    localStorage.getItem("tracker.lastWorkspaceSlug") ?? undefined;
+  const { data, isError, isPending } = useResolveIdentifier(
+    identifier ?? "",
+    preferWorkspace,
+  );
 
   // Redirect to the task's canonical URL on a successful resolve. Failed
   // resolves fall through to the "not found" branch below.
