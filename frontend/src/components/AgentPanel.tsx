@@ -243,7 +243,15 @@ export function AgentPanel({
               }
               onInput={(e) => autoGrow(e.currentTarget)}
               onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
+                // Don't submit mid-IME-composition: with a Chinese/Japanese/
+                // Korean input method, Enter confirms the candidate the user is
+                // composing — it isn't a "send". isComposing stays true until
+                // the candidate is committed.
+                if (
+                  e.key === "Enter" &&
+                  !e.shiftKey &&
+                  !e.nativeEvent.isComposing
+                ) {
                   e.preventDefault();
                   if (!isStreaming) submit();
                 }
