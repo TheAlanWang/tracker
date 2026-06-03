@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { createPortal } from "react-dom";
+import { Link } from "react-router-dom";
 import { Maximize2 } from "lucide-react";
 
 import { TaskDetailContent } from "@/pages/TaskDetail";
@@ -30,13 +31,15 @@ type Props = {
 };
 
 export function TaskDetailModal({ taskId, onClose }: Props) {
-  // Canonical URL for the expand button (opens the task in a new tab inside
-  // its workspace). We build it from the task's workspace + project — derived
-  // from already-warm caches — rather than a bare /t/identifier shortlink, so
-  // the new tab is unambiguous even when another workspace shares the same
-  // project key + task number. The task is already cached from the open
-  // content (same query key), so this adds no network; empty args keep the
-  // dependent queries disabled until they resolve.
+  // Canonical URL for the expand button (opens the full task page inside its
+  // workspace). Built from the task's workspace + project — derived from
+  // already-warm caches — rather than a bare /t/identifier shortlink, so it's
+  // unambiguous even when another workspace shares the same project key + task
+  // number. Rendered as a <Link>, so left-click navigates IN THE SAME TAB
+  // (reusing the board's warm React Query cache → fast), while ⌘/Ctrl/middle-
+  // click still opens a new tab for anyone who wants the task side-by-side.
+  // The task is already cached from the open content (same query key), so this
+  // adds no network; empty args keep the dependent queries disabled.
   const { data: task } = useTask(taskId ?? "");
   const { data: workspaces = [] } = useWorkspaces();
   const ws = workspaces.find((w) => w.id === task?.workspace_id);
@@ -82,16 +85,14 @@ export function TaskDetailModal({ taskId, onClose }: Props) {
         onClick={(e) => e.stopPropagation()}
       >
         {fullUrl && (
-          <a
-            href={fullUrl}
-            target="_blank"
-            rel="noopener noreferrer"
+          <Link
+            to={fullUrl}
             className="absolute right-12 top-3 z-10 inline-flex h-8 w-8 items-center justify-center rounded text-slate-500 dark:text-neutral-400 hover:bg-slate-100 dark:hover:bg-neutral-800 hover:text-slate-900 dark:hover:text-neutral-100"
-            aria-label="Open in new tab"
-            title="Open in new tab"
+            aria-label="Open full page"
+            title="Open full page (⌘-click for a new tab)"
           >
             <Maximize2 className="w-4 h-4" />
-          </a>
+          </Link>
         )}
         <button
           type="button"
