@@ -13,7 +13,7 @@
 
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { MailCheck } from "lucide-react";
+import { Eye, EyeOff, MailCheck } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -58,6 +58,9 @@ export function LoginDialog({
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  // Reveal toggle — lets the user verify what they typed (a friendlier,
+  // lower-friction alternative to a confirm-password field).
+  const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   // Inline auth error (wrong password, email taken, etc). Errors *about this
   // form* belong here, not in a corner toast that can be missed.
@@ -332,16 +335,34 @@ export function LoginDialog({
                 </button>
               )}
             </div>
-            <Input
-              id="login-dlg-password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              autoComplete={isSignin ? "current-password" : "new-password"}
-              minLength={6}
-              placeholder={isSignin ? "••••••••" : "At least 6 characters"}
-            />
+            <div className="relative">
+              <Input
+                id="login-dlg-password"
+                type={showPassword ? "text" : "password"}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                autoComplete={isSignin ? "current-password" : "new-password"}
+                // Signin keeps 6 so existing accounts (created under the old
+                // 6-char minimum) can still log in; new signups require 8.
+                minLength={isSignin ? 6 : 8}
+                placeholder={isSignin ? "••••••••" : "At least 8 characters"}
+                className="pr-10"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((v) => !v)}
+                aria-label={showPassword ? "Hide password" : "Show password"}
+                aria-pressed={showPassword}
+                className="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-slate-600 dark:text-neutral-500 dark:hover:text-neutral-300"
+              >
+                {showPassword ? (
+                  <EyeOff className="w-4 h-4" aria-hidden />
+                ) : (
+                  <Eye className="w-4 h-4" aria-hidden />
+                )}
+              </button>
+            </div>
           </div>
 
           {authError && (
