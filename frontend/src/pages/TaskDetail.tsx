@@ -612,23 +612,6 @@ function ActivityItem({ a, ctx }: { a: Activity; ctx: ActivityContext }) {
   );
 }
 
-function ArrowLeftIcon() {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 20 20"
-      fill="currentColor"
-      className="w-4 h-4"
-    >
-      <path
-        fillRule="evenodd"
-        d="M17 10a.75.75 0 0 1-.75.75H5.612l3.158 3.158a.75.75 0 0 1-1.06 1.06l-4.5-4.5a.75.75 0 0 1 0-1.06l4.5-4.5a.75.75 0 1 1 1.06 1.06L5.612 9.25H16.25A.75.75 0 0 1 17 10Z"
-        clipRule="evenodd"
-      />
-    </svg>
-  );
-}
-
 // Self-contained task editor: handles its own data fetching, draft state,
 // save/discard/delete, comments, and activity. Used by both the full-page
 // TaskDetail and the TaskDetailModal (board card click).
@@ -1991,19 +1974,7 @@ export default function TaskDetail() {
     return <PageSpinner />;
   }
 
-  return (
-    <div className="space-y-4 max-w-6xl">
-      <div className="flex items-center justify-between">
-        <button
-          type="button"
-          onClick={goBack}
-          className="inline-flex items-center gap-1.5 text-sm text-slate-500 dark:text-neutral-400 hover:text-slate-900 dark:hover:text-neutral-100"
-        >
-          <ArrowLeftIcon />
-          <span>Back to {backLabel}</span>
-        </button>
-      </div>
-      <TaskDetailContent taskId={resolved.task_id} onDeleted={goBack} />
-    </div>
-  );
+  // Chrome (back / breadcrumb / Ask AI) and centering are provided by
+  // FocusedTaskLayout; this page is just the task editor.
+  return <TaskDetailContent taskId={resolved.task_id} onDeleted={goBack} />;
 }

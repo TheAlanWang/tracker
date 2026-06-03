@@ -12,6 +12,7 @@ import { PageSpinner } from "@/components/PageSpinner";
 import { ProjectLayout } from "@/components/ProjectLayout";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { WorkspaceLayout } from "@/components/WorkspaceLayout";
+import { FocusedTaskLayout } from "@/components/FocusedTaskLayout";
 import { useAuth } from "@/lib/auth";
 import Archive from "@/pages/Archive";
 import AuthCallback from "@/pages/AuthCallback";
@@ -110,7 +111,6 @@ export default function App() {
           <Route path="my-issues" element={<MyIssues />} />
           <Route path="settings" element={<WorkspaceSettings />} />
           <Route path="profile" element={<ProfileSettings />} />
-          <Route path="p/:pKey/tasks/:identifier" element={<TaskDetail />} />
           <Route path="p/:pKey/settings" element={<ProjectSettings />} />
           <Route path="p/:pKey" element={<ProjectLayout />}>
             <Route index element={<Navigate to="board" replace />} />
@@ -121,6 +121,18 @@ export default function App() {
             <Route path="sprints/:sprintId" element={<SprintDetail />} />
             <Route path="archive" element={<Archive />} />
           </Route>
+        </Route>
+        {/* Focused single-task page — its own slim chrome (no left nav,
+            centered), separate from WorkspaceLayout. */}
+        <Route
+          path="/w/:wsSlug"
+          element={
+            <ProtectedRoute>
+              <FocusedTaskLayout />
+            </ProtectedRoute>
+          }
+        >
+          <Route path="p/:pKey/tasks/:identifier" element={<TaskDetail />} />
         </Route>
         <Route path="*" element={<NotFound />} />
       </Routes>
