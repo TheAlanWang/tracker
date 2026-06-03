@@ -4,6 +4,7 @@ import { ArrowLeft, Sparkles } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { AgentPanel } from "@/components/AgentPanel";
+import { AgentLauncher } from "@/components/AgentLauncher";
 import { useWorkspaces } from "@/features/workspaces/api";
 import { useProjects } from "@/features/projects/api";
 
@@ -63,6 +64,16 @@ export function FocusedTaskLayout() {
           <Outlet />
         </div>
       </main>
+
+      {/* Draggable launcher when the panel is collapsed — mirrors the board's,
+          but defaults to the bottom-left corner with its own saved position. */}
+      {!agentOpen && (
+        <AgentLauncher
+          onOpen={() => setAgentOpen(true)}
+          storageKey="agentLauncherPosTask"
+          defaultCorner="bottom-left"
+        />
+      )}
 
       <AgentPanel
         open={agentOpen}
