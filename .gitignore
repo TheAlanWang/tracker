@@ -48,3 +48,10 @@ playwright/.cache/
 # Internal design docs / planning artifacts — kept locally for reference
 # but not part of the repo public surface.
 docs/
+
+# Impeccable (frontend-design skill): vendored skill install + working state.
+# (Generated PRODUCT.md / DESIGN.md now live under docs/, ignored above.)
+.claude/
+.agents/
+skills-lock.json
+.impeccable/
