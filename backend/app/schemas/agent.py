@@ -26,6 +26,10 @@ class AgentRequest(BaseModel):
     # Full visible thread, oldest first, with the new user message last.
     # Bounded so a client can't replay an unbounded history at us.
     messages: list[AgentMessage] = Field(min_length=1, max_length=50)
+    # When the panel is opened from a task page, the human identifier of the
+    # task in view (e.g. "RAG-10"). The agent stays project-scoped; this only
+    # focuses the page context on that task. Bounded to a sane identifier size.
+    focus_task: str | None = Field(default=None, max_length=64)
 
 
 # ── SSE event payloads (documentation; emitted as JSON dicts) ────────────

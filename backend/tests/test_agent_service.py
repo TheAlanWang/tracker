@@ -1,8 +1,9 @@
-from unittest.mock import MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
 from app.core.plan_limits import get_limit
+from app.schemas.task import TaskResponse
 from app.services.agent import AgentError, _resolve_task_id, _summarize
 from app.services.usage import (
     AgentQuotaExceededError,
@@ -156,3 +157,69 @@ async def test_add_memory_skips_empty():
         supabase, workspace_id="ws", user_id="u", content="   "
     )
     supabase.table.return_value.insert.assert_not_called()
+
+
+# ── page context: focus_task ─────────────────────────────────────────────
+
+
+def _focus_task(identifier="RAG-10", **over):
+    base = dict(
+        id="t-1", workspace_id="ws-1", project_id="p-1", sprint_id=None,
+        parent_id=None, identifier=identifier, title="Wire OAuth",
+        description="Hook up the OAuth client metadata.", status="in_progress",
+        priority="high", assignee_id=None, reporter_id="u-1", due_date=None,
+        position=0.0, created_at="2026-05-14T00:00:00Z",
+        updated_at="2026-05-14T00:00:00Z",
+    )
+    base.update(over)
+    return TaskResponse(**base)
+
+
+_FOCUS_PROJECT = {
+    "id": "p-1", "workspace_id": "ws-1", "name": "Trackly", "key": "RAG",
+}
+
+
+async def test_page_context_includes_focus_block():
+    from app.services.agent import _build_page_context
+
+    with patch("app.services.agent.tasks_svc.list_tasks",
+               new=AsyncMock(return_value=[_focus_task()])), \
+         patch("app.services.agent._caller_identity",
+               new=AsyncMock(return_value="You are talking to (user_id: u-1).")):
+        ctx = await _build_page_context(
+            MagicMock(), user_id="u-1", project=_FOCUS_PROJECT,
+            project_id="p-1", focus_task="RAG-10",
+        )
+
+    assert "currently viewing task RAG-10" in ctx
+    assert "Hook up the OAuth client metadata." in ctx
+
+
+async def test_page_context_no_focus_unchanged():
+    from app.services.agent import _build_page_context
+
+    with patch("app.services.agent.tasks_svc.list_tasks",
+               new=AsyncMock(return_value=[_focus_task()])), \
+         patch("app.services.agent._caller_identity",
+               new=AsyncMock(return_value="You are talking to (user_id: u-1).")):
+        ctx = await _build_page_context(
+            MagicMock(), user_id="u-1", project=_FOCUS_PROJECT, project_id="p-1",
+        )
+
+    assert "currently viewing task" not in ctx
+
+
+async def test_page_context_unresolvable_focus_falls_back():
+    from app.services.agent import _build_page_context
+
+    with patch("app.services.agent.tasks_svc.list_tasks",
+               new=AsyncMock(return_value=[_focus_task()])), \
+         patch("app.services.agent._caller_identity",
+               new=AsyncMock(return_value="You are talking to (user_id: u-1).")):
+        ctx = await _build_page_context(
+            MagicMock(), user_id="u-1", project=_FOCUS_PROJECT,
+            project_id="p-1", focus_task="RAG-999",
+        )
+
+    assert "currently viewing task" not in ctx
