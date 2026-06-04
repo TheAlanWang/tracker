@@ -848,14 +848,15 @@ export function WorkspaceLayout() {
             comfortable left margin. py-1.5 + smaller circular buttons
             (w-8) trim the header to ~46px tall. */}
         <div className="pl-3 pr-2 py-1.5 lg:pl-6 lg:pr-3 flex items-center justify-between">
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 lg:gap-4">
             {/* Hamburger — opens the off-canvas nav drawer. Mobile only
                 (the rail is persistent at lg+). 40px square = ≥44px tap once
-                the icon's hit area is counted. */}
+                the icon's hit area is counted. The `-mr-1.5` pulls the logo in
+                so the wide tap target doesn't read as a big gap. */}
             <button
               type="button"
               onClick={() => setDrawerOpen((v) => !v)}
-              className="lg:hidden shrink-0 -ml-1 w-10 h-10 flex items-center justify-center rounded-md text-slate-600 dark:text-neutral-300 hover:bg-slate-100 dark:hover:bg-neutral-800"
+              className="lg:hidden shrink-0 -ml-1 -mr-1.5 w-10 h-10 flex items-center justify-center rounded-md text-slate-600 dark:text-neutral-300 hover:bg-slate-100 dark:hover:bg-neutral-800"
               title="Menu"
               aria-label={drawerOpen ? "Close navigation menu" : "Open navigation menu"}
               aria-expanded={drawerOpen}
@@ -985,11 +986,15 @@ export function WorkspaceLayout() {
             {/* Pill-shaped search trigger. Borderless to match the lighter
                 feel of the rest of the right cluster — subtle slate fill
                 + hover only, like Supabase / Linear header search. */}
+            {/* Mobile: collapse to a w-8 icon circle (matching the bell) to
+                reclaim header width; ⌘K is meaningless on touch anyway. The
+                full "Search… ⌘K" pill returns at sm+. */}
             <button
               type="button"
               onClick={togglePalette}
-              className="inline-flex items-center gap-2 rounded-full bg-slate-100 dark:bg-neutral-800 px-3.5 py-1.5 text-xs text-slate-500 dark:text-neutral-400 hover:bg-slate-200 hover:text-slate-700 dark:hover:text-neutral-300 transition-colors"
+              className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-slate-100 dark:bg-neutral-800 text-slate-500 dark:text-neutral-400 hover:bg-slate-200 hover:text-slate-700 dark:hover:text-neutral-300 transition-colors sm:w-auto sm:h-auto sm:justify-start sm:gap-2 sm:px-3.5 sm:py-1.5 sm:text-xs"
               title="Search (⌘K)"
+              aria-label="Search"
             >
               <svg
                 viewBox="0 0 20 20"
@@ -998,14 +1003,14 @@ export function WorkspaceLayout() {
                 strokeWidth={1.8}
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                className="w-3.5 h-3.5 text-slate-400 dark:text-neutral-500"
+                className="w-4 h-4 sm:w-3.5 sm:h-3.5 text-slate-400 dark:text-neutral-500"
                 aria-hidden
               >
                 <circle cx="9" cy="9" r="6" />
                 <path d="m18 18-4.5-4.5" />
               </svg>
-              <span>Search…</span>
-              <kbd className="ml-1 rounded bg-white dark:bg-neutral-900 px-1 border border-slate-200 dark:border-neutral-800 text-slate-600 dark:text-neutral-400">
+              <span className="hidden sm:inline">Search…</span>
+              <kbd className="hidden sm:inline-block ml-1 rounded bg-white dark:bg-neutral-900 px-1 border border-slate-200 dark:border-neutral-800 text-slate-600 dark:text-neutral-400">
                 ⌘K
               </kbd>
             </button>
