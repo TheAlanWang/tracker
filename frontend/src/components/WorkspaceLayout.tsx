@@ -848,14 +848,15 @@ export function WorkspaceLayout() {
             comfortable left margin. py-1.5 + smaller circular buttons
             (w-8) trim the header to ~46px tall. */}
         <div className="pl-3 pr-2 py-1.5 lg:pl-6 lg:pr-3 flex items-center justify-between">
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 lg:gap-4">
             {/* Hamburger — opens the off-canvas nav drawer. Mobile only
                 (the rail is persistent at lg+). 40px square = ≥44px tap once
-                the icon's hit area is counted. */}
+                the icon's hit area is counted. The `-mr-1.5` pulls the logo in
+                so the wide tap target doesn't read as a big gap. */}
             <button
               type="button"
               onClick={() => setDrawerOpen((v) => !v)}
-              className="lg:hidden shrink-0 -ml-1 w-10 h-10 flex items-center justify-center rounded-md text-slate-600 dark:text-neutral-300 hover:bg-slate-100 dark:hover:bg-neutral-800"
+              className="lg:hidden shrink-0 -ml-1 -mr-1.5 w-10 h-10 flex items-center justify-center rounded-md text-slate-600 dark:text-neutral-300 hover:bg-slate-100 dark:hover:bg-neutral-800"
               title="Menu"
               aria-label={drawerOpen ? "Close navigation menu" : "Open navigation menu"}
               aria-expanded={drawerOpen}
