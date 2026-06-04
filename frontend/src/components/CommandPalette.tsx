@@ -119,9 +119,16 @@ export function CommandPalette() {
       overlayClassName=""
       contentClassName=""
     >
-      {/* Custom overlay and centering wrapper */}
-      <div className="fixed inset-0 z-50 flex items-start justify-center pt-[20vh] bg-black/30">
-        <div className="w-full max-w-xl rounded-lg bg-white dark:bg-neutral-900 shadow-xl border border-slate-200 dark:border-neutral-800 overflow-hidden">
+      {/* Custom overlay and centering wrapper. Tapping the backdrop closes the
+          palette — the only dismiss path on touch, where there's no Esc key. */}
+      <div
+        className="fixed inset-0 z-50 flex items-start justify-center px-4 pt-[15vh] sm:pt-[20vh] bg-black/30"
+        onClick={() => handleOpenChange(false)}
+      >
+        <div
+          className="w-full max-w-xl rounded-lg bg-white dark:bg-neutral-900 shadow-xl border border-slate-200 dark:border-neutral-800 overflow-hidden"
+          onClick={(e) => e.stopPropagation()}
+        >
           <Command.Input
             value={query}
             onValueChange={setQuery}

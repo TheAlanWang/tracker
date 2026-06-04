@@ -985,11 +985,15 @@ export function WorkspaceLayout() {
             {/* Pill-shaped search trigger. Borderless to match the lighter
                 feel of the rest of the right cluster — subtle slate fill
                 + hover only, like Supabase / Linear header search. */}
+            {/* Mobile: collapse to a w-8 icon circle (matching the bell) to
+                reclaim header width; ⌘K is meaningless on touch anyway. The
+                full "Search… ⌘K" pill returns at sm+. */}
             <button
               type="button"
               onClick={togglePalette}
-              className="inline-flex items-center gap-2 rounded-full bg-slate-100 dark:bg-neutral-800 px-3.5 py-1.5 text-xs text-slate-500 dark:text-neutral-400 hover:bg-slate-200 hover:text-slate-700 dark:hover:text-neutral-300 transition-colors"
+              className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-slate-100 dark:bg-neutral-800 text-slate-500 dark:text-neutral-400 hover:bg-slate-200 hover:text-slate-700 dark:hover:text-neutral-300 transition-colors sm:w-auto sm:h-auto sm:justify-start sm:gap-2 sm:px-3.5 sm:py-1.5 sm:text-xs"
               title="Search (⌘K)"
+              aria-label="Search"
             >
               <svg
                 viewBox="0 0 20 20"
@@ -998,14 +1002,14 @@ export function WorkspaceLayout() {
                 strokeWidth={1.8}
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                className="w-3.5 h-3.5 text-slate-400 dark:text-neutral-500"
+                className="w-4 h-4 sm:w-3.5 sm:h-3.5 text-slate-400 dark:text-neutral-500"
                 aria-hidden
               >
                 <circle cx="9" cy="9" r="6" />
                 <path d="m18 18-4.5-4.5" />
               </svg>
-              <span>Search…</span>
-              <kbd className="ml-1 rounded bg-white dark:bg-neutral-900 px-1 border border-slate-200 dark:border-neutral-800 text-slate-600 dark:text-neutral-400">
+              <span className="hidden sm:inline">Search…</span>
+              <kbd className="hidden sm:inline-block ml-1 rounded bg-white dark:bg-neutral-900 px-1 border border-slate-200 dark:border-neutral-800 text-slate-600 dark:text-neutral-400">
                 ⌘K
               </kbd>
             </button>
