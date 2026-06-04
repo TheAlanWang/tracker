@@ -564,7 +564,7 @@ function InvitationsSection({ invitations }: { invitations: Invitation[] }) {
           return (
             <div
               key={inv.id}
-              className="grid grid-cols-[1fr_auto] items-center gap-4 p-5"
+              className="grid grid-cols-1 gap-3 p-5 sm:grid-cols-[1fr_auto] sm:items-center sm:gap-4"
             >
               <div className="min-w-0">
                 <p className="text-slate-900 dark:text-neutral-200 leading-snug">
@@ -973,7 +973,9 @@ function SettingRow({
   return (
     // Left column flexes (so the description gets room to breathe), right
     // column is a fixed 320px so inputs don't stretch to ridiculous widths.
-    <div className="grid grid-cols-[1fr_320px] items-center gap-6 p-5">
+    // Below sm the two columns stack: a 320px control next to a flex label
+    // crushes the description into one-word-per-line on a phone.
+    <div className="grid grid-cols-1 gap-2 p-5 sm:grid-cols-[1fr_320px] sm:items-center sm:gap-6">
       <div>
         <div className="font-medium text-slate-900 dark:text-neutral-200">{label}</div>
         {description && (

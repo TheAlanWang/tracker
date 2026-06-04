@@ -467,7 +467,7 @@ function SettingRow({
   children: React.ReactNode;
 }) {
   return (
-    <div className="grid grid-cols-[280px_1fr] items-start gap-6 p-5">
+    <div className="grid grid-cols-1 gap-2 p-5 sm:grid-cols-[280px_1fr] sm:items-start sm:gap-6">
       <div>
         <div className="font-medium text-slate-900 dark:text-neutral-200">
           {label}

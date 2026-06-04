@@ -84,7 +84,7 @@ export function ProjectLayout() {
 
   return (
     <div>
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
         <div className="min-w-0">
           {/* Two-row project title:
               Row 1: `<workspace slug> / <project key>` — MCP / URL
@@ -146,7 +146,7 @@ export function ProjectLayout() {
           </Button>
         </div>
       </div>
-      <nav className="mt-2 flex items-center gap-1 border-b border-slate-200 dark:border-neutral-800">
+      <nav className="mt-2 flex items-center gap-1 border-b border-slate-200 dark:border-neutral-800 overflow-x-auto scrollbar-hide">
         {tabs.map((t) => (
           <NavLink
             key={t.to}
@@ -178,7 +178,7 @@ export function ProjectLayout() {
 
       {newTaskOpen && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/30"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4"
           onClick={() => setNewTaskOpen(false)}
         >
           <div

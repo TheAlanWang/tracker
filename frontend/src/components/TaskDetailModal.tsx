@@ -77,17 +77,17 @@ export function TaskDetailModal({ taskId, onClose }: Props) {
   // with overflow-auto) and reliably covers the entire viewport.
   return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-start justify-center bg-slate-900/60 p-4 sm:p-8 overflow-y-auto"
+      className="fixed inset-0 z-50 flex items-start justify-center bg-slate-900/60 p-0 sm:p-8 overflow-y-auto"
       onClick={onClose}
     >
       <div
-        className="relative my-4 w-full max-w-5xl rounded-lg bg-white dark:bg-neutral-900 shadow-2xl"
+        className="relative my-0 min-h-full w-full max-w-5xl rounded-none bg-white dark:bg-neutral-900 shadow-2xl sm:my-4 sm:min-h-0 sm:rounded-lg"
         onClick={(e) => e.stopPropagation()}
       >
         {fullUrl && (
           <Link
             to={fullUrl}
-            className="absolute right-12 top-3 z-10 inline-flex h-8 w-8 items-center justify-center rounded text-slate-500 dark:text-neutral-400 hover:bg-slate-100 dark:hover:bg-neutral-800 hover:text-slate-900 dark:hover:text-neutral-100"
+            className="absolute right-12 top-3 z-10 hidden sm:inline-flex h-8 w-8 items-center justify-center rounded text-slate-500 dark:text-neutral-400 hover:bg-slate-100 dark:hover:bg-neutral-800 hover:text-slate-900 dark:hover:text-neutral-100"
             aria-label="Open full page"
             title="Open full page (⌘-click for a new tab)"
           >
@@ -102,7 +102,7 @@ export function TaskDetailModal({ taskId, onClose }: Props) {
         >
           <CloseIcon />
         </button>
-        <div className="px-8 pb-8 pt-6">
+        <div className="px-4 pb-6 pt-5 sm:px-8 sm:pb-8 sm:pt-6">
           <TaskDetailContent taskId={taskId} onDeleted={onClose} />
         </div>
       </div>

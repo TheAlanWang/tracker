@@ -16,11 +16,14 @@ import { useTheme } from "@/hooks/useTheme";
 export function SettingsSidebar({
   collapsed: collapsedPinned,
   onToggle,
+  hideToggle = false,
 }: {
   // Shared with WorkspaceLayout's SidebarNav so collapse state survives
   // navigation between settings and the rest of the app.
   collapsed: boolean;
   onToggle: () => void;
+  // Mobile: rail lives in an off-canvas drawer; suppress the collapse toggle.
+  hideToggle?: boolean;
 }) {
   const { wsSlug, pKey } = useParams();
   const navigate = useNavigate();
@@ -106,7 +109,7 @@ export function SettingsSidebar({
       {/* Collapse / pin toggle — only when the rail is open. When pinned-
           collapsed there's no expand button: hovering the rail peeks it open,
           and you pin from this button during the peek. */}
-      {!collapsed && (
+      {!collapsed && !hideToggle && (
         <button
           type="button"
           onClick={handleToggle}

@@ -439,7 +439,7 @@ export default function WorkspaceSettings() {
 
             {/* Column headers — slate-50 tinted so the row reads as a
                 table guide separate from the data rows beneath. */}
-            <div className="bg-slate-50/70 dark:bg-neutral-800/40 px-5 py-2 grid grid-cols-[1fr_160px_60px] gap-4 text-[10px] uppercase tracking-[0.08em] text-slate-500 dark:text-neutral-400 font-medium border-b border-slate-200 dark:border-neutral-800">
+            <div className="bg-slate-50/70 dark:bg-neutral-800/40 px-5 py-2 grid grid-cols-[1fr_104px_44px] sm:grid-cols-[1fr_160px_60px] gap-4 text-[10px] uppercase tracking-[0.08em] text-slate-500 dark:text-neutral-400 font-medium border-b border-slate-200 dark:border-neutral-800">
               <span>Member</span>
               <span>Role</span>
               <span />
@@ -466,7 +466,7 @@ export default function WorkspaceSettings() {
                   return (
                     <div
                       key={`m-${m.user_id}`}
-                      className="group grid grid-cols-[1fr_160px_60px] gap-4 items-center px-5 py-3"
+                      className="group grid grid-cols-[1fr_104px_44px] sm:grid-cols-[1fr_160px_60px] gap-4 items-center px-5 py-3"
                     >
                       <div className="flex items-center gap-2 min-w-0">
                         <span className="text-sm text-slate-800 dark:text-neutral-200 truncate">
@@ -545,7 +545,7 @@ export default function WorkspaceSettings() {
                   return (
                     <div
                       key={`i-${inv.id}`}
-                      className="group grid grid-cols-[1fr_160px_60px] gap-4 items-center px-5 py-3"
+                      className="group grid grid-cols-[1fr_104px_44px] sm:grid-cols-[1fr_160px_60px] gap-4 items-center px-5 py-3"
                     >
                       <div className="min-w-0">
                         <span className="text-sm text-slate-800 dark:text-neutral-200 truncate block">
@@ -730,7 +730,7 @@ function SettingRow({
   children: React.ReactNode;
 }) {
   return (
-    <div className="grid grid-cols-[280px_1fr] items-start gap-6 p-5">
+    <div className="grid grid-cols-1 gap-2 p-5 sm:grid-cols-[280px_1fr] sm:items-start sm:gap-6">
       <div>
         <div className="font-medium text-slate-900 dark:text-neutral-200">{label}</div>
         {description && (
