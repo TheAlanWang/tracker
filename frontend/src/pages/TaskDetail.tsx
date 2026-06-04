@@ -620,8 +620,8 @@ function ActivityItem({ a, ctx }: { a: Activity; ctx: ActivityContext }) {
 // height stable while data loads.
 function TaskDetailSkeleton() {
   return (
-    <div className="grid grid-cols-3 gap-8 max-w-6xl">
-      <div className="col-span-2 space-y-4">
+    <div className="grid grid-cols-1 gap-8 max-w-6xl lg:grid-cols-3">
+      <div className="space-y-4 lg:col-span-2">
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1 space-y-2">
             <Skeleton className="h-4 w-16" />
@@ -1139,7 +1139,7 @@ export function TaskDetailContent({
   }
 
   return (
-    <div className="grid grid-cols-[minmax(0,1fr)_300px] gap-8">
+    <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_300px]">
       <div className="space-y-4">
         {/* Title block — two rows now (was one):
             Row 1: identifier eyebrow on the left, action button cluster
@@ -1639,7 +1639,7 @@ export function TaskDetailContent({
         </details>
       </div>
 
-      <aside className="space-y-5 border-l border-slate-200 dark:border-neutral-800 pl-6 self-start sticky top-0 pb-4">
+      <aside className="space-y-5 lg:border-l border-slate-200 dark:border-neutral-800 lg:pl-6 lg:self-start lg:sticky lg:top-0 pb-4">
         <div className="space-y-1">
           <p className="text-xs font-medium uppercase tracking-wider text-slate-400 dark:text-neutral-500">
             Status

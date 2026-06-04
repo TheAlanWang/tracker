@@ -5,6 +5,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
 import { useAgentChat, type AgentToolEntry } from "@/features/agent/api";
+import { useIsMobile } from "@/hooks/useMediaQuery";
 
 // Compact prose for the narrow panel: tighter heading/list rhythm than the
 // default `prose`, inline code styled for task slugs.
@@ -44,6 +45,10 @@ export function AgentPanel({
     useAgentChat(projectId, focusTask);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Below lg the panel is a full-screen sheet instead of a resizable
+  // right-pinned column (a fixed 360–760px panel would overrun the viewport).
+  const isMobile = useIsMobile();
 
   // Resizable width — drag the left edge. Persisted so it sticks across opens.
   const [width, setWidth] = useState(() => {
@@ -120,17 +125,24 @@ export function AgentPanel({
       <aside
         role="dialog"
         aria-label="AI assistant"
-        style={{ width }}
-        className="fixed inset-y-0 right-0 z-50 flex max-w-[100vw] flex-col border-l border-slate-200 bg-white shadow-2xl shadow-slate-900/10 dark:border-neutral-800 dark:bg-neutral-900 animate-in slide-in-from-right duration-200 motion-reduce:animate-none"
+        style={isMobile ? undefined : { width }}
+        className={
+          isMobile
+            ? "fixed inset-0 z-50 flex w-full flex-col bg-white dark:bg-neutral-900 animate-in slide-in-from-bottom duration-200 motion-reduce:animate-none"
+            : "fixed inset-y-0 right-0 z-50 flex max-w-[100vw] flex-col border-l border-slate-200 bg-white shadow-2xl shadow-slate-900/10 dark:border-neutral-800 dark:bg-neutral-900 animate-in slide-in-from-right duration-200 motion-reduce:animate-none"
+        }
       >
-      {/* Drag handle on the left edge to resize. */}
-      <div
-        onMouseDown={startResize}
-        role="separator"
-        aria-orientation="vertical"
-        aria-label="Resize assistant panel"
-        className="absolute inset-y-0 left-0 z-10 w-1.5 -translate-x-1/2 cursor-col-resize bg-transparent transition-colors hover:bg-[var(--brand)]/30"
-      />
+      {/* Drag handle on the left edge to resize. Desktop only — the mobile
+          sheet is full-width and not resizable. */}
+      {!isMobile && (
+        <div
+          onMouseDown={startResize}
+          role="separator"
+          aria-orientation="vertical"
+          aria-label="Resize assistant panel"
+          className="absolute inset-y-0 left-0 z-10 w-1.5 -translate-x-1/2 cursor-col-resize bg-transparent transition-colors hover:bg-[var(--brand)]/30"
+        />
+      )}
         {/* Header */}
         <div className="flex items-center gap-2 border-b border-slate-100 px-4 h-12 dark:border-neutral-800">
           <Sparkles className="h-4 w-4 text-[var(--brand)]" strokeWidth={2} />

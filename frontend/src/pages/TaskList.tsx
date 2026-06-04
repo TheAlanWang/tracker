@@ -64,6 +64,22 @@ const COL_SORT_FIELD: Partial<Record<ColKey, SortField>> = {
   created: "created_at",
 };
 
+// Responsive layer on top of the user's column-visibility prefs: on narrow
+// screens, lower-value columns drop out progressively so Title + Status stay
+// readable on a phone. Orthogonal to `useHiddenColumns` (user toggles) — this
+// only hides what's already shown. Anything still too wide horizontal-scrolls
+// inside TaskTableCard's overflow-x-auto.
+const COL_RESPONSIVE: Record<ColKey, string> = {
+  title: "",
+  status: "",
+  id: "hidden sm:table-cell",
+  priority: "hidden sm:table-cell",
+  assignee: "hidden md:table-cell",
+  due: "hidden md:table-cell",
+  sprint: "hidden lg:table-cell",
+  created: "hidden lg:table-cell",
+};
+
 function useHiddenColumns(projectId: string, ns: string = "list") {
   const key = projectId ? `tracker.${ns}.hidden.${projectId}` : "";
   const [hidden, setHidden] = useState<Set<ColKey>>(() => {
@@ -413,7 +429,7 @@ export function TaskListContent({ archived = false }: { archived?: boolean } = {
                 return (
                   <th
                     key={c.key}
-                    className={`px-3 py-2.5 text-left whitespace-nowrap font-medium ${widthCls}`}
+                    className={`px-3 py-2.5 text-left whitespace-nowrap font-medium ${widthCls} ${COL_RESPONSIVE[c.key]}`}
                   >
                     {sortField ? (
                       <SortableHeader
@@ -447,7 +463,7 @@ export function TaskListContent({ archived = false }: { archived?: boolean } = {
                   onClick={() => setOpenTaskId(t.id)}
                 >
                   {show("id") && (
-                    <td className="px-3 py-2.5 text-xs text-slate-500 dark:text-neutral-400">
+                    <td className="px-3 py-2.5 text-xs text-slate-500 dark:text-neutral-400 hidden sm:table-cell">
                       {t.identifier}
                     </td>
                   )}
@@ -462,12 +478,12 @@ export function TaskListContent({ archived = false }: { archived?: boolean } = {
                     </td>
                   )}
                   {show("priority") && (
-                    <td className="px-3 py-2.5">
+                    <td className="px-3 py-2.5 hidden sm:table-cell">
                       <PriorityPill priority={t.priority} hideNoPriority />
                     </td>
                   )}
                   {show("assignee") && (
-                    <td className="px-3 py-2.5">
+                    <td className="px-3 py-2.5 hidden md:table-cell">
                       {assignee ? (
                         <div className="flex items-center gap-1.5 min-w-0">
                           <Avatar
@@ -486,7 +502,7 @@ export function TaskListContent({ archived = false }: { archived?: boolean } = {
                     </td>
                   )}
                   {show("due") && (
-                    <td className="px-3 py-2.5">
+                    <td className="px-3 py-2.5 hidden md:table-cell">
                       {t.due_date ? (
                         <DueDateCell date={t.due_date} status={t.status} />
                       ) : (
@@ -495,7 +511,7 @@ export function TaskListContent({ archived = false }: { archived?: boolean } = {
                     </td>
                   )}
                   {show("sprint") && (
-                    <td className="px-3 py-2.5">
+                    <td className="px-3 py-2.5 hidden lg:table-cell">
                       {sprintName ? (
                         <span className="text-xs text-slate-700 dark:text-neutral-300 truncate block">
                           {sprintName}
@@ -506,7 +522,7 @@ export function TaskListContent({ archived = false }: { archived?: boolean } = {
                     </td>
                   )}
                   {show("created") && (
-                    <td className="px-3 py-2.5 text-xs text-slate-500 dark:text-neutral-400">
+                    <td className="px-3 py-2.5 text-xs text-slate-500 dark:text-neutral-400 hidden lg:table-cell">
                       {new Date(t.created_at).toLocaleDateString(undefined, {
                         month: "short",
                         day: "numeric",

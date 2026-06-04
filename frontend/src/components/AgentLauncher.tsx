@@ -1,10 +1,15 @@
 import { useEffect, useRef, useState } from "react";
 import { Sparkles } from "lucide-react";
 
+import { useIsMobile } from "@/hooks/useMediaQuery";
+
 // Draggable floating launcher for the AI assistant. Defaults to the
 // bottom-right corner; the user can drag it anywhere and the position sticks
 // (localStorage). A click (no drag) opens the panel. Rendered when the panel
 // is collapsed — by ProjectLayout (board pages) and FocusedTaskLayout.
+//
+// On mobile the drag interaction (mouse-only) is dropped: the launcher is a
+// static bottom-right FAB that opens the full-screen sheet on tap.
 
 const SIZE = 48; // px — the round button's width/height
 const MARGIN = 24; // px — keep this far from the viewport edges
@@ -30,6 +35,7 @@ function defaultPos(): Pos {
 }
 
 export function AgentLauncher({ onOpen }: { onOpen: () => void }) {
+  const isMobile = useIsMobile();
   const [pos, setPos] = useState<Pos>(() => {
     try {
       const saved = JSON.parse(localStorage.getItem(KEY) || "null");
@@ -81,6 +87,28 @@ export function AgentLauncher({ onOpen }: { onOpen: () => void }) {
     document.body.style.userSelect = "none";
     window.addEventListener("mousemove", onMove);
     window.addEventListener("mouseup", onUp);
+  }
+
+  if (isMobile) {
+    // Static FAB, anchored bottom-right above the safe-area inset. No drag —
+    // a plain tap opens the sheet. Sits opposite the top-left hamburger.
+    return (
+      <button
+        type="button"
+        onClick={onOpen}
+        aria-label="Open AI assistant"
+        title="Ask AI"
+        style={{
+          right: MARGIN,
+          bottom: `calc(${MARGIN}px + env(safe-area-inset-bottom))`,
+          width: SIZE,
+          height: SIZE,
+        }}
+        className="fixed z-30 flex items-center justify-center rounded-full border border-slate-200 bg-white shadow-lg transition-colors hover:bg-slate-50 dark:border-neutral-800 dark:bg-neutral-900 dark:hover:bg-neutral-800"
+      >
+        <Sparkles className="h-5 w-5 text-[var(--brand)]" strokeWidth={2} />
+      </button>
+    );
   }
 
   return (

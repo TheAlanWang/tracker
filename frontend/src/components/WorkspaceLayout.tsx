@@ -17,7 +17,7 @@
 
 import { Outlet, useLocation, useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
-import { CreditCard, SlidersHorizontal } from "lucide-react";
+import { CreditCard, Menu, SlidersHorizontal } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
@@ -50,6 +50,7 @@ import { useNotificationsRealtime } from "@/features/realtime/useNotificationsRe
 import { useWorkspaces } from "@/features/workspaces/api";
 import { CreateWorkspaceForm } from "@/features/workspaces/CreateWorkspaceForm";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { useIsMobile } from "@/hooks/useMediaQuery";
 import { useTheme } from "@/hooks/useTheme";
 import { projectDotColor } from "@/lib/projectColor";
 import { useCommandPaletteStore } from "@/lib/commandPaletteStore";
@@ -785,6 +786,18 @@ export function WorkspaceLayout() {
     window.localStorage.setItem(SIDEBAR_COLLAPSED_KEY, sidebarCollapsed ? "1" : "0");
   }, [sidebarCollapsed]);
 
+  // Mobile shell: below `lg` the left rail is an off-canvas drawer toggled by
+  // the header hamburger. The drawer auto-closes on navigation (every nav item
+  // changes the path) and whenever we cross back up to desktop.
+  const isMobile = useIsMobile();
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  useEffect(() => {
+    setDrawerOpen(false);
+  }, [location.pathname]);
+  useEffect(() => {
+    if (!isMobile) setDrawerOpen(false);
+  }, [isMobile]);
+
   useNotificationsRealtime(me?.id);
 
   useEffect(() => {
@@ -834,8 +847,21 @@ export function WorkspaceLayout() {
             against the right edge while the workspace switcher keeps its
             comfortable left margin. py-1.5 + smaller circular buttons
             (w-8) trim the header to ~46px tall. */}
-        <div className="pl-6 pr-3 py-1.5 flex items-center justify-between">
+        <div className="pl-3 pr-2 py-1.5 lg:pl-6 lg:pr-3 flex items-center justify-between">
           <div className="flex items-center gap-4">
+            {/* Hamburger — opens the off-canvas nav drawer. Mobile only
+                (the rail is persistent at lg+). 40px square = ≥44px tap once
+                the icon's hit area is counted. */}
+            <button
+              type="button"
+              onClick={() => setDrawerOpen((v) => !v)}
+              className="lg:hidden shrink-0 -ml-1 w-10 h-10 flex items-center justify-center rounded-md text-slate-600 dark:text-neutral-300 hover:bg-slate-100 dark:hover:bg-neutral-800"
+              title="Menu"
+              aria-label={drawerOpen ? "Close navigation menu" : "Open navigation menu"}
+              aria-expanded={drawerOpen}
+            >
+              <Menu className="w-5 h-5" />
+            </button>
             {/* Brand logo — clickable, jumps to /w/<current>/ as a quick
                 "back home" affordance. Mirrors how GitHub's octocat works. */}
             <button
@@ -1160,20 +1186,46 @@ export function WorkspaceLayout() {
             SectionSidebar overlay below — letting it float over <main>
             without pushing it right. */}
         <div className="flex flex-1 min-h-0 relative">
-          {onSettingsPage ? (
-            <SettingsSidebar
-              collapsed={sidebarCollapsed}
-              onToggle={() => setSidebarCollapsed((v) => !v)}
-            />
-          ) : (
-            <SidebarNav
-              wsSlug={wsSlug ?? ""}
-              currentWsId={currentWs?.id ?? ""}
-              goalsEnabled={!!currentWs?.features?.goals}
-              collapsed={sidebarCollapsed}
-              onToggle={() => setSidebarCollapsed((v) => !v)}
+          {/* Scrim — dims content behind the open drawer; tap to dismiss.
+              `absolute` (not fixed) so it's bounded by this content region,
+              which already starts below the header: the header stays visible
+              and interactive (the hamburger toggles the drawer shut). Sits
+              under the drawer (z-40 < z-50). Mobile only. */}
+          {drawerOpen && (
+            <div
+              className="absolute inset-0 z-40 bg-slate-900/40 lg:hidden animate-in fade-in duration-200 motion-reduce:animate-none"
+              onClick={() => setDrawerOpen(false)}
+              aria-hidden
             />
           )}
+          {/* Off-canvas wrapper. On mobile the rail slides in from the left as
+              an `absolute` drawer anchored to this region (so it tucks under
+              the header, not over it); on lg+ it collapses back to an in-flow
+              flex child (no transform, no z-context) so desktop is unchanged.
+              The rail is forced expanded on mobile — the icon-rail collapse
+              mode is a desktop affordance. */}
+          <div
+            className={`absolute inset-y-0 left-0 z-50 w-56 transition-transform duration-200 ease-out motion-reduce:transition-none ${
+              drawerOpen ? "translate-x-0" : "-translate-x-full"
+            } lg:static lg:z-auto lg:w-auto lg:translate-x-0 lg:transition-none`}
+          >
+            {onSettingsPage ? (
+              <SettingsSidebar
+                collapsed={isMobile ? false : sidebarCollapsed}
+                onToggle={() => setSidebarCollapsed((v) => !v)}
+                hideToggle={isMobile}
+              />
+            ) : (
+              <SidebarNav
+                wsSlug={wsSlug ?? ""}
+                currentWsId={currentWs?.id ?? ""}
+                goalsEnabled={!!currentWs?.features?.goals}
+                collapsed={isMobile ? false : sidebarCollapsed}
+                onToggle={() => setSidebarCollapsed((v) => !v)}
+                hideToggle={isMobile}
+              />
+            )}
+          </div>
 
           {/* Tier-2 sub-rail. Absolutely positioned (NOT a flex item)
               so it overlays the left edge of <main> instead of shifting
@@ -1187,7 +1239,7 @@ export function WorkspaceLayout() {
               fewer) shows / hides a vertical scrollbar inside <main>,
               shifting the inner mx-auto-centered content horizontally by
               ~15px. */}
-          <main ref={mainRef} className="flex-1 px-8 pt-5 pb-8 overflow-y-auto overflow-x-hidden bg-white dark:bg-neutral-950 text-slate-900 dark:text-neutral-200 [scrollbar-gutter:stable]">
+          <main ref={mainRef} className="flex-1 px-4 pt-4 pb-6 lg:px-8 lg:pt-5 lg:pb-8 overflow-y-auto overflow-x-hidden bg-white dark:bg-neutral-950 text-slate-900 dark:text-neutral-200 [scrollbar-gutter:stable]">
             <Outlet />
           </main>
         </div>
@@ -1195,7 +1247,7 @@ export function WorkspaceLayout() {
 
       {newWsModalOpen && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/30"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4"
           onClick={() => setNewWsModalOpen(false)}
         >
           <div
@@ -1237,6 +1289,7 @@ function SidebarNav({
   goalsEnabled,
   collapsed: collapsedPinned,
   onToggle,
+  hideToggle = false,
 }: {
   wsSlug: string;
   currentWsId: string;
@@ -1249,6 +1302,9 @@ function SidebarNav({
   // from `title=` on the parent button instead of the now-hidden span).
   collapsed: boolean;
   onToggle: () => void;
+  // Mobile: the rail lives in an off-canvas drawer where collapse makes no
+  // sense, so the collapse/pin toggle is suppressed.
+  hideToggle?: boolean;
 }) {
   const navigate = useNavigate();
   const { pathname } = useLocation();
@@ -1396,7 +1452,7 @@ function SidebarNav({
           collapsed there's no expand button — hovering the rail peeks it open
           and you pin from this button during the peek. Named group
           `group/sidebar` isolates this from the nav items' own `group-hover:`. */}
-      {!collapsed && (
+      {!collapsed && !hideToggle && (
         <button
           type="button"
           onClick={handleToggle}
@@ -1519,7 +1575,7 @@ function SidebarNav({
 
       {showModal && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/30"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4"
           onClick={() => setShowModal(false)}
         >
           <div

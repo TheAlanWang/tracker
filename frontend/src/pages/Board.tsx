@@ -520,7 +520,7 @@ function Column({
   return (
     <div
       ref={setNodeRef}
-      className={`group rounded-lg p-2 min-h-[120px] flex flex-col transition-colors ${
+      className={`group snap-start rounded-lg p-2 min-h-[120px] flex flex-col transition-colors ${
         highlight
           ? "bg-blue-50 dark:bg-blue-950/30 ring-2 ring-inset ring-blue-300 dark:ring-blue-700"
           : "bg-slate-100 dark:bg-neutral-900"
@@ -748,7 +748,7 @@ export default function Board() {
         onDragCancel={onDragCancel}
         autoScroll={{ acceleration: 1000, threshold: { x: 0.2, y: 0.2 } }}
       >
-        <div className="overflow-x-auto scrollbar-hide px-1 pb-2">
+        <div className="overflow-x-auto scrollbar-hide px-1 pb-2 snap-x snap-mandatory lg:snap-none">
           <div
             className="grid gap-3"
             style={{

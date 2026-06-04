@@ -30,7 +30,7 @@ export function SectionSidebar({
     <aside
       className={`absolute top-0 bottom-0 ${
         siblingCollapsed ? "left-12" : "left-56"
-      } w-40 bg-white dark:bg-neutral-900 p-2 flex flex-col gap-0.5 overflow-y-auto z-10 transition-[left] duration-200 ease-out`}
+      } w-40 bg-white dark:bg-neutral-900 p-2 hidden lg:flex flex-col gap-0.5 overflow-y-auto z-10 transition-[left] duration-200 ease-out`}
     >
       {config.title && (
         // Mirror SettingsSidebar's section-label style (small uppercase
