@@ -1205,14 +1205,22 @@ export function WorkspaceLayout() {
           )}
           {/* Off-canvas wrapper. On mobile the rail slides in from the left as
               an `absolute` drawer anchored to this region (so it tucks under
-              the header, not over it); on lg+ it collapses back to an in-flow
-              flex child (no transform, no z-context) so desktop is unchanged.
+              the header, not over it); on lg+ it becomes an in-flow flex child.
               The rail is forced expanded on mobile — the icon-rail collapse
-              mode is a desktop affordance. */}
+              mode is a desktop affordance.
+
+              `lg:z-[15]`: the `lg:translate-x-0` transform makes this wrapper a
+              stacking context, trapping the collapsed rail's hover-peek `z-30`
+              inside it. Without an explicit z, the wrapper sits at the parent's
+              `z-auto` level — BELOW the tier-2 SectionSidebar (`z-10`), so the
+              section sub-nav would paint over the peeked rail. The rail must
+              sit ABOVE the section sub-nav (z-10) but still BELOW the header
+              dropdowns (workspace switcher / profile menu, `z-20`) — otherwise
+              an open dropdown gets covered by the rail. 15 is that middle tier. */}
           <div
             className={`absolute inset-y-0 left-0 z-50 w-56 transition-transform duration-200 ease-out motion-reduce:transition-none ${
               drawerOpen ? "translate-x-0" : "-translate-x-full"
-            } lg:static lg:z-auto lg:w-auto lg:translate-x-0 lg:transition-none`}
+            } lg:static lg:z-[15] lg:w-auto lg:translate-x-0 lg:transition-none`}
           >
             {onSettingsPage ? (
               <SettingsSidebar
