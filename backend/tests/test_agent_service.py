@@ -1,3 +1,4 @@
+import json
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -109,6 +110,61 @@ def test_summarize_variants():
     assert "RAG-6" in _summarize("update_task", {"task": "RAG-6", "status": "done"})
     assert _summarize("list_tasks", {}) == "list tasks"
     assert "Remembered" in _summarize("remember", {"fact": "likes high priority"})
+    assert "RAG-6" in _summarize("list_comments", {"task": "RAG-6"})
+    # delete_comment label reflects whether it's the guard call or the real delete
+    assert _summarize("delete_comment", {"comment_id": "c-1"}) == "Reviewing comment to delete"
+    assert _summarize("delete_comment", {"comment_id": "c-1", "confirm": True}) == "Deleted a comment"
+
+
+# ── comment tools: list + two-step delete ─────────────────────────────────
+
+
+def _handlers():
+    from app.services.agent import _build_handlers
+
+    return _build_handlers(
+        MagicMock(), user_id="u-1", project_id="p-1",
+        workspace_id="ws-1", ws_slug="trackly",
+    )
+
+
+async def test_list_comments_flags_own_comments():
+    from app.schemas.comment import CommentResponse
+
+    rows = [
+        CommentResponse(id="c-1", task_id="t-1", author_id="u-1", body="mine",
+                        created_at="2026-06-15T00:00:00Z", updated_at="2026-06-15T00:00:00Z"),
+        CommentResponse(id="c-2", task_id="t-1", author_id="u-2", body="theirs",
+                        created_at="2026-06-15T00:00:00Z", updated_at="2026-06-15T00:00:00Z"),
+    ]
+    with patch("app.services.agent._resolve_task_id", new=AsyncMock(return_value="t-1")), \
+         patch("app.services.agent.comments_svc.list_comments", new=AsyncMock(return_value=rows)):
+        out = json.loads(await _handlers()["list_comments"]({"task": "RAG-6"}))
+
+    assert [c["id"] for c in out] == ["c-1", "c-2"]
+    assert out[0]["mine"] is True and out[1]["mine"] is False
+
+
+async def test_delete_comment_guard_does_not_delete_without_confirm():
+    delete = AsyncMock()
+    with patch("app.services.agent.comments_svc.delete_comment", new=delete):
+        out = json.loads(await _handlers()["delete_comment"]({"comment_id": "c-1"}))
+
+    assert out["requires_confirmation"] is True
+    assert out["comment_id"] == "c-1"
+    delete.assert_not_awaited()  # nothing deleted on the guard call
+
+
+async def test_delete_comment_deletes_with_confirm():
+    delete = AsyncMock()
+    with patch("app.services.agent.comments_svc.delete_comment", new=delete):
+        out = json.loads(
+            await _handlers()["delete_comment"]({"comment_id": "c-1", "confirm": True})
+        )
+
+    assert out == {"ok": True, "deleted_comment_id": "c-1"}
+    delete.assert_awaited_once()
+    assert delete.await_args.kwargs == {"user_id": "u-1", "comment_id": "c-1"}
 
 
 # ── long-term memory store ─────────────────────────────────────────────────

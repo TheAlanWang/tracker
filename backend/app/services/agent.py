@@ -196,6 +196,44 @@ TOOLS: list[dict] = [
         },
     },
     {
+        "name": "list_comments",
+        "description": (
+            "List the comments on a task, each with its `id`, author, and a "
+            "text preview. Use this to find the comment id before deleting a "
+            "comment. `mine: true` marks comments the current user authored — "
+            "the only ones they can delete."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "task": {"type": "string", "description": "Task identifier (RAG-6) or id."},
+            },
+            "required": ["task"],
+        },
+    },
+    {
+        "name": "delete_comment",
+        "description": (
+            "Delete a comment. DESTRUCTIVE and permanent — the user can only "
+            "delete comments they authored. Get the `comment_id` from "
+            "list_comments. Two-step confirmation is REQUIRED: first call with "
+            "confirm=false (nothing is deleted), then show the user the exact "
+            "comment you're about to delete and get their explicit go-ahead; "
+            "only then call again with confirm=true."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "comment_id": {"type": "string", "description": "Comment id from list_comments."},
+                "confirm": {
+                    "type": "boolean",
+                    "description": "Must be true to actually delete. Defaults to false (preview/guard).",
+                },
+            },
+            "required": ["comment_id"],
+        },
+    },
+    {
         "name": "list_workspace_members",
         "description": (
             "List the workspace's members (name, email, user id). Use to "
@@ -350,6 +388,49 @@ def _build_handlers(
         )
         return json.dumps({"ok": True})
 
+    async def list_comments(inp: dict) -> str:
+        task_id = await _resolve_task_id(
+            supabase, project_id=project_id, ref=inp["task"]
+        )
+        comments = await comments_svc.list_comments(
+            supabase, user_id=user_id, task_id=task_id
+        )
+        return json.dumps(
+            [
+                {
+                    "id": c.id,
+                    "author_id": c.author_id,
+                    "mine": c.author_id == user_id,
+                    "preview": c.body[:200],
+                    "created_at": c.created_at.isoformat(),
+                }
+                for c in comments
+            ]
+        )
+
+    async def delete_comment(inp: dict) -> str:
+        comment_id = inp["comment_id"]
+        # Two-step guard: without explicit confirm=true, delete nothing — just
+        # tell the model to show the comment (already in context from
+        # list_comments) and get the user's go-ahead first.
+        if not inp.get("confirm"):
+            return json.dumps(
+                {
+                    "requires_confirmation": True,
+                    "comment_id": comment_id,
+                    "message": (
+                        "This permanently deletes the comment. Show the user "
+                        "the comment you're about to delete and get explicit "
+                        "confirmation, then call again with confirm=true. They "
+                        "can only delete their own comments."
+                    ),
+                }
+            )
+        await comments_svc.delete_comment(
+            supabase, user_id=user_id, comment_id=comment_id
+        )
+        return json.dumps({"ok": True, "deleted_comment_id": comment_id})
+
     async def list_workspace_members(inp: dict) -> str:
         members = await members_svc.list_members(
             supabase, user_id=user_id, workspace_id=workspace_id
@@ -386,6 +467,8 @@ def _build_handlers(
         "create_task": create_task,
         "update_task": update_task,
         "add_comment": add_comment,
+        "list_comments": list_comments,
+        "delete_comment": delete_comment,
         "list_workspace_members": list_workspace_members,
         "remember": remember,
         "forget": forget,
@@ -393,8 +476,10 @@ def _build_handlers(
 
 
 # Tools that change board state — the frontend invalidates its task cache
-# when it sees one of these in a tool_result event.
-_WRITE_TOOLS = {"create_task", "update_task", "add_comment"}
+# when it sees one of these in a tool_result event. (delete_comment only
+# mutates on confirm=true; invalidating on the confirm=false guard call is a
+# harmless extra refetch, so it's listed unconditionally for simplicity.)
+_WRITE_TOOLS = {"create_task", "update_task", "add_comment", "delete_comment"}
 
 
 async def _caller_identity(supabase: AsyncClient, user_id: str) -> str:
@@ -616,6 +701,10 @@ def _summarize(name: str, inp: dict) -> str:
         return f"Updated {inp.get('task', '')} ({changed})"
     if name == "add_comment":
         return f"Commented on {inp.get('task', '')}"
+    if name == "list_comments":
+        return f"Listed comments on {inp.get('task', '')}"
+    if name == "delete_comment":
+        return "Deleted a comment" if inp.get("confirm") else "Reviewing comment to delete"
     if name == "search":
         return f'Searched "{inp.get("query", "")}"'
     if name == "remember":
