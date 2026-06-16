@@ -23,7 +23,7 @@ def test_tools_registered():
         "list_workspaces", "list_projects", "list_my_tasks", "get_task", "search",
         "list_sprints", "list_tasks", "list_workspace_members",
         "list_recent_activity", "get_project",
-        "create_task", "update_task", "add_comment",
+        "create_task", "update_task", "add_comment", "delete_comment",
         "list_checklist", "add_checklist_item", "set_checklist_item",
         "delete_checklist_item",
     }

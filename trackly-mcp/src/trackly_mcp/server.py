@@ -399,6 +399,38 @@ async def add_comment(
 
 
 @mcp.tool()
+async def delete_comment(
+    comment_id: str, confirm: bool = False
+) -> dict[str, Any]:
+    """Delete a comment. DESTRUCTIVE and permanent — you can only delete
+    comments YOU authored (deleting someone else's returns an error).
+
+    Get `comment_id` from `get_task`, whose `comments` list carries each
+    comment's `id` and `body`.
+
+    Two-step confirmation is REQUIRED. First call with `confirm=False` (the
+    default): nothing is deleted. Then show the user the exact comment you are
+    about to delete (you already have its text from `get_task`) and get their
+    explicit go-ahead. Only after they confirm, call again with `confirm=True`
+    to actually delete. Never pass `confirm=True` without having shown the
+    comment and received a clear yes."""
+    if not confirm:
+        return {
+            "requires_confirmation": True,
+            "comment_id": comment_id,
+            "message": (
+                "This permanently deletes the comment. Show the user the "
+                "comment you're about to delete (you have its text from "
+                "get_task) and get explicit confirmation, then call again "
+                "with confirm=True. You can only delete your own comments."
+            ),
+        }
+    client = get_client()
+    await client.delete(f"/comments/{comment_id}")
+    return {"ok": True, "deleted_comment_id": comment_id}
+
+
+@mcp.tool()
 async def list_checklist(
     task_identifier: str, workspace_slug: str | None = None
 ) -> list[dict[str, Any]]:
