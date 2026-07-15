@@ -91,24 +91,32 @@ async def compute_burndown(
     task_ids = [t["id"] for t in tasks]
     total = len(task_ids)
 
-    # Determine when each task was last set to 'done'. We walk activity_log
-    # for status_changed events where the payload's "to" was "done" — but
-    # we also need to handle tasks that became 'done' before the migration
-    # to activity_log existed (rare for a fresh portfolio project; we treat
-    # those as "done at start" so they don't bias the line).
+    # Determine when each task was last set to 'done' by walking the
+    # activity_log. Status changes appear in two shapes: consolidated
+    # 'updated' rows (the trigger since 20260516120000) carry a per-field
+    # diff — payload["status"] = {"from", "to"} — while pre-consolidation
+    # 'status_changed' rows carry a flat {"from", "to"} payload. Tasks that
+    # became 'done' with no event at all (created as done, or predating the
+    # log) fall back to "done at start" so they don't bias the line.
     done_dates: dict[str, date] = {}
     if task_ids:
         events = (
             await supabase.table("activity_log")
-            .select("task_id, payload, created_at")
+            .select("task_id, action, payload, created_at")
             .in_("task_id", task_ids)
-            .eq("action", "status_changed")
+            .in_("action", ["updated", "status_changed"])
             .order("created_at")
             .execute()
         ).data
         for ev in events:
             payload = ev.get("payload") or {}
-            to_status = payload.get("to")
+            change = (
+                payload.get("status") if ev.get("action") == "updated" else payload
+            )
+            if not isinstance(change, dict) or "to" not in change:
+                # 'updated' row without a status change (title-only edit etc.)
+                continue
+            to_status = change.get("to")
             if to_status == "done":
                 d = (
                     datetime.fromisoformat(ev["created_at"].replace("Z", "+00:00"))
