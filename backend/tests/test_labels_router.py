@@ -1,6 +1,12 @@
 from unittest.mock import patch
 
+import pytest
+
 from app.schemas.label import LabelResponse
+
+# Labels are shelved (2026-07): the router is no longer registered in
+# app.main, so these route tests 404. Un-skip when the feature returns.
+pytestmark = pytest.mark.skip(reason="labels feature shelved — router unregistered")
 
 
 def _l(**over):
