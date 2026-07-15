@@ -611,6 +611,9 @@ export default function WorkspaceSettings() {
                   : undefined
               }
             />
+            {/* Labels are shelved (2026-07) — isLabelsEnabled() is
+                hardcoded false, so the toggle would be a no-op. Restore
+                this row together with the flag check when un-shelving.
             <FeatureRow
               title="Labels"
               pill={null}
@@ -623,7 +626,7 @@ export default function WorkspaceSettings() {
                   ? "Only the workspace owner can toggle features."
                   : undefined
               }
-            />
+            /> */}
             <FeatureRow
               title="Dependencies"
               pill={null}

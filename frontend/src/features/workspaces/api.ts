@@ -23,7 +23,13 @@ export function isSprintsEnabled(ws: Workspace | undefined | null): boolean {
 }
 
 export function isLabelsEnabled(ws: Workspace | undefined | null): boolean {
-  return ws?.features?.labels !== false;
+  // Labels are shelved (2026-07): hidden everywhere regardless of the
+  // per-workspace flag. Data and code are kept; restore by reinstating
+  // the flag check below and un-commenting the Settings FeatureRow +
+  // the labels router registration in backend/app/main.py.
+  void ws;
+  return false;
+  // return ws?.features?.labels !== false;
 }
 
 export function isDependenciesEnabled(

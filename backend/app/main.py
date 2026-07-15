@@ -10,7 +10,10 @@ from postgrest.exceptions import APIError
 
 logger = logging.getLogger("app")
 
-from app.routers import activity, agent, billing, charts, checklist, comments, dependencies, tasks, goals, invitations, labels, me, members, notifications, projects, resolve, search, sprints, watchers, workspaces
+from app.routers import activity, agent, billing, charts, checklist, comments, dependencies, tasks, goals, invitations, me, members, notifications, projects, resolve, search, sprints, watchers, workspaces
+# Labels are shelved (2026-07): routes unregistered, code + tables kept.
+# Restore by re-adding `labels` above and its include_router below.
+# from app.routers import labels
 
 app = FastAPI(title="tracker-api")
 
@@ -111,7 +114,7 @@ app.include_router(comments.router)
 app.include_router(dependencies.router)
 app.include_router(tasks.router)
 app.include_router(goals.router)
-app.include_router(labels.router)
+# app.include_router(labels.router)  # labels shelved (2026-07)
 app.include_router(me.router)
 app.include_router(notifications.router)
 app.include_router(workspaces.router)

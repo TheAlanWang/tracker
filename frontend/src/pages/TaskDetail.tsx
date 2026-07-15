@@ -37,8 +37,10 @@ import {
   useDeleteDependency,
   useDependencies,
 } from "@/features/dependencies/api";
-import { useTaskLabels } from "@/features/labels/api";
-import { LabelsEditor } from "@/components/LabelsEditor";
+// Labels are shelved (2026-07) — see isLabelsEnabled(). Restore these
+// imports together with the hook call and the Labels block below.
+// import { useTaskLabels } from "@/features/labels/api";
+// import { LabelsEditor } from "@/components/LabelsEditor";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
 import { CommentBody } from "@/components/CommentBody";
@@ -53,7 +55,7 @@ import { useChecklist } from "@/features/checklist/api";
 import { useGoals } from "@/features/goals/api";
 import {
   isSprintsEnabled,
-  isLabelsEnabled,
+  // isLabelsEnabled, // labels shelved (2026-07)
   isDependenciesEnabled,
   useWorkspaces,
 } from "@/features/workspaces/api";
@@ -685,9 +687,11 @@ export function TaskDetailContent({
   // inline sprint picker in the right rail. The sprint_id on the task is
   // preserved either way; we just stop showing the editor.
   const sprintsEnabled = isSprintsEnabled(taskWorkspace);
-  // Labels & Dependencies are opt-out workspace features — hide their UI when
+  // Dependencies is an opt-out workspace feature — hide its UI when
   // disabled (data is preserved; see workspace.features).
-  const labelsEnabled = isLabelsEnabled(taskWorkspace);
+  // Labels are shelved (2026-07): flag read + labels fetch commented out
+  // below so task opens don't hit the unregistered labels routes.
+  // const labelsEnabled = isLabelsEnabled(taskWorkspace);
   const dependenciesEnabled = isDependenciesEnabled(taskWorkspace);
   const { data: checklistItems = [] } = useChecklist(task?.id ?? "");
   const uncheckedCount = checklistItems.filter((i) => !i.done).length;
@@ -699,7 +703,7 @@ export function TaskDetailContent({
   const { data: deps } = useDependencies(task?.id ?? "");
   // For the empty-section hiding rule — TaskDetail needs to know whether
   // Labels has any content so it can collapse the row in view mode.
-  const { data: taskLabels = [] } = useTaskLabels(task?.id ?? "");
+  // const { data: taskLabels = [] } = useTaskLabels(task?.id ?? "");
   // Open blockers right now: any blocker task not yet done/cancelled.
   // Used to warn the user when they try to push this task forward
   // (Save → in_progress / in_review) while dependencies are still open.
@@ -1845,6 +1849,8 @@ export function TaskDetailContent({
           </div>
         )}
 
+        {/* Labels are shelved (2026-07) — restore together with the
+            commented-out imports and hooks above.
         {labelsEnabled && (isEditing || taskLabels.length > 0) && (
           <div className="space-y-1">
             <p className="text-xs font-medium uppercase tracking-wider text-slate-400 dark:text-neutral-500">
@@ -1856,7 +1862,7 @@ export function TaskDetailContent({
               readOnly={!isEditing}
             />
           </div>
-        )}
+        )} */}
 
         {dependenciesEnabled && (
           <DependenciesSection
