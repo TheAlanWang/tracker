@@ -240,6 +240,9 @@ export function useAgentChat(projectId: string, focusTask?: string) {
   useEffect(() => {
     let cancelled = false;
     setMessages([]);
+    // On the focused task page projectId is "" until the identifier
+    // resolves — skip instead of firing a /projects//agent/history 404.
+    if (!projectId) return;
     apiClient
       .get<{ messages: AgentChatMessage[] }>(`/projects/${projectId}/agent/history`)
       .then(({ data }) => {
