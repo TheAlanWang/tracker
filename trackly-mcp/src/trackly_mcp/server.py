@@ -186,6 +186,7 @@ async def list_tasks(
     ]
     | None = None,
     assignee_id: str | None = None,
+    archived: bool = False,
 ) -> list[dict[str, Any]]:
     """List tasks in a workspace, optionally narrowed. Differs from
     list_my_tasks in that it returns tasks regardless of assignee
@@ -195,7 +196,19 @@ async def list_tasks(
     'tasks in_progress across the workspace', or any query that isn't
     'my tasks'. Pass `project_key` to scope to one project, `status`
     to filter by column, `assignee_id` to filter by assignee. Pass the
-    literal string "me" as `assignee_id` for the current user."""
+    literal string "me" as `assignee_id` for the current user.
+
+    Pass `archived=true` to list a project's ARCHIVED tasks instead of
+    its active ones ('show the archive', 'what did we archive in FRO').
+    Requires `project_key` — the archive is browsed per project."""
+    if archived and not project_key:
+        # Only the project-scoped endpoint has an archived filter; failing
+        # loudly beats silently returning active tasks.
+        raise TracklyError(
+            "archived=true requires project_key — the archive is browsed "
+            "per project. Pass the project key (e.g. 'FRO')."
+        )
+
     client = get_client()
     ws = await resolve_workspace(workspace_slug)
 
@@ -204,12 +217,14 @@ async def list_tasks(
         assignee_id = get_user_id()
 
     if project_key:
-        # Project-scoped endpoint supports `status` natively; we do
-        # assignee filtering client-side after fetch.
+        # Project-scoped endpoint supports `status` + `archived` natively;
+        # we do assignee filtering client-side after fetch.
         project = await resolve_project_key(ws["id"], project_key)
         params: dict[str, Any] = {}
         if status:
             params["status"] = status
+        if archived:
+            params["archived"] = "true"
         tasks = await client.get(
             f"/projects/{project['id']}/tasks", params=params
         )
@@ -322,6 +337,7 @@ async def update_task(
     due_date: str | None = _UNSET,
     assignee_id: str | None = _UNSET,
     sprint_id: str | None = _UNSET,
+    archived: bool | None = None,
 ) -> dict[str, Any]:
     """Edit a task — one tool for any combination of its fields. Only the
     arguments you pass are changed; everything you omit is left untouched, so
@@ -341,6 +357,12 @@ async def update_task(
       name, `list_workspace_members` first to map name → user_id.
     - `sprint_id`: a sprint UUID. For 'the active/current sprint', call
       `list_sprints` first and use the one whose status is 'active'.
+    - `archived`: true to archive ('archive TRAC-7', 'move it to the
+      archive'), false to unarchive/restore. Archiving is reversible — the
+      task disappears from boards and lists but keeps all its data and stays
+      editable. Archived tasks are still found by identifier (get_task /
+      update_task work as usual); to browse them, `list_tasks` with
+      archived=true and a project_key.
 
     Clearing: `description`, `due_date`, `assignee_id`, and `sprint_id` accept
     null to CLEAR them ('unassign FE-12', 'clear the deadline', 'pull out of the
@@ -369,11 +391,14 @@ async def update_task(
         payload["assignee_id"] = assignee_id
     if sprint_id is not _UNSET:
         payload["sprint_id"] = sprint_id
+    if archived is not None:
+        payload["archived"] = archived
 
     if not payload:
         raise TracklyError(
             "update_task called with no fields to change — pass at least one of "
-            "status, title, priority, description, due_date, assignee_id, sprint_id."
+            "status, title, priority, description, due_date, assignee_id, "
+            "sprint_id, archived."
         )
 
     client = get_client()
