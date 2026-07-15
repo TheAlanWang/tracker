@@ -691,11 +691,6 @@ export function TaskDetailContent({
   const dependenciesEnabled = isDependenciesEnabled(taskWorkspace);
   const { data: checklistItems = [] } = useChecklist(task?.id ?? "");
   const uncheckedCount = checklistItems.filter((i) => !i.done).length;
-  // Bridge state for the empty → first-item flow: clicking "+ Add
-  // checklist" mounts ChecklistSection in forceShow mode. Once the
-  // user types the first item, `checklistItems.length > 0` makes the
-  // section visible regardless, so this flag is one-shot per session.
-  const [showEmptyChecklist, setShowEmptyChecklist] = useState(false);
   const { data: deps } = useDependencies(task?.id ?? "");
   // For the empty-section hiding rule — TaskDetail needs to know whether
   // Labels has any content so it can collapse the row in view mode.
@@ -1376,30 +1371,8 @@ export function TaskDetailContent({
 
         {/* Checklist items persist immediately via their own mutations,
             so we don't gate edits behind the task-level Edit / Save flow.
-            The section hides itself when empty; the small entry-point
-            button below mounts it in "ready to add first item" mode. */}
-        {task && (
-          <ChecklistSection
-            taskId={task.id}
-            // forceShow is gated on isEditing too — if the user clicks
-            // "+ Add checklist" then leaves edit mode without typing,
-            // the empty section folds back so we're not stuck rendering
-            // an empty AddRow forever.
-            forceShow={isEditing && showEmptyChecklist}
-          />
-        )}
-        {task &&
-          isEditing &&
-          checklistItems.length === 0 &&
-          !showEmptyChecklist && (
-            <button
-              type="button"
-              onClick={() => setShowEmptyChecklist(true)}
-              className="text-sm text-slate-400 dark:text-neutral-500 hover:text-slate-700 dark:hover:text-neutral-300 transition-colors"
-            >
-              + Add checklist
-            </button>
-          )}
+            Always visible (even empty) — the AddRow is the entry point. */}
+        {task && <ChecklistSection taskId={task.id} />}
 
         {/* Comments uses the same collapsible <details> pattern as
             Activity below — default open so the conversation is visible

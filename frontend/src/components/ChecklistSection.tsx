@@ -13,7 +13,7 @@
 // pattern where adding feels like "type, then Enter" rather than "open a
 // form, fill it, submit".
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { ListChecks } from "lucide-react";
 
 import {
@@ -132,7 +132,8 @@ function ChecklistRow({
 // AddRow — the ghost row at the bottom. Geometry matches ChecklistRow so
 // the "+" sits exactly where the real checkbox would, and the input text
 // baseline aligns with item text above it. Enter commits + clears for
-// the next entry; Esc blurs.
+// the next entry; blur commits too (same as ChecklistRow) so a typed
+// draft survives clicking elsewhere; Esc discards and blurs.
 function AddRow({
   onCommit,
   pending,
@@ -141,6 +142,10 @@ function AddRow({
   pending: boolean;
 }) {
   const [draft, setDraft] = useState("");
+  // Esc triggers blur, but the blur handler must not commit the draft
+  // being discarded — the blur event fires before React applies the
+  // cleared state, so the handler would still see the old text.
+  const cancelledRef = useRef(false);
 
   async function commit() {
     const text = draft.trim();
@@ -164,11 +169,19 @@ function AddRow({
         type="text"
         value={draft}
         onChange={(e) => setDraft(e.target.value)}
+        onBlur={() => {
+          if (cancelledRef.current) {
+            cancelledRef.current = false;
+            return;
+          }
+          commit();
+        }}
         onKeyDown={(e) => {
           if (e.key === "Enter") {
             e.preventDefault();
             commit();
           } else if (e.key === "Escape") {
+            cancelledRef.current = true;
             setDraft("");
             (e.target as HTMLInputElement).blur();
           }
@@ -182,16 +195,7 @@ function AddRow({
   );
 }
 
-export function ChecklistSection({
-  taskId,
-  forceShow = false,
-}: {
-  taskId: string;
-  // When true, render the section even with zero items so the AddRow
-  // is reachable. Parent flips this from a "+ Add checklist" entry-
-  // point button when the section is otherwise hidden.
-  forceShow?: boolean;
-}) {
+export function ChecklistSection({ taskId }: { taskId: string }) {
   const { data: items = [] } = useChecklist(taskId);
   const createItem = useCreateChecklistItem(taskId);
   const updateItem = useUpdateChecklistItem(taskId);
@@ -200,10 +204,9 @@ export function ChecklistSection({
   const total = items.length;
   const done = items.filter((i) => i.done).length;
 
-  // Hide entirely when empty. Keeps tasks that don't need a checklist
-  // visually clean. The parent shows a "+ Add checklist" button in
-  // place and flips `forceShow` when clicked so the AddRow appears.
-  if (total === 0 && !forceShow) return null;
+  // Always rendered, even when empty — the AddRow doubles as the
+  // "create a checklist" entry point, so there's no separate button
+  // and no edit mode to enter. Users can fold the <details> away.
 
   return (
     <details open className="pt-6 group">
