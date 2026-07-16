@@ -15,6 +15,10 @@ EnvironmentType = Literal[
 # assignment regardless of priority.
 NotifyAssigneeThreshold = Literal["off", "urgent", "high", "any"]
 
+# Mirrors the check constraint in 20260715100000_auto_archive.sql. Days
+# after which done/cancelled tasks are auto-archived; 'off' disables.
+AutoArchiveDays = Literal["off", "7", "14", "30"]
+
 
 class ProjectEnvironment(BaseModel):
     """A named link associated with the project — a production URL, staging
@@ -59,6 +63,9 @@ class ProjectUpdate(BaseModel):
     # See NotifyAssigneeThreshold; defaults to 'off' at the column level
     # so existing projects don't start firing emails on deploy.
     notify_assignee_threshold: NotifyAssigneeThreshold | None = None
+    # Days after which done/cancelled tasks auto-archive. Column default
+    # is '30'; 'off' disables the lazy sweep for this project.
+    auto_archive_days: AutoArchiveDays | None = None
 
 
 class ProjectResponse(BaseModel):
@@ -71,5 +78,6 @@ class ProjectResponse(BaseModel):
     color: str | None = None
     environments: list[ProjectEnvironment] = Field(default_factory=list)
     notify_assignee_threshold: NotifyAssigneeThreshold = "off"
+    auto_archive_days: AutoArchiveDays = "30"
     created_at: datetime
     updated_at: datetime
