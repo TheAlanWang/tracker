@@ -126,7 +126,10 @@ begin
     and t.status in ('done', 'cancelled')
     and t.archived_at is null
     and t.completed_at is not null
-    and t.completed_at < now() - (p.auto_archive_days || ' days')::interval;
+    and t.completed_at < now() - case
+      when p.auto_archive_days = 'off' then null
+      else make_interval(days => p.auto_archive_days::int)
+    end;
   get diagnostics v_count = row_count;
   return v_count;
 end;
