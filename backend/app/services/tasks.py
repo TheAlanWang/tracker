@@ -179,6 +179,13 @@ async def list_tasks(
     ):
         raise TaskPermissionError(project_id)
 
+    # Lazy auto-archive sweep: flip expired done/cancelled tasks to archived
+    # before listing, so every list view is consistent with the project's
+    # auto_archive_days setting. Almost always updates 0 rows.
+    await supabase.rpc(
+        "archive_stale_tasks", {"p_project_id": project_id}
+    ).execute()
+
     query = (
         supabase.table("tasks")
         .select("*")
@@ -306,6 +313,12 @@ async def list_workspace_tasks(
 ) -> list[TaskResponse]:
     if not await _is_member(supabase, user_id=user_id, workspace_id=workspace_id):
         raise TaskPermissionError(workspace_id)
+
+    # Same lazy sweep as list_tasks, scoped to the workspace — each
+    # project's own auto_archive_days applies inside the SQL function.
+    await supabase.rpc(
+        "archive_stale_tasks", {"p_workspace_id": workspace_id}
+    ).execute()
 
     query = (
         supabase.table("tasks")

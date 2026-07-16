@@ -11,6 +11,7 @@ from app.services.tasks import (
     delete_task,
     get_task,
     list_tasks,
+    list_workspace_tasks,
     move_task,
     update_task,
 )
@@ -301,3 +302,60 @@ async def test_delete_task_happy_path(mock_supabase):
 
     result = await delete_task(mock_supabase, user_id="u-1", task_id="i-1")
     assert result is None
+
+
+async def test_list_tasks_sweeps_stale_archives_first(mock_supabase):
+    """Project list lazily archives expired done/cancelled tasks via RPC."""
+    project_chain = MagicMock()
+    project_chain.select.return_value.eq.return_value.single.return_value.execute.return_value.data = (
+        _project_row()
+    )
+    members_chain = MagicMock()
+    members_chain.select.return_value.eq.return_value.eq.return_value.execute.return_value.data = [
+        {"role": "member"}
+    ]
+    tasks_chain = MagicMock()
+    tasks_chain.select.return_value.eq.return_value.is_.return_value.order.return_value.limit.return_value.execute.return_value.data = [
+        _task_row()
+    ]
+
+    def table_router(name):
+        if name == "projects":
+            return project_chain
+        if name == "workspace_members":
+            return members_chain
+        if name == "tasks":
+            return tasks_chain
+        raise AssertionError(f"unexpected table: {name}")
+
+    mock_supabase.table.side_effect = table_router
+
+    await list_tasks(mock_supabase, user_id="u-1", project_id="p-1")
+
+    mock_supabase.rpc.assert_called_once_with(
+        "archive_stale_tasks", {"p_project_id": "p-1"}
+    )
+
+
+async def test_list_workspace_tasks_sweeps_stale_archives_first(mock_supabase):
+    members_chain = MagicMock()
+    members_chain.select.return_value.eq.return_value.eq.return_value.execute.return_value.data = [
+        {"role": "member"}
+    ]
+    tasks_chain = MagicMock()
+    tasks_chain.select.return_value.eq.return_value.is_.return_value.order.return_value.limit.return_value.execute.return_value.data = []
+
+    def table_router(name):
+        if name == "workspace_members":
+            return members_chain
+        if name == "tasks":
+            return tasks_chain
+        raise AssertionError(f"unexpected table: {name}")
+
+    mock_supabase.table.side_effect = table_router
+
+    await list_workspace_tasks(mock_supabase, user_id="u-1", workspace_id="ws-1")
+
+    mock_supabase.rpc.assert_called_once_with(
+        "archive_stale_tasks", {"p_workspace_id": "ws-1"}
+    )
