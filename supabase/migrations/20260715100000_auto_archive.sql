@@ -108,6 +108,14 @@ as $$
 declare
   v_count integer;
 begin
+  -- The backend forwards the viewer's JWT, so auth.uid() inside the
+  -- tasks_log_changes trigger would attribute the sweep's archived_at
+  -- flip to whoever happened to load the list. Clear the JWT claims for
+  -- this transaction only (set_config(..., true)) so the activity rows
+  -- get actor_id NULL — rendered as "System" in the UI.
+  perform set_config('request.jwt.claim.sub', '', true);
+  perform set_config('request.jwt.claims', '', true);
+
   update tasks t
   set archived_at = now()
   from projects p
