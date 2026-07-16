@@ -2,8 +2,9 @@ from unittest.mock import MagicMock
 
 import pytest
 from postgrest.exceptions import APIError
+from pydantic import ValidationError
 
-from app.schemas.project import ProjectCreate
+from app.schemas.project import ProjectCreate, ProjectUpdate
 from app.services.projects import (
     ProjectKeyExistsError,
     ProjectNotFoundError,
@@ -73,3 +74,13 @@ async def test_get_project_not_found_raises(mock_supabase):
 
     with pytest.raises(ProjectNotFoundError):
         await get_project(mock_supabase, user_id="u1", project_id="missing")
+
+
+def test_project_update_accepts_auto_archive_days():
+    assert ProjectUpdate(auto_archive_days="off").auto_archive_days == "off"
+    assert ProjectUpdate(auto_archive_days="14").auto_archive_days == "14"
+
+
+def test_project_update_rejects_unknown_auto_archive_days():
+    with pytest.raises(ValidationError):
+        ProjectUpdate(auto_archive_days="45")

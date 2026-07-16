@@ -906,7 +906,9 @@ export function TaskDetailContent({
   // Prefer display_name → email → first 8 chars of user_id (fallback so a
   // missing profile never shows a full UUID).
   const resolveActor = (id: string | null) => {
-    if (!id) return "Someone";
+    // NULL actor = a DB-side action with no user in context (the
+    // auto-archive sweep). Read as a system event, not a person.
+    if (!id) return "System";
     const m = members.find((mb) => mb.user_id === id);
     return m?.display_name?.trim() || m?.email || `${id.slice(0, 8)}…`;
   };

@@ -5,6 +5,7 @@ Membership against the project's workspace is verified explicitly before
 any write. RLS is defense-in-depth.
 """
 
+import logging
 from datetime import datetime, timezone
 
 from fastapi import BackgroundTasks
@@ -16,6 +17,8 @@ from app.schemas.task import (
     TaskUpdate,
 )
 from app.services.emails import send_assignment_email, should_email_assignment
+
+logger = logging.getLogger(__name__)
 
 
 class TaskError(Exception):
@@ -179,6 +182,21 @@ async def list_tasks(
     ):
         raise TaskPermissionError(project_id)
 
+    # Lazy auto-archive sweep: flip expired done/cancelled tasks to archived
+    # before listing, so every list view is consistent with the project's
+    # auto_archive_days setting. Almost always updates 0 rows. Archiving is
+    # best-effort — a sweep failure must not take down task listing, so any
+    # exception is logged and swallowed; the SELECT below still runs.
+    try:
+        await supabase.rpc(
+            "archive_stale_tasks", {"p_project_id": project_id}
+        ).execute()
+    except Exception:
+        logger.warning(
+            "archive_stale_tasks sweep failed for project_id=%s", project_id,
+            exc_info=True,
+        )
+
     query = (
         supabase.table("tasks")
         .select("*")
@@ -245,6 +263,18 @@ async def update_task(
         updates["archived_at"] = (
             datetime.now(timezone.utc).isoformat() if archived else None
         )
+        # Restoring a still-terminal task resets its auto-archive clock —
+        # otherwise the lazy sweep would re-archive it on the next list
+        # read (its completed_at is still past the threshold). See the
+        # auto-archive spec: restore grants a fresh N-day window. Only
+        # applies to a task that was actually archived — an already-active
+        # done/cancelled task has no clock to reset.
+        if (
+            not archived
+            and old.archived_at is not None
+            and old.status in ("done", "cancelled")
+        ):
+            updates["completed_at"] = datetime.now(timezone.utc).isoformat()
     if not updates:
         return await get_task(supabase, user_id=user_id, task_id=task_id)
 
@@ -306,6 +336,19 @@ async def list_workspace_tasks(
 ) -> list[TaskResponse]:
     if not await _is_member(supabase, user_id=user_id, workspace_id=workspace_id):
         raise TaskPermissionError(workspace_id)
+
+    # Same lazy sweep as list_tasks, scoped to the workspace — each
+    # project's own auto_archive_days applies inside the SQL function.
+    # Best-effort: a sweep failure must not take down task listing.
+    try:
+        await supabase.rpc(
+            "archive_stale_tasks", {"p_workspace_id": workspace_id}
+        ).execute()
+    except Exception:
+        logger.warning(
+            "archive_stale_tasks sweep failed for workspace_id=%s", workspace_id,
+            exc_info=True,
+        )
 
     query = (
         supabase.table("tasks")
