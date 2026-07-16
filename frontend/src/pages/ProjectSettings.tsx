@@ -38,7 +38,7 @@ export default function ProjectSettings() {
     sections: [
       { id: "proj-general", label: "General" },
       { id: "proj-notifications", label: "Notifications" },
-      { id: "proj-auto-archive", label: "Auto-archive" },
+      { id: "proj-auto-archive", label: "Auto Archive" },
       { id: "proj-danger", label: "Danger Zone" },
     ],
   });
@@ -337,7 +337,7 @@ function ProjectSettingsContent({
 
         <section id="proj-auto-archive" className="space-y-4 scroll-mt-4">
           <h2 className="text-xl font-medium text-slate-900 dark:text-neutral-200">
-            Auto-archive
+            Auto Archive
           </h2>
           <div className="rounded-lg border border-slate-200/80 dark:border-neutral-800 bg-white dark:bg-neutral-900 p-5">
             <AutoArchiveToggle
@@ -506,7 +506,7 @@ function AutoArchiveToggle({
   project: Project;
   updateMutation: ReturnType<typeof useUpdateProject>;
 }) {
-  // Draft + Save, same as NotificationToggle above — changing the radio
+  // Draft + Save, same as NotificationToggle above — changing the value
   // doesn't persist until the user confirms.
   const current = project.auto_archive_days;
   const [draft, setDraft] = useState<AutoArchiveDays>(current);
