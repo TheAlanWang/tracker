@@ -252,6 +252,12 @@ async def update_task(
         updates["archived_at"] = (
             datetime.now(timezone.utc).isoformat() if archived else None
         )
+        # Restoring a still-terminal task resets its auto-archive clock —
+        # otherwise the lazy sweep would re-archive it on the next list
+        # read (its completed_at is still past the threshold). See the
+        # auto-archive spec: restore grants a fresh N-day window.
+        if not archived and old.status in ("done", "cancelled"):
+            updates["completed_at"] = datetime.now(timezone.utc).isoformat()
     if not updates:
         return await get_task(supabase, user_id=user_id, task_id=task_id)
 

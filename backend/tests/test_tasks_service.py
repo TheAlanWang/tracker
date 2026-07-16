@@ -276,6 +276,83 @@ async def test_update_task_empty_payload_returns_unchanged(mock_supabase):
     assert update_calls == []
 
 
+async def test_unarchive_terminal_task_resets_completed_at(mock_supabase):
+    """Restoring a done task from the archive resets its auto-archive clock,
+    otherwise the lazy sweep re-archives it on the next list read."""
+    tasks_chain_fetch = MagicMock()
+    tasks_chain_fetch.select.return_value.eq.return_value.single.return_value.execute.return_value.data = (
+        _task_row(status="done", archived_at="2026-06-01T00:00:00Z")
+    )
+    members_chain = MagicMock()
+    members_chain.select.return_value.eq.return_value.eq.return_value.execute.return_value.data = [
+        {"role": "member"}
+    ]
+    tasks_chain_update = MagicMock()
+    tasks_chain_update.update.return_value.eq.return_value.execute.return_value.data = [
+        _task_row(status="done", archived_at=None)
+    ]
+
+    call_count = {"tasks": 0}
+
+    def table_router(name):
+        if name == "tasks":
+            call_count["tasks"] += 1
+            return tasks_chain_fetch if call_count["tasks"] == 1 else tasks_chain_update
+        if name == "workspace_members":
+            return members_chain
+        raise AssertionError(f"unexpected table: {name}")
+
+    mock_supabase.table.side_effect = table_router
+
+    await update_task(
+        mock_supabase,
+        user_id="u-1",
+        task_id="i-1",
+        payload=TaskUpdate(archived=False),
+    )
+
+    sent = tasks_chain_update.update.call_args[0][0]
+    assert sent["archived_at"] is None
+    assert sent["completed_at"] is not None  # clock reset
+
+
+async def test_unarchive_non_terminal_task_leaves_completed_at_alone(mock_supabase):
+    tasks_chain_fetch = MagicMock()
+    tasks_chain_fetch.select.return_value.eq.return_value.single.return_value.execute.return_value.data = (
+        _task_row(status="in_progress", archived_at="2026-06-01T00:00:00Z")
+    )
+    members_chain = MagicMock()
+    members_chain.select.return_value.eq.return_value.eq.return_value.execute.return_value.data = [
+        {"role": "member"}
+    ]
+    tasks_chain_update = MagicMock()
+    tasks_chain_update.update.return_value.eq.return_value.execute.return_value.data = [
+        _task_row(status="in_progress", archived_at=None)
+    ]
+
+    call_count = {"tasks": 0}
+
+    def table_router(name):
+        if name == "tasks":
+            call_count["tasks"] += 1
+            return tasks_chain_fetch if call_count["tasks"] == 1 else tasks_chain_update
+        if name == "workspace_members":
+            return members_chain
+        raise AssertionError(f"unexpected table: {name}")
+
+    mock_supabase.table.side_effect = table_router
+
+    await update_task(
+        mock_supabase,
+        user_id="u-1",
+        task_id="i-1",
+        payload=TaskUpdate(archived=False),
+    )
+
+    sent = tasks_chain_update.update.call_args[0][0]
+    assert "completed_at" not in sent
+
+
 async def test_delete_task_happy_path(mock_supabase):
     tasks_chain_fetch = MagicMock()
     tasks_chain_fetch.select.return_value.eq.return_value.single.return_value.execute.return_value.data = (
