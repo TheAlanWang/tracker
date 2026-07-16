@@ -887,8 +887,12 @@ function ActivityRow({
   onClick: () => void;
 }) {
   // Prefer a display name over the raw email — name reads more naturally in
-  // activity sentences and as the avatar initial.
-  const actor = a.actor_display_name?.trim() || a.actor_email || "Someone";
+  // activity sentences and as the avatar initial. A null actor_id is a
+  // DB-side action with no user in context (e.g. the auto-archive sweep) —
+  // render it as a system event, not a person.
+  const actor = !a.actor_id
+    ? "System"
+    : a.actor_display_name?.trim() || a.actor_email || "Someone";
   return (
     <button
       type="button"
