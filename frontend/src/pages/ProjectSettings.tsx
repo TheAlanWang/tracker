@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import {
+  type AutoArchiveDays,
   type NotifyAssigneeThreshold,
   type Project,
   useDeleteProject,
@@ -37,6 +38,7 @@ export default function ProjectSettings() {
     sections: [
       { id: "proj-general", label: "General" },
       { id: "proj-notifications", label: "Notifications" },
+      { id: "proj-auto-archive", label: "Auto-archive" },
       { id: "proj-danger", label: "Danger Zone" },
     ],
   });
@@ -79,6 +81,7 @@ function ProjectSettingsContent({
   // not.
   const updateMutation = useUpdateProject(wsId);
   const notifyMutation = useUpdateProject(wsId);
+  const autoArchiveMutation = useUpdateProject(wsId);
   const deleteMutation = useDeleteProject(wsId);
 
   const [name, setName] = useState(currentProject.name);
@@ -332,6 +335,18 @@ function ProjectSettingsContent({
           </div>
         </section>
 
+        <section id="proj-auto-archive" className="space-y-4 scroll-mt-4">
+          <h2 className="text-xl font-medium text-slate-900 dark:text-neutral-200">
+            Auto-archive
+          </h2>
+          <div className="rounded-lg border border-slate-200/80 dark:border-neutral-800 bg-white dark:bg-neutral-900 p-5">
+            <AutoArchiveToggle
+              project={currentProject}
+              updateMutation={autoArchiveMutation}
+            />
+          </div>
+        </section>
+
         <section id="proj-danger" className="space-y-4 scroll-mt-4">
           <h2 className="text-xl font-medium text-red-700 dark:text-red-400">
             Danger Zone
@@ -443,6 +458,112 @@ function NotificationToggle({
           className="shrink-0 w-[180px]"
         />
       </div>
+      <div className="flex justify-end">
+        <Button
+          type="button"
+          onClick={onSave}
+          className="min-w-28"
+          disabled={!dirty || updateMutation.isPending}
+        >
+          {updateMutation.isPending ? "Saving…" : "Save"}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+const AUTO_ARCHIVE_OPTIONS: {
+  value: AutoArchiveDays;
+  label: string;
+  hint: string;
+}[] = [
+  {
+    value: "off",
+    label: "Off",
+    hint: "Done and cancelled tasks stay on the board until archived by hand.",
+  },
+  {
+    value: "7",
+    label: "After 7 days",
+    hint: "Auto-archive tasks a week after they're done or cancelled.",
+  },
+  {
+    value: "14",
+    label: "After 14 days",
+    hint: "Auto-archive tasks two weeks after they're done or cancelled.",
+  },
+  {
+    value: "30",
+    label: "After 30 days",
+    hint: "Auto-archive tasks a month after they're done or cancelled.",
+  },
+];
+
+function AutoArchiveToggle({
+  project,
+  updateMutation,
+}: {
+  project: Project;
+  updateMutation: ReturnType<typeof useUpdateProject>;
+}) {
+  // Draft + Save, same as NotificationToggle above — changing the radio
+  // doesn't persist until the user confirms.
+  const current = project.auto_archive_days;
+  const [draft, setDraft] = useState<AutoArchiveDays>(current);
+  const dirty = draft !== current;
+  const draftHint = AUTO_ARCHIVE_OPTIONS.find((o) => o.value === draft)?.hint;
+
+  async function onSave() {
+    if (!dirty) return;
+    try {
+      await updateMutation.mutateAsync({
+        projectId: project.id,
+        payload: { auto_archive_days: draft },
+      });
+      toast.success(
+        draft === "off" ? "Auto-archive turned off" : "Auto-archive updated",
+      );
+    } catch {
+      toast.error("Failed to update auto-archive");
+    }
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="space-y-1">
+        <h3 className="font-medium text-slate-900 dark:text-neutral-200">
+          Archive finished tasks automatically
+        </h3>
+        <p className="text-sm text-slate-500 dark:text-neutral-400 leading-relaxed">
+          Done and cancelled tasks move to this project's Archive after the
+          selected number of days. Archived tasks stay editable and can be
+          restored anytime — restoring gives the task a fresh window.
+        </p>
+      </div>
+      <div className="space-y-2">
+        {AUTO_ARCHIVE_OPTIONS.map((o) => (
+          <label
+            key={o.value}
+            className="flex items-start gap-2 cursor-pointer"
+          >
+            <input
+              type="radio"
+              name="auto-archive-days"
+              checked={draft === o.value}
+              onChange={() => setDraft(o.value)}
+              className="mt-1"
+            />
+            <span className="text-sm text-slate-800 dark:text-neutral-300">
+              {o.label}
+            </span>
+          </label>
+        ))}
+      </div>
+      {draftHint && (
+        <p className="text-xs text-slate-500 dark:text-neutral-400">
+          {draftHint}
+        </p>
+      )}
       <div className="flex justify-end">
         <Button
           type="button"

@@ -37,11 +37,15 @@ export type Project = {
   // services/emails.py for the exact trigger conditions (create / reassign
   // / priority-bumped-into-threshold). Defaults to "off" — admins opt in.
   notify_assignee_threshold: NotifyAssigneeThreshold;
+  // Days after which done/cancelled tasks are auto-archived (lazy sweep
+  // on list reads). "off" disables; default "30".
+  auto_archive_days: AutoArchiveDays;
   created_at: string;
   updated_at: string;
 };
 
 export type NotifyAssigneeThreshold = "off" | "urgent" | "high" | "any";
+export type AutoArchiveDays = "off" | "7" | "14" | "30";
 
 export type ProjectCreate = {
   name: string;
@@ -76,6 +80,7 @@ export type ProjectUpdate = {
   environments?: ProjectEnvironment[];
   // Priority threshold for emailing assignees on assignment.
   notify_assignee_threshold?: NotifyAssigneeThreshold;
+  auto_archive_days?: AutoArchiveDays;
 };
 
 export function useCreateProject(wsId: string) {
