@@ -144,8 +144,8 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument(
         "--url",
-        default="https://tracker-thealanwang.fly.dev",
-        help="Base URL of the API. Defaults to prod (Fly).",
+        default="https://api.gettrackly.dev",
+        help="Base URL of the API. Defaults to prod (Railway).",
     )
     ap.add_argument(
         "--endpoint",

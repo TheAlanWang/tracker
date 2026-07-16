@@ -23,10 +23,13 @@ class Settings(BaseSettings):
     # are silently skipped so local dev / CI works without a real Resend
     # account. Set in .env.prd to enable real delivery.
     resend_api_key: str | None = None
-    # Matches the Sender details already configured in Supabase Auth's
-    # custom SMTP (Tracker <noreply_tracker@thealanwang.xyz>), so the
-    # domain is already verified in Resend — no DNS work needed.
-    email_sender: str = "Tracker <noreply_tracker@thealanwang.xyz>"
+    # Matches the Sender details configured in Supabase Auth's custom SMTP
+    # (Trackly <noreply@gettrackly.dev>). Sender domain must equal the
+    # product domain the email links point at — sending from a different
+    # domain (the old thealanwang.xyz) pattern-matched phishing and landed
+    # everything in spam. gettrackly.dev is verified in Resend (DKIM +
+    # send-subdomain SPF live).
+    email_sender: str = "Trackly <noreply@gettrackly.dev>"
 
     # Frontend origin — used for billing Checkout success/cancel redirects.
     frontend_url: str = "http://localhost:5173"

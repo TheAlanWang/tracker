@@ -1,6 +1,6 @@
 # trackly-mcp
 
-Hosted MCP server that exposes the [Trackly](https://tracker.thealanwang.xyz) task tracker to MCP clients (Claude Desktop, Claude Code, Cursor, etc.).
+Hosted MCP server that exposes the [Trackly](https://gettrackly.dev) task tracker to MCP clients (Claude Desktop, Claude Code, Cursor, etc.).
 
 Drop the URL in your config, sign in once with your Trackly account, and you can say things like *"create a tracker task in TRAC titled 'Fix login bug'"* directly in your editor — the client picks the right Trackly tool and runs it.
 
