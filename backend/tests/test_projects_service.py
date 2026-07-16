@@ -4,7 +4,7 @@ import pytest
 from postgrest.exceptions import APIError
 from pydantic import ValidationError
 
-from app.schemas.project import ProjectCreate, ProjectResponse, ProjectUpdate
+from app.schemas.project import ProjectCreate, ProjectUpdate
 from app.services.projects import (
     ProjectKeyExistsError,
     ProjectNotFoundError,
