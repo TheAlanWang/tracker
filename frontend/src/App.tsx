@@ -16,6 +16,7 @@ import { FocusedTaskLayout } from "@/components/FocusedTaskLayout";
 import { useAuth } from "@/lib/auth";
 import Archive from "@/pages/Archive";
 import AuthCallback from "@/pages/AuthCallback";
+import AuthConfirm from "@/pages/AuthConfirm";
 import Backlog from "@/pages/Backlog";
 import Board from "@/pages/Board";
 import Browse from "@/pages/Browse";
@@ -76,6 +77,7 @@ export default function App() {
           element={<Navigate to="/?login=open" replace />}
         />
         <Route path="/auth/callback" element={<AuthCallback />} />
+        <Route path="/auth/confirm" element={<AuthConfirm />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/" element={<RootRoute />} />
         <Route
