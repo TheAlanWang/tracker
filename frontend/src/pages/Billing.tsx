@@ -5,6 +5,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Check, ChevronDown } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { SettingsLayout } from "@/components/SettingsLayout";
 import {
   PLAN_LABEL,
   PLAN_LIMITS,
@@ -126,7 +127,7 @@ export default function Billing() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl min-w-0">
+    <SettingsLayout>
       {/* Header in the Profile-settings style: left-aligned title + subtitle,
           with the billed-workspace chip on the right. */}
       <header className="mb-6">
@@ -326,7 +327,7 @@ export default function Billing() {
         </div>
       </div>
       </div>
-    </div>
+    </SettingsLayout>
   );
 }
 
