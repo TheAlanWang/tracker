@@ -530,34 +530,26 @@ function AutoArchiveToggle({
 
   return (
     <div className="space-y-4">
-      <div className="space-y-1">
-        <h3 className="font-medium text-slate-900 dark:text-neutral-200">
-          Archive finished tasks automatically
-        </h3>
-        <p className="text-sm text-slate-500 dark:text-neutral-400 leading-relaxed">
-          Done and cancelled tasks move to this project's Archive after the
-          selected number of days. Archived tasks stay editable and can be
-          restored anytime — restoring gives the task a fresh window.
-        </p>
-      </div>
-      <div className="space-y-2">
-        {AUTO_ARCHIVE_OPTIONS.map((o) => (
-          <label
-            key={o.value}
-            className="flex items-start gap-2 cursor-pointer"
-          >
-            <input
-              type="radio"
-              name="auto-archive-days"
-              checked={draft === o.value}
-              onChange={() => setDraft(o.value)}
-              className="mt-1"
-            />
-            <span className="text-sm text-slate-800 dark:text-neutral-300">
-              {o.label}
-            </span>
-          </label>
-        ))}
+      <div className="flex items-start justify-between gap-6">
+        <div className="min-w-0">
+          <div className="font-medium text-slate-900 dark:text-neutral-200">
+            Archive finished tasks automatically
+          </div>
+          <p className="mt-1 text-sm text-slate-500 dark:text-neutral-400 leading-relaxed">
+            Done and cancelled tasks move to this project's Archive after the
+            selected number of days. Archived tasks stay editable and can be
+            restored anytime — restoring gives the task a fresh window.
+          </p>
+        </div>
+        <Select
+          value={draft}
+          onChange={setDraft}
+          options={AUTO_ARCHIVE_OPTIONS.map((o) => ({
+            value: o.value,
+            label: o.label,
+          }))}
+          className="shrink-0 w-[180px]"
+        />
       </div>
       {draftHint && (
         <p className="text-xs text-slate-500 dark:text-neutral-400">
