@@ -827,6 +827,21 @@ export function TaskDetailContent({
           className="cursor-zoom-in rounded max-h-96 w-auto"
         />
       ),
+      // GFM tables can't shrink below their min-content width, so a wide
+      // table would spill under the side rail. Scroll the table itself
+      // instead (GitHub-style wrapper) rather than the whole description.
+      // The cell min-width keeps CJK columns (breakable between any two
+      // chars) from being squeezed to 2–3 chars per line by long
+      // unbreakable URLs/filenames in sibling columns — overflow goes to
+      // the horizontal scroll instead. Harmless on small tables: it's
+      // only a floor, prose tables still stretch to 100%.
+      table: ({ children }: React.TableHTMLAttributes<HTMLTableElement>) => (
+        <div className="overflow-x-auto">
+          <table className="[&_th]:min-w-[7rem] [&_td]:min-w-[7rem]">
+            {children}
+          </table>
+        </div>
+      ),
     }),
     [],
   );
