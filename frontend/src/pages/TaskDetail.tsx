@@ -24,7 +24,7 @@ import ReactMarkdown from "react-markdown";
 import rehypeHighlight from "rehype-highlight";
 import remarkGfm from "remark-gfm";
 import { toast } from "sonner";
-import { Activity as ActivityIcon, AlignLeft, ChevronRight, Mail, MessageSquare, Pencil, Trash2 } from "lucide-react";
+import { Activity as ActivityIcon, AlignLeft, ArrowUpDown, ChevronRight, Mail, MessageSquare, Pencil, Trash2 } from "lucide-react";
 
 import { Avatar } from "@/components/Avatar";
 import { PageSpinner } from "@/components/PageSpinner";
@@ -62,6 +62,9 @@ import {
 import { type Activity, useTaskActivity } from "@/features/activity/api";
 import {
   type Comment,
+  type CommentOrder,
+  loadCommentOrder,
+  saveCommentOrder,
   useComments,
   useCreateComment,
   useDeleteComment,
@@ -890,7 +893,20 @@ export function TaskDetailContent({
     return m?.display_name?.trim() || m?.email || "the assignee";
   }, [wouldEmail, assigneeDraft, members]);
 
-  const { data: comments = [] } = useComments(task?.id ?? "");
+  // Synchronous localStorage read as the initializer — order is right on
+  // first paint, no flicker-flip (same trick as the sidebar-collapsed key).
+  const [commentOrder, setCommentOrder] = useState<CommentOrder>(loadCommentOrder);
+  const {
+    data: commentsData,
+    hasNextPage: hasMoreComments,
+    isFetchingNextPage: isFetchingMoreComments,
+    fetchNextPage: fetchMoreComments,
+  } = useComments(task?.id ?? "", commentOrder);
+  const comments = useMemo(
+    () => commentsData?.pages.flatMap((p) => p.items) ?? [],
+    [commentsData],
+  );
+  const commentsTotal = commentsData?.pages[0]?.total ?? 0;
   const createCommentMutation = useCreateComment(task?.id ?? "");
   const deleteCommentMutation = useDeleteComment(task?.id ?? "");
   const [commentDraft, setCommentDraft] = useState("");
@@ -1415,10 +1431,30 @@ export function TaskDetailContent({
             </svg>
             <MessageSquare className="w-3.5 h-3.5" aria-hidden />
             <span>Comments</span>
-            {comments.length > 0 && (
+            {commentsTotal > 0 && (
               <span className="text-slate-400 dark:text-neutral-500 font-medium normal-case tracking-normal">
-                ({comments.length})
+                ({commentsTotal})
               </span>
+            )}
+            {commentsTotal > 1 && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  // A click inside <summary> toggles the <details>; this
+                  // button must only flip the sort.
+                  e.preventDefault();
+                  e.stopPropagation();
+                  const next: CommentOrder =
+                    commentOrder === "newest" ? "oldest" : "newest";
+                  setCommentOrder(next);
+                  saveCommentOrder(next);
+                }}
+                title="Toggle comment order"
+                className="ml-auto flex items-center gap-1 text-[11px] font-medium normal-case tracking-normal text-slate-400 dark:text-neutral-500 hover:text-slate-700 dark:hover:text-neutral-300 transition-colors rounded p-0.5"
+              >
+                <ArrowUpDown className="w-3 h-3" aria-hidden />
+                {commentOrder === "newest" ? "Newest first" : "Oldest first"}
+              </button>
             )}
           </summary>
           <div className="mt-3 space-y-3">
@@ -1508,6 +1544,18 @@ export function TaskDetailContent({
                 </div>
               );
             })
+          )}
+          {hasMoreComments && (
+            <button
+              type="button"
+              onClick={() => fetchMoreComments()}
+              disabled={isFetchingMoreComments}
+              className="w-full text-xs text-slate-500 dark:text-neutral-400 hover:text-slate-700 dark:hover:text-neutral-300 border border-dashed border-slate-200 dark:border-neutral-800 hover:border-slate-300 dark:hover:border-neutral-700 rounded py-1.5 transition-colors disabled:opacity-60"
+            >
+              {isFetchingMoreComments
+                ? "Loading…"
+                : `Load ${commentOrder === "newest" ? "older" : "newer"} comments (${commentsTotal - comments.length} more)`}
+            </button>
           )}
           <form onSubmit={onPostComment} className="space-y-2">
             {/* Edit / Preview toggle only appears once there's a draft —

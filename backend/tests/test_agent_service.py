@@ -128,21 +128,46 @@ def _handlers():
     )
 
 
-async def test_list_comments_flags_own_comments():
-    from app.schemas.comment import CommentResponse
+async def test_list_comments_paginates_with_full_body():
+    from app.schemas.comment import CommentPage, CommentResponse
 
-    rows = [
-        CommentResponse(id="c-1", task_id="t-1", author_id="u-1", body="mine",
-                        created_at="2026-06-15T00:00:00Z", updated_at="2026-06-15T00:00:00Z"),
-        CommentResponse(id="c-2", task_id="t-1", author_id="u-2", body="theirs",
-                        created_at="2026-06-15T00:00:00Z", updated_at="2026-06-15T00:00:00Z"),
-    ]
+    page = CommentPage(
+        items=[
+            CommentResponse(id="c-1", task_id="t-1", author_id="u-1", body="B" * 500,
+                            created_at="2026-06-15T00:00:00Z", updated_at="2026-06-15T00:00:00Z"),
+            CommentResponse(id="c-2", task_id="t-1", author_id="u-2", body="theirs",
+                            created_at="2026-06-15T00:00:00Z", updated_at="2026-06-15T00:00:00Z"),
+        ],
+        total=31,
+        next_cursor="abc",
+    )
+    lcp = AsyncMock(return_value=page)
     with patch("app.services.agent._resolve_task_id", new=AsyncMock(return_value="t-1")), \
-         patch("app.services.agent.comments_svc.list_comments", new=AsyncMock(return_value=rows)):
+         patch("app.services.agent.comments_svc.list_comments_page", new=lcp):
         out = json.loads(await _handlers()["list_comments"]({"task": "RAG-6"}))
 
-    assert [c["id"] for c in out] == ["c-1", "c-2"]
-    assert out[0]["mine"] is True and out[1]["mine"] is False
+    assert out["total"] == 31
+    assert out["next_cursor"] == "abc"
+    assert [c["id"] for c in out["comments"]] == ["c-1", "c-2"]
+    assert out["comments"][0]["body"] == "B" * 500  # full body, no [:200]
+    assert out["comments"][0]["mine"] is True and out["comments"][1]["mine"] is False
+    assert lcp.await_args.kwargs["limit"] == 20
+    assert lcp.await_args.kwargs["order"] == "newest"
+
+
+async def test_list_comments_clamps_limit_and_forwards_cursor():
+    from app.schemas.comment import CommentPage
+
+    lcp = AsyncMock(return_value=CommentPage(items=[], total=0, next_cursor=None))
+    with patch("app.services.agent._resolve_task_id", new=AsyncMock(return_value="t-1")), \
+         patch("app.services.agent.comments_svc.list_comments_page", new=lcp):
+        await _handlers()["list_comments"](
+            {"task": "RAG-6", "limit": 500, "cursor": "cur-1", "order": "oldest"}
+        )
+
+    assert lcp.await_args.kwargs["limit"] == 50  # clamped
+    assert lcp.await_args.kwargs["cursor"] == "cur-1"
+    assert lcp.await_args.kwargs["order"] == "oldest"
 
 
 async def test_delete_comment_guard_does_not_delete_without_confirm():

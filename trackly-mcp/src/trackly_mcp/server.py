@@ -112,16 +112,23 @@ async def list_my_tasks(
 
 @mcp.tool()
 async def get_task(
-    task_identifier: str, workspace_slug: str | None = None
+    task_identifier: str,
+    workspace_slug: str | None = None,
+    include_comments: bool = True,
 ) -> dict[str, Any]:
     """Fetch full details for a task by its human identifier (e.g.
-    'TRAC-7'). Returns the task, its recent comments, and a `project`
+    'TRAC-7'). Returns the task, its latest comments, and a `project`
     object carrying the parent project's context — its `description` and
     `environments` (production/staging URLs, repo, docs, design links, each
     tagged by `type`) — so you understand what the project is about and can
     grab the right link without a separate get_project call. Use when the
     user says 'show me TRAC-7' or wants to know what a specific task is
     about before doing something with it.
+
+    `comments` holds only the 10 MOST RECENT comments (oldest→newest within
+    the group); `comments_total` is the full count. Use `list_comments` to
+    page through older ones. Pass `include_comments=False` when you only
+    need the task's fields/status — skips the comment payload entirely.
 
     Pass `workspace_slug` whenever you know which workspace the task is in
     (e.g. you got it from list_tasks): identifiers aren't unique across
@@ -130,12 +137,11 @@ async def get_task(
     client = get_client()
     resolved = await resolve_task_identifier(task_identifier, workspace_slug)
     task = await client.get(f"/tasks/{resolved['task_id']}")
-    comments = await client.get(f"/tasks/{resolved['task_id']}/comments")
     # Pull the parent project so the task carries its context inline. List
     # tools stay lean (no per-row project blob); this deep single-task view
     # is where the project's description + environment links are worth it.
     project = await client.get(f"/projects/{task['project_id']}")
-    return {
+    out: dict[str, Any] = {
         **task,
         "project": {
             "key": project.get("key"),
@@ -143,9 +149,17 @@ async def get_task(
             "description": project.get("description"),
             "environments": project.get("environments", []),
         },
-        "comments": comments,
         "url": f"{client.web_url}/browse/{task_identifier}",
     }
+    if include_comments:
+        page = await client.get(
+            f"/tasks/{resolved['task_id']}/comments",
+            params={"limit": 10, "order": "newest"},
+        )
+        # Server pages newest→oldest; flip so the tail reads chronologically.
+        out["comments"] = list(reversed(page["items"]))
+        out["comments_total"] = page["total"]
+    return out
 
 
 @mcp.tool()
@@ -424,21 +438,58 @@ async def add_comment(
 
 
 @mcp.tool()
+async def list_comments(
+    task_identifier: str,
+    cursor: str | None = None,
+    limit: int = 20,
+    order: str = "newest",
+    workspace_slug: str | None = None,
+) -> dict[str, Any]:
+    """Page through ALL of a task's comments, full bodies included.
+    `get_task` inlines only the 10 most recent — use this to read older
+    comments or walk the entire history (e.g. long reference comments used
+    as documentation). `order='newest'` (default) pages from the latest
+    backwards; `'oldest'` reads the thread from the beginning. Pass the
+    returned `next_cursor` back to fetch the next page; `next_cursor: null`
+    means you've reached the end. `total` is the task's full comment count.
+    Pass `workspace_slug` when known to pin the exact task across
+    workspaces."""
+    client = get_client()
+    resolved = await resolve_task_identifier(task_identifier, workspace_slug)
+    params: dict[str, Any] = {
+        "limit": max(1, min(limit, 50)),
+        "order": order if order in ("newest", "oldest") else "newest",
+    }
+    if cursor:
+        params["cursor"] = cursor
+    page = await client.get(
+        f"/tasks/{resolved['task_id']}/comments", params=params
+    )
+    return {
+        "comments": page["items"],
+        "total": page["total"],
+        "next_cursor": page["next_cursor"],
+    }
+
+
+@mcp.tool()
 async def delete_comment(
     comment_id: str, confirm: bool = False
 ) -> dict[str, Any]:
     """Delete a comment. DESTRUCTIVE and permanent — you can only delete
     comments YOU authored (deleting someone else's returns an error).
 
-    Get `comment_id` from `get_task`, whose `comments` list carries each
+    Get `comment_id` from `get_task` (inlines the 10 most recent comments)
+    or `list_comments` (pages through all of them); both carry each
     comment's `id` and `body`.
 
     Two-step confirmation is REQUIRED. First call with `confirm=False` (the
     default): nothing is deleted. Then show the user the exact comment you are
-    about to delete (you already have its text from `get_task`) and get their
-    explicit go-ahead. Only after they confirm, call again with `confirm=True`
-    to actually delete. Never pass `confirm=True` without having shown the
-    comment and received a clear yes."""
+    about to delete (you already have its text from `get_task` or
+    `list_comments`) and get their explicit go-ahead. Only after they confirm,
+    call again with `confirm=True` to actually delete. Never pass
+    `confirm=True` without having shown the comment and received a clear
+    yes."""
     if not confirm:
         return {
             "requires_confirmation": True,
@@ -446,8 +497,9 @@ async def delete_comment(
             "message": (
                 "This permanently deletes the comment. Show the user the "
                 "comment you're about to delete (you have its text from "
-                "get_task) and get explicit confirmation, then call again "
-                "with confirm=True. You can only delete your own comments."
+                "get_task or list_comments) and get explicit confirmation, "
+                "then call again with confirm=True. You can only delete "
+                "your own comments."
             ),
         }
     client = get_client()
