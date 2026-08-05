@@ -6,11 +6,18 @@ part fires a `mentioned` notification to that member. Self-mentions and
 the comment author are skipped.
 """
 
+import base64
+import json
 import re
 
 from supabase import AsyncClient
 
-from app.schemas.comment import CommentCreate, CommentResponse, CommentUpdate
+from app.schemas.comment import (
+    CommentCreate,
+    CommentPage,
+    CommentResponse,
+    CommentUpdate,
+)
 
 
 class CommentError(Exception):
@@ -27,6 +34,27 @@ class CommentPermissionError(CommentError):
 
 class TaskNotFoundError(CommentError):
     pass
+
+
+class InvalidCursorError(CommentError):
+    pass
+
+
+# Opaque keyset cursor: base64url({"t": created_at_iso, "id": comment_id}).
+# Clients echo it back verbatim; a cursor is only valid for the order that
+# produced it (mixing orders is a client error, not validated here).
+def _encode_cursor(created_at: str, comment_id: str) -> str:
+    raw = json.dumps({"t": created_at, "id": comment_id}).encode()
+    return base64.urlsafe_b64encode(raw).decode().rstrip("=")
+
+
+def _decode_cursor(cursor: str) -> tuple[str, str]:
+    try:
+        pad = "=" * (-len(cursor) % 4)
+        data = json.loads(base64.urlsafe_b64decode(cursor + pad))
+        return str(data["t"]), str(data["id"])
+    except (ValueError, KeyError, TypeError) as exc:
+        raise InvalidCursorError(cursor) from exc
 
 
 async def _is_member(supabase: AsyncClient, *, user_id: str, workspace_id: str) -> bool:
@@ -71,6 +99,59 @@ async def list_comments(
         .execute()
     ).data
     return [CommentResponse(**r) for r in rows]
+
+
+async def list_comments_page(
+    supabase: AsyncClient,
+    *,
+    user_id: str,
+    task_id: str,
+    limit: int,
+    cursor: str | None = None,
+    order: str = "newest",
+) -> CommentPage:
+    """Keyset-paginated read. `total` needs its own head-count query:
+    counting on the page query would count the rows *after* the cursor
+    filter, i.e. the remainder, not the task's true comment count."""
+    await _ensure_member_via_task(supabase, user_id, task_id)
+
+    count_res = (
+        await supabase.table("comments")
+        .select("id", count="exact", head=True)
+        .eq("task_id", task_id)
+        .execute()
+    )
+    total = count_res.count or 0
+
+    desc = order == "newest"
+    q = supabase.table("comments").select("*").eq("task_id", task_id)
+    if cursor:
+        t, cid = _decode_cursor(cursor)
+        op = "lt" if desc else "gt"
+        # PostgREST has no tuple comparison; emulate
+        # (created_at, id) < (t, cid) with an OR. Values are quoted — ISO
+        # timestamps contain chars reserved by the or= syntax.
+        q = q.or_(
+            f'created_at.{op}."{t}",and(created_at.eq."{t}",id.{op}."{cid}")'
+        )
+    rows = (
+        await q.order("created_at", desc=desc)
+        .order("id", desc=desc)
+        .limit(limit + 1)  # probe row: detects has_more without a 2nd query
+        .execute()
+    ).data
+    has_more = len(rows) > limit
+    rows = rows[:limit]
+    next_cursor = (
+        _encode_cursor(rows[-1]["created_at"], rows[-1]["id"])
+        if has_more and rows
+        else None
+    )
+    return CommentPage(
+        items=[CommentResponse(**r) for r in rows],
+        total=total,
+        next_cursor=next_cursor,
+    )
 
 
 _MENTION_RE = re.compile(r"@([A-Za-z0-9._-]+)")
