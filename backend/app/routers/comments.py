@@ -1,29 +1,65 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from typing import Literal
+
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from supabase import AsyncClient
 
 from app.core.deps import get_current_user_id, get_supabase_admin
-from app.schemas.comment import CommentCreate, CommentResponse, CommentUpdate
+from app.schemas.comment import (
+    CommentCreate,
+    CommentPage,
+    CommentResponse,
+    CommentUpdate,
+)
 from app.services.comments import (
     CommentNotFoundError,
     CommentPermissionError,
+    InvalidCursorError,
     TaskNotFoundError,
     create_comment,
     delete_comment,
     list_comments,
+    list_comments_page,
     update_comment,
 )
 
 router = APIRouter(tags=["comments"])
 
 
-@router.get("/tasks/{t_id}/comments", response_model=list[CommentResponse])
+@router.get(
+    "/tasks/{t_id}/comments",
+    response_model=CommentPage | list[CommentResponse],
+)
 async def list_(
     t_id: str,
+    limit: int | None = Query(None, ge=1, le=100),
+    cursor: str | None = Query(None),
+    order: Literal["newest", "oldest"] = Query("newest"),
     user_id: str = Depends(get_current_user_id),
     supabase: AsyncClient = Depends(get_supabase_admin),
 ):
+    # Dual shape: no `limit` → legacy bare ascending array (existing
+    # consumers untouched); with `limit` → {items, total, next_cursor}.
+    if cursor is not None and limit is None:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="cursor requires limit",
+        )
     try:
-        return await list_comments(supabase, user_id=user_id, task_id=t_id)
+        if limit is None:
+            return await list_comments(supabase, user_id=user_id, task_id=t_id)
+        return await list_comments_page(
+            supabase,
+            user_id=user_id,
+            task_id=t_id,
+            limit=limit,
+            cursor=cursor,
+            order=order,
+        )
+    except InvalidCursorError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="invalid cursor",
+        ) from exc
     except CommentPermissionError as exc:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN) from exc
     except TaskNotFoundError as exc:
