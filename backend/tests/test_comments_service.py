@@ -160,6 +160,17 @@ def test_decode_invalid_cursor_raises():
         _decode_cursor("not-base64!!")
 
 
+def test_decode_rejects_filter_injection():
+    # Well-formed base64/JSON whose fields would break out of the quoted
+    # or= filter — must be rejected by shape validation, not passed through.
+    evil = _encode_cursor('2026-08-04T00:00:00+00:00",id.gt."', "c-1")
+    with pytest.raises(InvalidCursorError):
+        _decode_cursor(evil)
+    evil_id = _encode_cursor("2026-08-04T00:00:00+00:00", 'x",created_at.gt."1970')
+    with pytest.raises(InvalidCursorError):
+        _decode_cursor(evil_id)
+
+
 async def test_page_has_more_sets_next_cursor(mock_supabase):
     # limit=2, service fetches limit+1=3 rows → has_more, items trimmed to 2,
     # next_cursor encodes the LAST RETURNED item (c-2), not the probe row.

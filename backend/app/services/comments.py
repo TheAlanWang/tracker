@@ -48,13 +48,25 @@ def _encode_cursor(created_at: str, comment_id: str) -> str:
     return base64.urlsafe_b64encode(raw).decode().rstrip("=")
 
 
+# Decoded cursor fields get interpolated into a PostgREST or= filter string,
+# so they must be shape-validated — a crafted cursor could otherwise inject
+# filter syntax (quotes, commas, extra conditions).
+_CURSOR_TS_RE = re.compile(
+    r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})$"
+)
+_CURSOR_ID_RE = re.compile(r"^[A-Za-z0-9_-]{1,64}$")
+
+
 def _decode_cursor(cursor: str) -> tuple[str, str]:
     try:
         pad = "=" * (-len(cursor) % 4)
         data = json.loads(base64.urlsafe_b64decode(cursor + pad))
-        return str(data["t"]), str(data["id"])
+        t, cid = str(data["t"]), str(data["id"])
     except (ValueError, KeyError, TypeError) as exc:
         raise InvalidCursorError(cursor) from exc
+    if not _CURSOR_TS_RE.fullmatch(t) or not _CURSOR_ID_RE.fullmatch(cid):
+        raise InvalidCursorError(cursor)
+    return t, cid
 
 
 async def _is_member(supabase: AsyncClient, *, user_id: str, workspace_id: str) -> bool:
