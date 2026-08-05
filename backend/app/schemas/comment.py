@@ -18,3 +18,9 @@ class CommentResponse(BaseModel):
     body: str
     created_at: datetime
     updated_at: datetime
+
+
+class CommentPage(BaseModel):
+    items: list[CommentResponse]
+    total: int
+    next_cursor: str | None

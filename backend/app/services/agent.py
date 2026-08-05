@@ -198,15 +198,20 @@ TOOLS: list[dict] = [
     {
         "name": "list_comments",
         "description": (
-            "List the comments on a task, each with its `id`, author, and a "
-            "text preview. Use this to find the comment id before deleting a "
-            "comment. `mine: true` marks comments the current user authored — "
-            "the only ones they can delete."
+            "List comments on a task, newest first by default, paginated. "
+            "Each comment carries its `id`, author, full `body`, and "
+            "`created_at`; the result includes `total` and `next_cursor` — "
+            "pass `cursor` back to fetch the next page (null = no more). "
+            "`mine: true` marks comments the current user authored — the "
+            "only ones they can delete."
         ),
         "input_schema": {
             "type": "object",
             "properties": {
                 "task": {"type": "string", "description": "Task identifier (RAG-6) or id."},
+                "cursor": {"type": "string", "description": "next_cursor from a previous page."},
+                "limit": {"type": "integer", "description": "Page size, default 20, max 50."},
+                "order": {"type": "string", "enum": ["newest", "oldest"]},
             },
             "required": ["task"],
         },
@@ -392,20 +397,32 @@ def _build_handlers(
         task_id = await _resolve_task_id(
             supabase, project_id=project_id, ref=inp["task"]
         )
-        comments = await comments_svc.list_comments(
-            supabase, user_id=user_id, task_id=task_id
+        limit = max(1, min(int(inp.get("limit") or 20), 50))
+        page = await comments_svc.list_comments_page(
+            supabase,
+            user_id=user_id,
+            task_id=task_id,
+            limit=limit,
+            cursor=inp.get("cursor"),
+            order=inp.get("order") or "newest",
         )
+        # Full bodies, not previews: this is the read path for long
+        # reference comments; token cost is bounded by `limit`.
         return json.dumps(
-            [
-                {
-                    "id": c.id,
-                    "author_id": c.author_id,
-                    "mine": c.author_id == user_id,
-                    "preview": c.body[:200],
-                    "created_at": c.created_at.isoformat(),
-                }
-                for c in comments
-            ]
+            {
+                "comments": [
+                    {
+                        "id": c.id,
+                        "author_id": c.author_id,
+                        "mine": c.author_id == user_id,
+                        "body": c.body,
+                        "created_at": c.created_at.isoformat(),
+                    }
+                    for c in page.items
+                ],
+                "total": page.total,
+                "next_cursor": page.next_cursor,
+            }
         )
 
     async def delete_comment(inp: dict) -> str:
