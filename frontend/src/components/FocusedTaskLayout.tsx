@@ -74,7 +74,7 @@ export function FocusedTaskLayout() {
       </header>
 
       <main className="px-4 py-6 sm:px-8">
-        <div className="mx-auto max-w-5xl">
+        <div className="mx-auto max-w-6xl">
           <Outlet />
         </div>
       </main>
