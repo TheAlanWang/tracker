@@ -2,6 +2,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 
 import { Avatar } from "@/components/Avatar";
+import { ColumnsIcon } from "@/components/ColumnsIcon";
+import { useHiddenColumns } from "@/hooks/useHiddenColumns";
 import { parseDueDate } from "@/lib/date";
 import { ExportTasksButton } from "@/components/ExportTasksButton";
 import { FilterBar } from "@/components/FilterBar";
@@ -9,7 +11,7 @@ import { InlineSpinner } from "@/components/PageSpinner";
 import { InlineTaskCreator } from "@/components/InlineTaskCreator";
 import { SortableHeader } from "@/components/SortableHeader";
 import { TaskDetailModal } from "@/components/TaskDetailModal";
-import { type Member, useMembers } from "@/features/members/api";
+import { useMemberById, useMembers } from "@/features/members/api";
 import { useProjects } from "@/features/projects/api";
 import { useProjectTasksRealtime } from "@/features/realtime/useProjectTasksRealtime";
 import { type TaskStatus, useTasks } from "@/features/tasks/api";
@@ -48,42 +50,6 @@ const COL_SORT_FIELD: Partial<Record<ColKey, SortField>> = {
   due: "due_date",
   created: "created_at",
 };
-
-function useHiddenColumns(projectId: string) {
-  const key = projectId ? `tracker.backlog.hidden.${projectId}` : "";
-  const [hidden, setHidden] = useState<Set<ColKey>>(() => {
-    if (!key) return new Set();
-    try {
-      const raw = localStorage.getItem(key);
-      return raw ? new Set(JSON.parse(raw) as ColKey[]) : new Set();
-    } catch {
-      return new Set();
-    }
-  });
-  useEffect(() => {
-    if (!key) return;
-    localStorage.setItem(key, JSON.stringify([...hidden]));
-  }, [key, hidden]);
-  return [hidden, setHidden] as const;
-}
-
-function ColumnsIcon() {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={1.7}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className="w-4 h-4"
-    >
-      <rect x="3" y="4.5" width="18" height="15" rx="1.5" />
-      <path d="M9 4.5v15M15 4.5v15" />
-    </svg>
-  );
-}
 
 function ColumnVisibilityMenu({
   hidden,
@@ -206,14 +172,10 @@ function BacklogContent() {
   });
   const { data: members = [] } = useMembers(currentWs?.id ?? "");
 
-  const memberByUser = useMemo(() => {
-    const m = new Map<string, Member>();
-    for (const mb of members) m.set(mb.user_id, mb);
-    return m;
-  }, [members]);
+  const memberByUser = useMemberById(members);
 
-  const [hiddenColumns, setHiddenColumns] = useHiddenColumns(
-    currentProject?.id ?? "",
+  const [hiddenColumns, setHiddenColumns] = useHiddenColumns<ColKey>(
+    currentProject?.id ? `tracker.backlog.hidden.${currentProject.id}` : "",
   );
   const toggleColumn = (key: ColKey) => {
     const next = new Set(hiddenColumns);

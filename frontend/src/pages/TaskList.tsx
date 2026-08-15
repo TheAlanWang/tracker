@@ -3,13 +3,15 @@ import { createPortal } from "react-dom";
 import { useParams } from "react-router-dom";
 
 import { Avatar } from "@/components/Avatar";
+import { ColumnsIcon } from "@/components/ColumnsIcon";
+import { useHiddenColumns } from "@/hooks/useHiddenColumns";
 import { parseDueDate } from "@/lib/date";
 import { ExportTasksButton } from "@/components/ExportTasksButton";
 import { FilterBar } from "@/components/FilterBar";
 import { InlineSpinner } from "@/components/PageSpinner";
 import { SortableHeader } from "@/components/SortableHeader";
 import { TaskDetailModal } from "@/components/TaskDetailModal";
-import { type Member, useMembers } from "@/features/members/api";
+import { useMemberById, useMembers } from "@/features/members/api";
 import { useSprints } from "@/features/sprints/api";
 import { type TaskStatus, useTasks } from "@/features/tasks/api";
 import {
@@ -79,42 +81,6 @@ const COL_RESPONSIVE: Record<ColKey, string> = {
   sprint: "hidden lg:table-cell",
   created: "hidden lg:table-cell",
 };
-
-function useHiddenColumns(projectId: string, ns: string = "list") {
-  const key = projectId ? `tracker.${ns}.hidden.${projectId}` : "";
-  const [hidden, setHidden] = useState<Set<ColKey>>(() => {
-    if (!key) return new Set();
-    try {
-      const raw = localStorage.getItem(key);
-      return raw ? new Set(JSON.parse(raw) as ColKey[]) : new Set();
-    } catch {
-      return new Set();
-    }
-  });
-  useEffect(() => {
-    if (!key) return;
-    localStorage.setItem(key, JSON.stringify([...hidden]));
-  }, [key, hidden]);
-  return [hidden, setHidden] as const;
-}
-
-function ColumnsIcon() {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={1.7}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className="w-4 h-4"
-    >
-      <rect x="3" y="4.5" width="18" height="15" rx="1.5" />
-      <path d="M9 4.5v15M15 4.5v15" />
-    </svg>
-  );
-}
 
 // Width of the Columns dropdown. Kept in a constant so the anchor calc
 // and the rendered popover can't drift apart (the original w-48 utility
@@ -303,11 +269,7 @@ export function TaskListContent({ archived = false }: { archived?: boolean } = {
   const { data: members = [] } = useMembers(currentWs?.id ?? "");
   const { data: sprints = [] } = useSprints(currentProject?.id ?? "");
 
-  const memberByUser = useMemo(() => {
-    const m = new Map<string, Member>();
-    for (const mb of members) m.set(mb.user_id, mb);
-    return m;
-  }, [members]);
+  const memberByUser = useMemberById(members);
 
   const sprintById = useMemo(
     () => new Map(sprints.map((s) => [s.id, s.name])),
@@ -322,9 +284,8 @@ export function TaskListContent({ archived = false }: { archived?: boolean } = {
     [sprintsEnabled],
   );
 
-  const [hiddenColumns, setHiddenColumns] = useHiddenColumns(
-    currentProject?.id ?? "",
-    ns,
+  const [hiddenColumns, setHiddenColumns] = useHiddenColumns<ColKey>(
+    currentProject?.id ? `tracker.${ns}.hidden.${currentProject.id}` : "",
   );
   const toggleColumn = (key: ColKey) => {
     const next = new Set(hiddenColumns);
