@@ -24,13 +24,15 @@ import { useParams } from "react-router-dom";
 
 import { AssigneePicker } from "@/components/AssigneePicker";
 import { Avatar } from "@/components/Avatar";
+import { ColumnsIcon } from "@/components/ColumnsIcon";
 import { InlineTaskCreator } from "@/components/InlineTaskCreator";
 import { PriorityIcon } from "@/components/PriorityIcon";
 import { TaskDetailModal } from "@/components/TaskDetailModal";
-import { parseDueDate } from "@/lib/date";
+import { useHiddenColumns } from "@/hooks/useHiddenColumns";
+import { isOverdueDate, parseDueDate } from "@/lib/date";
 import { STATUS, STATUS_ORDER } from "@/features/tasks/labels";
 import { useBlockedTaskIds } from "@/features/dependencies/api";
-import { type Member, useMembers } from "@/features/members/api";
+import { type Member, useMemberById, useMembers } from "@/features/members/api";
 import {
   Task,
   TaskPriority,
@@ -69,6 +71,16 @@ const collisionStrategy: CollisionDetection = (args) => {
   return closestCenter(args);
 };
 
+// Fractional-index midpoint: the dropped task lands between its two
+// flanking neighbors by averaging their positions, or ±1000 past whichever
+// single neighbor exists, or 0 into an empty column.
+function midpoint(prev: Task | undefined, next: Task | undefined): number {
+  if (prev && next) return (prev.position + next.position) / 2;
+  if (prev) return prev.position + 1000;
+  if (next) return next.position - 1000;
+  return 0;
+}
+
 function PriorityBadge({ priority }: { priority: TaskPriority }) {
   return <PriorityIcon priority={priority} hideNoPriority />;
 }
@@ -88,46 +100,6 @@ function CalendarIcon() {
       />
     </svg>
   );
-}
-
-function ColumnsIcon() {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={1.7}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className="w-4 h-4"
-    >
-      <rect x="3" y="4.5" width="18" height="15" rx="1.5" />
-      <path d="M9 4.5v15M15 4.5v15" />
-    </svg>
-  );
-}
-
-function useHiddenColumns(projectId: string) {
-  const key = projectId ? `tracker.board.hidden.${projectId}` : "";
-  const [hidden, setHidden] = useState<Set<TaskStatus>>(() => {
-    if (!key) return new Set(DEFAULT_HIDDEN);
-    try {
-      const raw = localStorage.getItem(key);
-      return raw
-        ? new Set(JSON.parse(raw) as TaskStatus[])
-        : new Set(DEFAULT_HIDDEN);
-    } catch {
-      return new Set(DEFAULT_HIDDEN);
-    }
-  });
-
-  useEffect(() => {
-    if (!key) return;
-    localStorage.setItem(key, JSON.stringify([...hidden]));
-  }, [key, hidden]);
-
-  return [hidden, setHidden] as const;
 }
 
 function ColumnVisibilityMenu({
@@ -197,7 +169,7 @@ function DueDateBadge({ date, status }: { date: string; status?: TaskStatus }) {
   const due = parseDueDate(date);
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  const overdue = !completed && due.getTime() < today.getTime();
+  const overdue = !completed && isOverdueDate(date);
   const soon =
     !completed &&
     !overdue &&
@@ -246,24 +218,34 @@ function CardBody({
   task,
   assignee,
   members,
+  depsEnabled,
   interactive = true,
 }: {
   task: Task;
   assignee: Member | undefined;
   members: Member[];
+  depsEnabled: boolean;
   interactive?: boolean;
 }) {
+  // depsEnabled is a per-workspace flag resolved once by Board (every card
+  // on a board belongs to the same workspace) and passed down, instead of
+  // every card independently re-deriving it.
   // Lookup the workspace's "currently blocked" set — React Query dedupes
   // across every card subscribing, so this is one network call regardless
   // of how many cards are on screen.
-  const { data: workspaces = [] } = useWorkspaces();
-  const depsEnabled = isDependenciesEnabled(
-    workspaces.find((w) => w.id === task.workspace_id),
-  );
   const { data: blockedIds } = useBlockedTaskIds(task.workspace_id);
   // Dependencies is an opt-out workspace feature — when disabled, don't show
   // the blocked badge (the data/relationships are preserved).
   const isBlocked = depsEnabled && (blockedIds?.has(task.id) ?? false);
+  const avatarEl = assignee ? (
+    <Avatar
+      displayName={assignee.display_name}
+      email={assignee.email}
+      avatarUrl={assignee.avatar_url}
+      color={assignee.avatar_color}
+      size={22}
+    />
+  ) : null;
 
   // Inline title editing — only on interactive cards (not the drag
   // preview). Click the title text to swap the <div> for a <textarea>;
@@ -412,29 +394,15 @@ function CardBody({
                       : "Click to assign"
                   }
                 >
-                  {assignee ? (
-                    <Avatar
-                      displayName={assignee.display_name}
-                      email={assignee.email}
-                      avatarUrl={assignee.avatar_url}
-                      color={assignee.avatar_color}
-                      size={22}
-                    />
-                  ) : (
+                  {avatarEl ?? (
                     <div className="w-[22px] h-[22px] rounded-full border-2 border-dashed border-slate-300 dark:border-neutral-700 hover:border-slate-500 transition-colors" />
                   )}
                 </button>
               )}
             </AssigneePicker>
-          ) : assignee ? (
-            <Avatar
-              displayName={assignee.display_name}
-              email={assignee.email}
-              avatarUrl={assignee.avatar_url}
-              color={assignee.avatar_color}
-              size={22}
-            />
-          ) : null}
+          ) : (
+            avatarEl
+          )}
         </div>
       </div>
     </>
@@ -445,11 +413,13 @@ function SortableCard({
   task,
   assignee,
   members,
+  depsEnabled,
   onOpen,
 }: {
   task: Task;
   assignee: Member | undefined;
   members: Member[];
+  depsEnabled: boolean;
   onOpen: (taskId: string) => void;
 }) {
   const {
@@ -476,7 +446,12 @@ function SortableCard({
         if (!isDragging) onOpen(task.id);
       }}
     >
-      <CardBody task={task} assignee={assignee} members={members} />
+      <CardBody
+        task={task}
+        assignee={assignee}
+        members={members}
+        depsEnabled={depsEnabled}
+      />
     </div>
   );
 }
@@ -493,6 +468,7 @@ function Column({
   items,
   memberById,
   members,
+  depsEnabled,
   isDropTarget,
   overId,
   draggedId,
@@ -503,6 +479,7 @@ function Column({
   items: Task[];
   memberById: Map<string, Member>;
   members: Member[];
+  depsEnabled: boolean;
   isDropTarget: boolean;
   // Current drop target (card id or column status), null when not dragging.
   overId: string | null;
@@ -558,6 +535,7 @@ function Column({
                         : undefined
                     }
                     members={members}
+                    depsEnabled={depsEnabled}
                     onOpen={onOpen}
                   />
                 </Fragment>
@@ -591,22 +569,22 @@ export default function Board() {
   const moveMutation = useMoveTask(currentProject?.id ?? "");
   useProjectTasksRealtime(currentProject?.id);
 
-  const memberById = useMemo(() => {
-    const m = new Map<string, Member>();
-    for (const mb of members) m.set(mb.user_id, mb);
-    return m;
-  }, [members]);
+  // Resolved once here (it's a per-workspace flag, not per-card) and
+  // passed down — every task on this board belongs to currentWs.
+  const depsEnabled = isDependenciesEnabled(currentWs);
+
+  const memberById = useMemberById(members);
 
   const [activeTask, setActiveTask] = useState<Task | null>(null);
-  const [activeColumn, setActiveColumn] = useState<TaskStatus | null>(null);
   // The current drop target (a card id or a column status). The insertion
   // line mirrors this exactly — onDragEnd lands the task above the over
   // card, or at the column end when over is the column — so the line and
   // the actual landing spot can't disagree.
   const [overId, setOverId] = useState<string | null>(null);
   const [openTaskId, setOpenTaskId] = useState<string | null>(null);
-  const [hiddenColumns, setHiddenColumns] = useHiddenColumns(
-    currentProject?.id ?? "",
+  const [hiddenColumns, setHiddenColumns] = useHiddenColumns<TaskStatus>(
+    currentProject?.id ? `tracker.board.hidden.${currentProject.id}` : "",
+    DEFAULT_HIDDEN,
   );
 
   const visibleColumns = useMemo(
@@ -625,43 +603,56 @@ export default function Board() {
     useSensor(PointerSensor, { activationConstraint: { distance: 3 } }),
   );
 
+  // Grouped + sorted once per `tasks` change instead of re-filtering and
+  // re-sorting the full array on every column render (and on every
+  // drag-hover tick, since onDragOver re-renders the board).
+  const tasksByStatusMap = useMemo(() => {
+    const map = new Map<TaskStatus, Task[]>();
+    for (const t of tasks) {
+      const list = map.get(t.status);
+      if (list) list.push(t);
+      else map.set(t.status, [t]);
+    }
+    for (const list of map.values()) {
+      list.sort((a, b) => a.position - b.position);
+    }
+    return map;
+  }, [tasks]);
+
+  const taskById = useMemo(
+    () => new Map(tasks.map((t) => [t.id, t])),
+    [tasks],
+  );
+
   function tasksByStatus(s: TaskStatus) {
-    return tasks
-      .filter((i) => i.status === s)
-      .sort((a, b) => a.position - b.position);
+    return tasksByStatusMap.get(s) ?? [];
   }
 
   function findTask(id: string) {
-    return tasks.find((i) => i.id === id);
+    return taskById.get(id);
+  }
+
+  // A column status if `id` is one, else the status of the task `id`
+  // belongs to. Replaces the old `activeColumn` state, which duplicated
+  // this exact derivation and had to be kept in sync by hand in
+  // onDragStart/onDragOver.
+  function columnForOverId(id: string | null): TaskStatus | null {
+    if (!id) return null;
+    if (COLUMNS.some((c) => c.status === id)) return id as TaskStatus;
+    return findTask(id)?.status ?? null;
   }
 
   function onDragStart(e: DragStartEvent) {
     const t = findTask(String(e.active.id));
-    if (t) {
-      setActiveTask(t);
-      setActiveColumn(t.status);
-    }
+    if (t) setActiveTask(t);
   }
 
   function onDragOver(e: { over: { id: string | number } | null }) {
-    if (!e.over) {
-      setActiveColumn(null);
-      setOverId(null);
-      return;
-    }
-    const id = String(e.over.id);
-    setOverId(id);
-    if (COLUMNS.some((c) => c.status === id)) {
-      setActiveColumn(id as TaskStatus);
-    } else {
-      const t = findTask(id);
-      if (t) setActiveColumn(t.status);
-    }
+    setOverId(e.over ? String(e.over.id) : null);
   }
 
   function onDragEnd(e: DragEndEvent) {
     setActiveTask(null);
-    setActiveColumn(null);
     setOverId(null);
     const { active, over } = e;
     if (!over) return;
@@ -684,24 +675,14 @@ export default function Board() {
       const draggedIndex = column.findIndex((i) => i.id === dragged.id);
 
       if (draggedIndex === -1) {
-        const prev = column[overIndex - 1];
-        const next = column[overIndex];
-        newPosition = prev
-          ? (prev.position + next.position) / 2
-          : next.position - 1000;
+        newPosition = midpoint(column[overIndex - 1], column[overIndex]);
       } else if (draggedIndex !== overIndex) {
         const filtered = column.filter((i) => i.id !== dragged.id);
         const targetIndex = filtered.findIndex((i) => i.id === overTask.id);
-        const prev = filtered[targetIndex - 1];
-        const next = filtered[targetIndex];
-        newPosition =
-          prev && next
-            ? (prev.position + next.position) / 2
-            : prev
-              ? prev.position + 1000
-              : next
-                ? next.position - 1000
-                : 0;
+        newPosition = midpoint(
+          filtered[targetIndex - 1],
+          filtered[targetIndex],
+        );
       } else {
         return;
       }
@@ -728,7 +709,6 @@ export default function Board() {
 
   function onDragCancel() {
     setActiveTask(null);
-    setActiveColumn(null);
     setOverId(null);
   }
 
@@ -762,8 +742,9 @@ export default function Board() {
                 items={tasksByStatus(col.status)}
                 memberById={memberById}
                 members={members}
+                depsEnabled={depsEnabled}
                 isDropTarget={
-                  activeColumn === col.status &&
+                  columnForOverId(overId) === col.status &&
                   activeTask?.status !== col.status
                 }
                 overId={activeTask ? overId : null}
@@ -785,6 +766,7 @@ export default function Board() {
                     : undefined
                 }
                 members={members}
+                depsEnabled={depsEnabled}
                 interactive={false}
               />
             </div>

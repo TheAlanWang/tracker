@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 
+import { ColumnsIcon } from "@/components/ColumnsIcon";
 import { ExportTasksButton } from "@/components/ExportTasksButton";
 import { FilterBar } from "@/components/FilterBar";
 import { InlineSpinner } from "@/components/PageSpinner";
+import { useHiddenColumns } from "@/hooks/useHiddenColumns";
 import { useMembers } from "@/features/members/api";
 import { projectDotColor } from "@/lib/projectColor";
 import { useTheme } from "@/hooks/useTheme";
@@ -68,44 +70,6 @@ const COL_SORT_FIELD: Partial<Record<ColKey, SortField>> = {
 // working on" scan that My Tasks supports. Keeps the initial render
 // tight on common screen widths.
 const DEFAULT_HIDDEN: ColKey[] = ["updated"];
-
-function useHiddenColumns(scopeKey: string) {
-  const key = scopeKey ? `tracker.mytasks.hidden.${scopeKey}` : "";
-  const [hidden, setHidden] = useState<Set<ColKey>>(() => {
-    if (!key) return new Set(DEFAULT_HIDDEN);
-    try {
-      const raw = localStorage.getItem(key);
-      return raw
-        ? new Set(JSON.parse(raw) as ColKey[])
-        : new Set(DEFAULT_HIDDEN);
-    } catch {
-      return new Set(DEFAULT_HIDDEN);
-    }
-  });
-  useEffect(() => {
-    if (!key) return;
-    localStorage.setItem(key, JSON.stringify([...hidden]));
-  }, [key, hidden]);
-  return [hidden, setHidden] as const;
-}
-
-function ColumnsIcon() {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={1.7}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className="w-4 h-4"
-    >
-      <rect x="3" y="4.5" width="18" height="15" rx="1.5" />
-      <path d="M9 4.5v15M15 4.5v15" />
-    </svg>
-  );
-}
 
 function ColumnVisibilityMenu({
   hidden,
@@ -254,7 +218,10 @@ function MyIssuesContent() {
     if (sortKey) saveSort(sortKey, sort);
   }, [sortKey, sort]);
 
-  const [hiddenColumns, setHiddenColumns] = useHiddenColumns(wsId);
+  const [hiddenColumns, setHiddenColumns] = useHiddenColumns<ColKey>(
+    wsId ? `tracker.mytasks.hidden.${wsId}` : "",
+    DEFAULT_HIDDEN,
+  );
   const toggleColumn = (key: ColKey) => {
     const next = new Set(hiddenColumns);
     if (next.has(key)) next.delete(key);

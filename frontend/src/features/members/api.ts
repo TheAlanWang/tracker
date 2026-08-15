@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import {
   keepPreviousData,
   useMutation,
@@ -19,6 +20,15 @@ export type Member = {
   avatar_url: string | null;
   avatar_color: string | null;
 };
+
+// `user_id -> Member` lookup, built once per `members` change instead of
+// each page re-implementing the same `Map` construction.
+export function useMemberById(members: Member[]): Map<string, Member> {
+  return useMemo(
+    () => new Map(members.map((m) => [m.user_id, m])),
+    [members],
+  );
+}
 
 export function useMembers(wsId: string) {
   return useQuery<Member[]>({
