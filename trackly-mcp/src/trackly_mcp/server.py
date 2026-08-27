@@ -473,6 +473,58 @@ async def list_comments(
 
 
 @mcp.tool()
+async def search_comments(
+    task_identifier: str,
+    query: str,
+    workspace_slug: str | None = None,
+    limit: int = 20,
+) -> dict[str, Any]:
+    """Find comments on a task that mention a keyword or phrase — use when
+    the user asks things like 'has #84 been graded before' or 'find the
+    comment where we discussed X' and the thread is too long to read
+    end-to-end. Case-insensitive substring match against comment bodies
+    (not fuzzy, not full-text ranked).
+
+    Returns each hit's `id`, `created_at`, and a short `snippet` of text
+    around the match — NOT the full body, because a keyword can appear in
+    many unrelated comments (e.g. a task number mentioned in passing inside
+    someone else's comment). Use the snippet to identify the right `id`,
+    then fetch the full text with `list_comments` or `get_task` before
+    acting on it — never delete or reference a comment based on the
+    snippet alone. Pass `workspace_slug` when known to pin the exact task
+    across workspaces."""
+    query_lower = query.strip().lower()
+    if not query_lower:
+        return {"matches": [], "total_matches": 0}
+
+    client = get_client()
+    resolved = await resolve_task_identifier(task_identifier, workspace_slug)
+    comments = await client.get(f"/tasks/{resolved['task_id']}/comments")
+
+    context = 60
+    hits = []
+    for c in comments:
+        body = c["body"]
+        idx = body.lower().find(query_lower)
+        if idx == -1:
+            continue
+        start = max(0, idx - context)
+        end = min(len(body), idx + len(query_lower) + context)
+        snippet = body[start:end]
+        if start > 0:
+            snippet = "..." + snippet
+        if end < len(body):
+            snippet = snippet + "..."
+        hits.append(
+            {"id": c["id"], "created_at": c["created_at"], "snippet": snippet}
+        )
+
+    hits.sort(key=lambda h: h["created_at"], reverse=True)
+    capped_limit = max(1, min(limit, 50))
+    return {"matches": hits[:capped_limit], "total_matches": len(hits)}
+
+
+@mcp.tool()
 async def delete_comment(
     comment_id: str, confirm: bool = False
 ) -> dict[str, Any]:

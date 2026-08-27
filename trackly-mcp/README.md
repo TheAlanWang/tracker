@@ -6,7 +6,7 @@ Drop the URL in your config, sign in once with your Trackly account, and you can
 
 ## Tools
 
-19 tools across read + write. See `src/trackly_mcp/server.py` for the full list and the LLM-facing docstrings.
+20 tools across read + write. See `src/trackly_mcp/server.py` for the full list and the LLM-facing docstrings.
 
 ## Setup (users)
 
