@@ -24,7 +24,7 @@ def test_tools_registered():
         "list_sprints", "list_tasks", "list_workspace_members",
         "list_recent_activity", "get_project",
         "create_task", "update_task", "add_comment", "list_comments",
-        "delete_comment",
+        "search_comments", "delete_comment",
         "list_checklist", "add_checklist_item", "set_checklist_item",
         "delete_checklist_item",
     }
