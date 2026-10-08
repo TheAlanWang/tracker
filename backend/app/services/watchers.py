@@ -54,15 +54,15 @@ async def _verify_task_access(
 
 
 async def _lookup_users(
-    supabase: AsyncClient, *, user_ids: list[str]
+    supabase: AsyncClient, *, user_ids: list[str], workspace_id: str
 ) -> dict[str, dict[str, str | None]]:
-    return await fetch_user_profiles(supabase, user_ids)
+    return await fetch_user_profiles(supabase, user_ids, workspace_id=workspace_id)
 
 
 async def watch_task(
     supabase: AsyncClient, *, user_id: str, task_id: str
 ) -> WatcherResponse:
-    await _verify_task_access(supabase, user_id=user_id, task_id=task_id)
+    task = await _verify_task_access(supabase, user_id=user_id, task_id=task_id)
     # Upsert-by-conflict: re-watching is a no-op.
     await supabase.table("task_watchers").upsert(
         {"task_id": task_id, "user_id": user_id},
@@ -76,7 +76,11 @@ async def watch_task(
         .execute()
     ).data
     row = rows[0]
-    profile = await _lookup_users(supabase, user_ids=[user_id]).get(user_id, {})
+    profile = (
+        await _lookup_users(
+            supabase, user_ids=[user_id], workspace_id=task["workspace_id"]
+        )
+    ).get(user_id, {})
     return WatcherResponse(
         **row,
         email=profile.get("email"),
@@ -94,7 +98,7 @@ async def unwatch_task(supabase: AsyncClient, *, user_id: str, task_id: str) -> 
 async def list_task_watchers(
     supabase: AsyncClient, *, user_id: str, task_id: str
 ) -> list[WatcherResponse]:
-    await _verify_task_access(supabase, user_id=user_id, task_id=task_id)
+    task = await _verify_task_access(supabase, user_id=user_id, task_id=task_id)
     rows = (
         await supabase.table("task_watchers")
         .select("*")
@@ -105,7 +109,9 @@ async def list_task_watchers(
     if not rows:
         return []
     user_ids = list({r["user_id"] for r in rows})
-    profiles = await _lookup_users(supabase, user_ids=user_ids)
+    profiles = await _lookup_users(
+        supabase, user_ids=user_ids, workspace_id=task["workspace_id"]
+    )
     return [
         WatcherResponse(
             **r,

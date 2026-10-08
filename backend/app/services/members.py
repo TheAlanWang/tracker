@@ -6,7 +6,8 @@ acceptance step) was retired when the proper invitation flow landed.
 
 Permissions enforced at the service layer (workspace_members.role check):
 - list_members: any current member can list.
-- update_member_role: owner or admin.
+- update_member: role → owner or admin (never the owner's role);
+  nickname → the member themself, or an owner/admin.
 - remove_member: owner only (intentionally tighter than role updates).
 """
 
@@ -60,12 +61,6 @@ async def _get_caller_role(supabase: AsyncClient, *, user_id: str, workspace_id:
     return rows[0]["role"] if rows else None
 
 
-async def _lookup_user_emails(supabase: AsyncClient, user_ids: list[str]) -> dict[str, str]:
-    """Return user_id -> email (legacy helper kept for invite flow)."""
-    profiles = await fetch_user_profiles(supabase, user_ids)
-    return {uid: (p["email"] or "") for uid, p in profiles.items()}
-
-
 async def _lookup_user_profiles(
     supabase: AsyncClient, user_ids: list[str]
 ) -> dict[str, dict[str, str | None]]:
@@ -97,33 +92,44 @@ async def list_members(
     # Look up profile fields (email / display_name / avatar_url / avatar_color)
     all_user_ids = [r["user_id"] for r in rows]
     profile_map = await _lookup_user_profiles(supabase, all_user_ids)
-
-    return [
-        MemberResponse(
-            **r,
-            email=profile_map.get(r["user_id"], {}).get("email"),
-            display_name=profile_map.get(r["user_id"], {}).get("display_name"),
-            avatar_url=profile_map.get(r["user_id"], {}).get("avatar_url"),
-            avatar_color=profile_map.get(r["user_id"], {}).get("avatar_color"),
-        )
-        for r in rows
-    ]
+    return [_member_response(r, profile_map.get(r["user_id"], {})) for r in rows]
 
 
-async def update_member_role(
+def _member_response(row: dict, profile: dict) -> MemberResponse:
+    """Row + global profile → response; the workspace nickname (if any)
+    becomes the effective display_name."""
+    nickname = row.get("nickname")
+    global_name = profile.get("display_name")
+    return MemberResponse(
+        **{k: v for k, v in row.items() if k != "nickname"},
+        email=profile.get("email"),
+        display_name=nickname or global_name,
+        avatar_url=profile.get("avatar_url"),
+        avatar_color=profile.get("avatar_color"),
+        nickname=nickname,
+        profile_display_name=global_name,
+    )
+
+
+async def update_member(
     supabase: AsyncClient,
     *,
     user_id: str,
     workspace_id: str,
     target_user_id: str,
-    role: str,
+    changes: dict,
 ) -> MemberResponse:
-    """Update the role of a workspace member. Caller must be owner or admin."""
-    caller_role = await _get_caller_role(supabase, user_id=user_id, workspace_id=workspace_id)
-    if caller_role not in ("owner", "admin"):
-        raise MemberPermissionError("Only owner or admin can update roles")
+    """Apply `changes` (subset of {"role", "nickname"}) to a member.
 
-    # Get the target member's current role
+    role: caller must be owner or admin, and the owner's role is fixed
+    (ownership moves via transfer_ownership). nickname: the member themself
+    or an owner/admin; None clears it.
+    """
+    caller_role = await _get_caller_role(supabase, user_id=user_id, workspace_id=workspace_id)
+    if caller_role is None:
+        raise MemberPermissionError("Not a member of this workspace")
+    is_manager = caller_role in ("owner", "admin")
+
     target_rows = (
         await supabase.table("workspace_members")
         .select("role")
@@ -134,18 +140,35 @@ async def update_member_role(
     if not target_rows:
         raise NotAMemberError(target_user_id)
 
-    if target_rows[0]["role"] == "owner":
-        raise CannotModifyOwnerError("Cannot change the role of the workspace owner")
+    if "role" in changes:
+        if not is_manager:
+            raise MemberPermissionError("Only owner or admin can update roles")
+        if target_rows[0]["role"] == "owner":
+            raise CannotModifyOwnerError("Cannot change the role of the workspace owner")
+    if "nickname" in changes and not (is_manager or user_id == target_user_id):
+        raise MemberPermissionError(
+            "Only the member, an admin, or the owner can change this name"
+        )
 
+    if changes:
+        await (
+            supabase.table("workspace_members")
+            .update(changes)
+            .eq("workspace_id", workspace_id)
+            .eq("user_id", target_user_id)
+            .execute()
+        )
     row = (
         await supabase.table("workspace_members")
-        .update({"role": role})
+        .select("*")
         .eq("workspace_id", workspace_id)
         .eq("user_id", target_user_id)
         .execute()
     ).data[0]
-    email_map = await _lookup_user_emails(supabase, [target_user_id])
-    return MemberResponse(**row, email=email_map.get(target_user_id))
+    profile = (await _lookup_user_profiles(supabase, [target_user_id])).get(
+        target_user_id, {}
+    )
+    return _member_response(row, profile)
 
 
 async def transfer_ownership(
