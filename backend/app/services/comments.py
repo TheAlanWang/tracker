@@ -18,6 +18,7 @@ from app.schemas.comment import (
     CommentResponse,
     CommentUpdate,
 )
+from app.services._user_profiles import fetch_user_profiles
 
 
 class CommentError(Exception):
@@ -210,26 +211,17 @@ async def _fan_out_mentions(
         return
 
     # Match handles against display_name first word OR email local part.
-    # Both lookups need the supabase admin API since that data lives on
-    # auth.users / user_metadata.
+    # If the lookup fails the comment still saves, just no mention notifs.
     matched: list[str] = []
-    try:
-        users = await supabase.auth.admin.list_users()
-        for u in users:
-            if u.id not in member_ids:
-                continue
-            if u.id == author_id:
-                continue  # never notify yourself for mentioning yourself
-            email_local = (u.email or "").split("@", 1)[0].lower()
-            meta = u.user_metadata or {}
-            display = (meta.get("display_name") or "").strip()
-            first_word = display.split(" ", 1)[0].lower() if display else ""
-            if (email_local and email_local in handles) or (
-                first_word and first_word in handles
-            ):
-                matched.append(u.id)
-    except Exception:
-        return  # graceful: comment still saves, just no mention notifs
+    profiles = await fetch_user_profiles(supabase, member_ids - {author_id})
+    for uid, p in profiles.items():
+        email_local = (p["email"] or "").split("@", 1)[0].lower()
+        display = (p["display_name"] or "").strip()
+        first_word = display.split(" ", 1)[0].lower() if display else ""
+        if (email_local and email_local in handles) or (
+            first_word and first_word in handles
+        ):
+            matched.append(uid)
 
     for mentioned_id in matched:
         try:

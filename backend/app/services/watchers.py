@@ -13,6 +13,7 @@ without an extra round-trip per row.
 from supabase import AsyncClient
 
 from app.schemas.watcher import WatcherResponse, WatchedTaskResponse
+from app.services._user_profiles import fetch_user_profiles
 
 
 class WatcherError(Exception):
@@ -55,21 +56,7 @@ async def _verify_task_access(
 async def _lookup_users(
     supabase: AsyncClient, *, user_ids: list[str]
 ) -> dict[str, dict[str, str | None]]:
-    if not user_ids:
-        return {}
-    result: dict[str, dict[str, str | None]] = {}
-    try:
-        users = await supabase.auth.admin.list_users()
-        for u in users:
-            if u.id in user_ids:
-                meta = u.user_metadata or {}
-                result[u.id] = {
-                    "email": u.email,
-                    "display_name": meta.get("display_name"),
-                }
-    except Exception:
-        pass
-    return result
+    return await fetch_user_profiles(supabase, user_ids)
 
 
 async def watch_task(

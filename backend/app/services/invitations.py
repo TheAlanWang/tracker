@@ -25,6 +25,10 @@ from supabase import AsyncClient
 
 from app.core.plan_limits import Plan, get_limit
 from app.schemas.invitation import InvitationResponse
+from app.services._user_profiles import (
+    fetch_user_profiles,
+    find_user_id_by_email,
+)
 from app.services.emails import send_workspace_invite_email
 
 logger = logging.getLogger(__name__)
@@ -101,21 +105,7 @@ async def _get_workspace_plan(
 async def _lookup_users(
     supabase: AsyncClient, *, user_ids: list[str]
 ) -> dict[str, dict[str, str | None]]:
-    if not user_ids:
-        return {}
-    result: dict[str, dict[str, str | None]] = {}
-    try:
-        users = await supabase.auth.admin.list_users()
-        for u in users:
-            if u.id in user_ids:
-                meta = u.user_metadata or {}
-                result[u.id] = {
-                    "email": u.email,
-                    "display_name": meta.get("display_name"),
-                }
-    except Exception:
-        pass
-    return result
+    return await fetch_user_profiles(supabase, user_ids)
 
 
 async def _lookup_workspaces(
@@ -181,23 +171,17 @@ async def create_invitation(
     normalized = email.strip().lower()
 
     # Already a member? Look the user up by email.
-    try:
-        users = await supabase.auth.admin.list_users()
-    except Exception:
-        users = []
-    target = next(
-        (u for u in users if (u.email or "").lower() == normalized), None
-    )
-    if target is not None:
+    target_id = await find_user_id_by_email(supabase, normalized)
+    if target_id is not None:
         existing_member = (
             await supabase.table("workspace_members")
             .select("user_id")
             .eq("workspace_id", workspace_id)
-            .eq("user_id", target.id)
+            .eq("user_id", target_id)
             .execute()
         ).data
         if existing_member:
-            raise AlreadyMemberError(target.id)
+            raise AlreadyMemberError(target_id)
 
     # Pending invitation already exists?
     existing_pending = (
@@ -248,7 +232,7 @@ async def create_invitation(
     inviter_map = await _lookup_users(supabase, user_ids=[user_id])
     workspace_map = await _lookup_workspaces(supabase, ids=[workspace_id])
 
-    if target is None:
+    if target_id is None:
         # New user → Supabase's signup invite email so they create an
         # account and land in the in-app accept flow.
         try:
@@ -277,7 +261,7 @@ async def create_invitation(
             send_workspace_invite_email,
             supabase,
             workspace_name=workspace_name,
-            invitee_id=target.id,
+            invitee_id=target_id,
             inviter_id=user_id,
         )
 
@@ -354,14 +338,8 @@ async def revoke_invitation(
 
 
 async def _resolve_user_email(supabase: AsyncClient, *, user_id: str) -> str | None:
-    try:
-        users = await supabase.auth.admin.list_users()
-        for u in users:
-            if u.id == user_id:
-                return (u.email or "").lower() or None
-    except Exception:
-        return None
-    return None
+    profile = (await fetch_user_profiles(supabase, [user_id])).get(user_id)
+    return ((profile or {}).get("email") or "").lower() or None
 
 
 async def list_my_invitations(

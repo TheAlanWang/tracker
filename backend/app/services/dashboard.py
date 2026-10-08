@@ -27,7 +27,7 @@ from app.schemas.dashboard import (
     DashboardStats,
     DashboardTask,
 )
-from app.services._user_profiles import user_profile_from_auth
+from app.services._user_profiles import fetch_user_profiles
 
 
 def _empty_response() -> DashboardResponse:
@@ -242,17 +242,8 @@ async def get_dashboard(
         actor_ids = list(
             {r["actor_id"] for r in activity_rows if r.get("actor_id")}
         )
-        if actor_ids:
-            # auth.admin API is async on AsyncClient — still a single
-            # blocking call relative to the gather'd queries above, but
-            # cheap enough at this point in the request.
-            try:
-                users = await supabase.auth.admin.list_users()
-                for u in users:
-                    if u.id in actor_ids:
-                        actor_profile_map[u.id] = user_profile_from_auth(u)
-            except Exception:
-                pass  # graceful: activity feed shows "Someone" if lookup fails
+        # graceful: activity feed shows "Someone" if lookup fails
+        actor_profile_map = await fetch_user_profiles(supabase, actor_ids)
 
     def _enrich_task(row: dict) -> DashboardTask:
         pid = row["project_id"]

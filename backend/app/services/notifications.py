@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 from supabase import AsyncClient
 
 from app.schemas.notification import NotificationResponse
-from app.services._user_profiles import user_profile_from_auth
+from app.services._user_profiles import fetch_user_profiles
 
 
 class NotificationError(Exception):
@@ -40,15 +40,8 @@ async def list_my_notifications(
     # "Assigned by Alan" / "by alan@gmail.com" instead of a UUID, and
     # render the actor's picked avatar background color).
     actor_ids = list({r["actor_id"] for r in rows if r.get("actor_id")})
-    actor_info: dict[str, dict[str, str | None]] = {}
-    if actor_ids:
-        try:
-            users = await supabase.auth.admin.list_users()
-            for u in users:
-                if u.id in actor_ids:
-                    actor_info[u.id] = user_profile_from_auth(u)
-        except Exception:
-            pass  # graceful: row falls back to UUID display
+    # graceful: a missing actor falls back to UUID display
+    actor_info = await fetch_user_profiles(supabase, actor_ids)
 
     enriched: list[NotificationResponse] = []
     for r in rows:

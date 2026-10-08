@@ -15,7 +15,7 @@ import logging
 from supabase import AsyncClient
 
 from app.schemas.member import MemberResponse
-from app.services._user_profiles import user_profile_from_auth
+from app.services._user_profiles import fetch_user_profiles
 
 logger = logging.getLogger(__name__)
 
@@ -62,30 +62,15 @@ async def _get_caller_role(supabase: AsyncClient, *, user_id: str, workspace_id:
 
 async def _lookup_user_emails(supabase: AsyncClient, user_ids: list[str]) -> dict[str, str]:
     """Return user_id -> email (legacy helper kept for invite flow)."""
-    if not user_ids:
-        return {}
-    try:
-        users = await supabase.auth.admin.list_users()
-        return {u.id: (u.email or "") for u in users if u.id in user_ids}
-    except Exception:
-        return {}
+    profiles = await fetch_user_profiles(supabase, user_ids)
+    return {uid: (p["email"] or "") for uid, p in profiles.items()}
 
 
 async def _lookup_user_profiles(
     supabase: AsyncClient, user_ids: list[str]
 ) -> dict[str, dict[str, str | None]]:
     """Return user_id -> {email, display_name, avatar_url, avatar_color}."""
-    if not user_ids:
-        return {}
-    result: dict[str, dict[str, str | None]] = {}
-    try:
-        users = await supabase.auth.admin.list_users()
-        for u in users:
-            if u.id in user_ids:
-                result[u.id] = user_profile_from_auth(u)
-    except Exception:
-        pass
-    return result
+    return await fetch_user_profiles(supabase, user_ids)
 
 
 async def list_members(
