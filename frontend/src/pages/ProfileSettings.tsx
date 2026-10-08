@@ -45,6 +45,7 @@ import {
   useUpdateProfile,
 } from "@/hooks/useCurrentUser";
 import { useAuthIdentities } from "@/hooks/useAuthIdentities";
+import { startGoogleAuth } from "@/lib/googleAuth";
 import { supabase } from "@/lib/supabase";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 
@@ -646,19 +647,14 @@ function SignInMethodsSection() {
 
   async function handleLinkGoogle() {
     setLinking("google");
-    // redirectTo: same page, so the user lands back on /profile and sees
-    // the updated identities list. Supabase processes the URL fragment
-    // on arrival; onAuthStateChange("USER_UPDATED") fires; the hook
-    // refreshes; the row flips to "Linked as …".
-    const { error } = await supabase.auth.linkIdentity({
-      provider: "google",
-      options: { redirectTo: window.location.href },
-    });
-    if (error) {
-      toast.error(error.message);
-      setLinking(null);
-    }
-    // On success the page navigates away to Google; no need to clear state.
+    // Direct Google flow (see googleAuth.ts); /auth/google links the ID
+    // token to this account, then returns here so the identities list
+    // remounts with the new "Linked as …" row.
+    await startGoogleAuth(
+      "link",
+      window.location.pathname + window.location.search,
+    );
+    // The page navigates away to Google; no need to clear state.
   }
 
   async function handleUnlinkGoogle() {

@@ -19,6 +19,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { startGoogleAuth } from "@/lib/googleAuth";
 import { supabase } from "@/lib/supabase";
 
 type Mode = "signin" | "signup";
@@ -137,11 +138,9 @@ export function LoginDialog({
 
   async function handleGoogle() {
     setAuthError(null);
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: { redirectTo: `${window.location.origin}/auth/callback` },
-    });
-    if (error) setAuthError(error.message);
+    // Direct Google flow (not signInWithOAuth) so the consent screen shows
+    // gettrackly.dev instead of the supabase.co callback — see googleAuth.ts.
+    await startGoogleAuth("signin");
   }
 
   async function handleGitHub() {
