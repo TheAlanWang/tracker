@@ -52,9 +52,12 @@ async def _list_all_users(supabase: AsyncClient) -> list[Any]:
 
 
 async def fetch_user_profiles(
-    supabase: AsyncClient, user_ids: Any
+    supabase: AsyncClient, user_ids: Any, *, workspace_id: str | None = None
 ) -> dict[str, dict[str, str | None]]:
     """Return user_id -> {email, display_name, avatar_url, avatar_color}.
+
+    With `workspace_id`, a member's workspace nickname (if set) replaces
+    `display_name`, and the global name is kept as `profile_display_name`.
 
     Unknown ids are simply absent. Never raises: on failure returns what it
     could find (callers fall back to rendering the raw id / "Someone").
@@ -62,6 +65,41 @@ async def fetch_user_profiles(
     ids = sorted({str(i) for i in user_ids if i})
     if not ids:
         return {}
+    profiles = await _fetch_global_profiles(supabase, ids)
+    if workspace_id:
+        await _overlay_nicknames(supabase, profiles, workspace_id)
+    return profiles
+
+
+async def _overlay_nicknames(
+    supabase: AsyncClient,
+    profiles: dict[str, dict[str, str | None]],
+    workspace_id: str,
+) -> None:
+    try:
+        rows = (
+            await supabase.table("workspace_members")
+            .select("user_id, nickname")
+            .eq("workspace_id", workspace_id)
+            .in_("user_id", list(profiles))
+            .execute()
+        ).data or []
+    except Exception:
+        # e.g. the nickname column isn't migrated yet — global names only.
+        logger.warning("workspace nickname lookup failed; using global names")
+        return
+    for r in rows:
+        p = profiles.get(str(r["user_id"]))
+        if p is None:
+            continue
+        p["profile_display_name"] = p.get("display_name")
+        if r.get("nickname"):
+            p["display_name"] = r["nickname"]
+
+
+async def _fetch_global_profiles(
+    supabase: AsyncClient, ids: list[str]
+) -> dict[str, dict[str, str | None]]:
     try:
         rows = (
             await supabase.rpc("get_user_profiles", {"uids": ids}).execute()

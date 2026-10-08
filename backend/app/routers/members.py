@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from supabase import AsyncClient
 
 from app.core.deps import get_current_user_id, get_supabase_admin
-from app.schemas.member import MemberResponse, MemberRoleUpdate
+from app.schemas.member import MemberResponse, MemberUpdate
 from app.services.members import (
     CannotModifyOwnerError,
     CannotTransferError,
@@ -11,7 +11,7 @@ from app.services.members import (
     list_members,
     remove_member,
     transfer_ownership,
-    update_member_role,
+    update_member,
 )
 
 router = APIRouter(tags=["members"])
@@ -40,20 +40,24 @@ async def list_(
     "/workspaces/{ws_id}/members/{target_user_id}",
     response_model=MemberResponse,
 )
-async def update_role_(
+async def update_(
     ws_id: str,
     target_user_id: str,
-    body: MemberRoleUpdate,
+    body: MemberUpdate,
     user_id: str = Depends(get_current_user_id),
     supabase: AsyncClient = Depends(get_supabase_admin),
 ):
+    # Only fields the client actually sent; an explicit null nickname clears it.
+    changes = body.model_dump(include=body.model_fields_set)
+    if changes.get("role", "") is None:
+        raise HTTPException(status_code=422, detail="role cannot be null")
     try:
-        return await update_member_role(
+        return await update_member(
             supabase,
             user_id=user_id,
             workspace_id=ws_id,
             target_user_id=target_user_id,
-            role=body.role,
+            changes=changes,
         )
     except MemberPermissionError as exc:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc

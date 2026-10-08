@@ -96,3 +96,33 @@ async def test_find_user_by_email_not_found():
 async def test_find_user_by_email_fallback_matches_case_insensitively():
     sb = _supabase_rpc_missing([[_auth_user("u-3", "Mixed@X.com")]])
     assert await find_user_id_by_email(sb, "mixed@x.com") == "u-3"
+
+
+async def test_workspace_nickname_overrides_display_name():
+    sb = _supabase_with_rpc(
+        [
+            {"id": "u-1", "email": "a@x.com", "display_name": "Robert", "avatar_url": None, "avatar_color": None},
+            {"id": "u-2", "email": "b@x.com", "display_name": "Alice", "avatar_url": None, "avatar_color": None},
+        ]
+    )
+    sb.table.return_value.select.return_value.eq.return_value.in_.return_value.execute.return_value.data = [
+        {"user_id": "u-1", "nickname": "Bobby"},
+        {"user_id": "u-2", "nickname": None},
+    ]
+
+    result = await fetch_user_profiles(sb, ["u-1", "u-2"], workspace_id="ws-1")
+
+    assert result["u-1"]["display_name"] == "Bobby"
+    assert result["u-1"]["profile_display_name"] == "Robert"
+    assert result["u-2"]["display_name"] == "Alice"
+
+
+async def test_nickname_lookup_failure_keeps_global_names():
+    sb = _supabase_with_rpc(
+        [{"id": "u-1", "email": "a@x.com", "display_name": "Robert", "avatar_url": None, "avatar_color": None}]
+    )
+    sb.table.side_effect = Exception("column workspace_members.nickname does not exist")
+
+    result = await fetch_user_profiles(sb, ["u-1"], workspace_id="ws-1")
+
+    assert result["u-1"]["display_name"] == "Robert"

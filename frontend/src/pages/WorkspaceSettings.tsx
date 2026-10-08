@@ -3,15 +3,18 @@
 // Sections:
 //   - General: rename workspace (owner-only).
 //   - Members: send invitations (admins+), list current members with role
-//     management (admins+ change roles, owner-only Remove), plus pending
+//     management (admins+ change roles, owner-only Remove; the member
+//     themself or an admin+ edits their workspace nickname), plus pending
 //     invitations inline as "Waiting" rows so admins always know what's
 //     outstanding.
 //   - Danger zone: delete workspace (owner-only, confirms via window.confirm).
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
+import { Pencil } from "lucide-react";
 
+import { Avatar } from "@/components/Avatar";
 import { InlineSpinner } from "@/components/PageSpinner";
 import { SettingsLayout } from "@/components/SettingsLayout";
 import { Button } from "@/components/ui/button";
@@ -22,7 +25,7 @@ import {
   useMembers,
   useRemoveMember,
   useTransferOwnership,
-  useUpdateMemberRole,
+  useUpdateMember,
 } from "@/features/members/api";
 import {
   useCreateInvitation,
@@ -59,10 +62,14 @@ export default function WorkspaceSettings() {
   const isOwner = !!me && currentWs?.owner_id === me.id;
 
   const { data: members = [], isLoading } = useMembers(wsId);
+  // Admins manage roles too (the API has always allowed it); Remove and
+  // Transfer stay owner-only.
+  const myRole = members.find((m) => m.user_id === me?.id)?.role;
+  const canManageMembers = isOwner || myRole === "admin";
   const { data: invitations = [] } = useWorkspaceInvitations(wsId);
   const inviteMutation = useCreateInvitation(wsId);
   const revokeMutation = useRevokeInvitation(wsId);
-  const updateRoleMutation = useUpdateMemberRole(wsId);
+  const updateMemberMutation = useUpdateMember(wsId);
   const removeMutation = useRemoveMember(wsId);
   const transferMutation = useTransferOwnership(wsId);
   const [transferOpen, setTransferOpen] = useState(false);
@@ -263,12 +270,24 @@ export default function WorkspaceSettings() {
 
   async function onChangeRole(userId: string, role: WorkspaceRole) {
     try {
-      await updateRoleMutation.mutateAsync({ userId, role });
+      await updateMemberMutation.mutateAsync({ userId, role });
       toast.success("Role updated");
     } catch (err) {
       const detail =
         (err as { response?: { data?: { detail?: string } } }).response?.data
           ?.detail ?? "Failed to update role";
+      toast.error(detail);
+    }
+  }
+
+  async function onSaveNickname(userId: string, nickname: string | null) {
+    try {
+      await updateMemberMutation.mutateAsync({ userId, nickname });
+      toast.success(nickname ? "Name updated" : "Name reset");
+    } catch (err) {
+      const detail =
+        (err as { response?: { data?: { detail?: string } } }).response?.data
+          ?.detail ?? "Failed to update name";
       toast.error(detail);
     }
   }
@@ -457,10 +476,10 @@ export default function WorkspaceSettings() {
                     const byRole =
                       (rank[a.role] ?? 9) - (rank[b.role] ?? 9);
                     if (byRole !== 0) return byRole;
-                    return (a.email ?? "").localeCompare(b.email ?? "");
+                    return memberLabel(a).localeCompare(memberLabel(b));
                   })
                   .map((m) => {
-                  const display = m.email ?? m.user_id;
+                  const display = memberLabel(m);
                   const memberIsOwner = m.role === "owner";
                   const isMe = me?.id === m.user_id;
                   return (
@@ -468,19 +487,15 @@ export default function WorkspaceSettings() {
                       key={`m-${m.user_id}`}
                       className="group grid grid-cols-[1fr_104px_44px] sm:grid-cols-[1fr_160px_60px] gap-4 items-center px-5 py-3"
                     >
-                      <div className="flex items-center gap-2 min-w-0">
-                        <span className="text-sm text-slate-800 dark:text-neutral-200 truncate">
-                          {display}
-                        </span>
-                        {isMe && (
-                          <span className="text-[10px] font-medium uppercase tracking-wide text-slate-500 dark:text-neutral-400 border border-slate-300 dark:border-neutral-700 rounded-full px-1.5 py-0.5">
-                            You
-                          </span>
-                        )}
-                      </div>
+                      <MemberNameCell
+                        member={m}
+                        isMe={isMe}
+                        canEdit={isMe || canManageMembers}
+                        onSave={(nickname) => onSaveNickname(m.user_id, nickname)}
+                      />
                       {memberIsOwner ? (
                         <span className="text-sm text-slate-600 dark:text-neutral-400">Owner</span>
-                      ) : isOwner ? (
+                      ) : canManageMembers ? (
                         <select
                           className="rounded border border-transparent hover:border-slate-300 focus:border-slate-300 bg-transparent px-1.5 py-0.5 text-sm text-slate-700 dark:text-neutral-300 w-fit -ml-1.5"
                           value={m.role}
@@ -490,7 +505,7 @@ export default function WorkspaceSettings() {
                               e.target.value as WorkspaceRole,
                             )
                           }
-                          disabled={updateRoleMutation.isPending}
+                          disabled={updateMemberMutation.isPending}
                         >
                           <option value="admin">Admin</option>
                           <option value="member">Member</option>
@@ -921,5 +936,117 @@ function Toggle({
         }`}
       />
     </button>
+  );
+}
+
+// Name shown for a member: workspace nickname / own name, else the email.
+function memberLabel(m: Member): string {
+  return m.display_name?.trim() || m.email || m.user_id;
+}
+
+// Avatar + name (+ email underneath when a name exists). Members who may
+// edit get a hover-revealed pencil that swaps the name for an inline input;
+// Enter/blur saves, Esc cancels, an empty value resets to the person's own
+// name.
+function MemberNameCell({
+  member,
+  isMe,
+  canEdit,
+  onSave,
+}: {
+  member: Member;
+  isMe: boolean;
+  canEdit: boolean;
+  onSave: (nickname: string | null) => Promise<void>;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState("");
+  const skipBlurSave = useRef(false);
+  const name = member.display_name?.trim();
+  const fallbackName =
+    member.profile_display_name?.trim() || member.email?.split("@")[0] || "";
+
+  function startEdit() {
+    setDraft(member.nickname ?? "");
+    skipBlurSave.current = false;
+    setEditing(true);
+  }
+
+  async function commit() {
+    setEditing(false);
+    const next = draft.trim() || null;
+    if (next === (member.nickname ?? null)) return;
+    await onSave(next);
+  }
+
+  return (
+    <div className="flex items-center gap-3 min-w-0">
+      <Avatar
+        displayName={member.display_name}
+        email={member.email}
+        avatarUrl={member.avatar_url}
+        color={member.avatar_color}
+        size={28}
+        className="shrink-0"
+      />
+      <div className="min-w-0 flex-1">
+        {editing ? (
+          <div>
+            <Input
+              autoFocus
+              value={draft}
+              maxLength={50}
+              placeholder={fallbackName}
+              aria-label="Name in this workspace"
+              className="h-7 text-sm"
+              onChange={(e) => setDraft(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") e.currentTarget.blur();
+                if (e.key === "Escape") {
+                  skipBlurSave.current = true;
+                  setEditing(false);
+                }
+              }}
+              onBlur={() => {
+                if (!skipBlurSave.current) void commit();
+              }}
+            />
+            <p className="mt-1 text-[11px] text-slate-400 dark:text-neutral-500">
+              Only shown in this workspace. Leave empty to use{" "}
+              {isMe ? "your" : "their"} own name.
+            </p>
+          </div>
+        ) : (
+          <>
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="text-sm text-slate-800 dark:text-neutral-200 truncate">
+                {name || member.email || member.user_id}
+              </span>
+              {isMe && (
+                <span className="text-[10px] font-medium uppercase tracking-wide text-slate-500 dark:text-neutral-400 border border-slate-300 dark:border-neutral-700 rounded-full px-1.5 py-0.5">
+                  You
+                </span>
+              )}
+              {canEdit && (
+                <button
+                  type="button"
+                  onClick={startEdit}
+                  aria-label={`Edit name for ${name || member.email}`}
+                  title="Edit name in this workspace"
+                  className="shrink-0 rounded p-0.5 text-slate-400 hover:text-slate-700 dark:text-neutral-500 dark:hover:text-neutral-200 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity"
+                >
+                  <Pencil className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+            {name && member.email && (
+              <p className="text-xs text-slate-500 dark:text-neutral-400 truncate">
+                {member.email}
+              </p>
+            )}
+          </>
+        )}
+      </div>
+    </div>
   );
 }

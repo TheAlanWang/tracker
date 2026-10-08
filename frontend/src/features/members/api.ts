@@ -16,9 +16,15 @@ export type Member = {
   role: WorkspaceRole;
   created_at: string;
   email: string | null;
+  // Effective name in this workspace: the workspace nickname if set, else
+  // the user's own display_name.
   display_name: string | null;
   avatar_url: string | null;
   avatar_color: string | null;
+  // Raw workspace nickname (null = not set) and the user's own name — only
+  // the members settings page needs these, to edit the nickname.
+  nickname: string | null;
+  profile_display_name: string | null;
 };
 
 // `user_id -> Member` lookup, built once per `members` change instead of
@@ -50,13 +56,21 @@ export function useMembers(wsId: string) {
 // Inviting a user no longer adds them directly — use useCreateInvitation
 // from @/features/invitations/api instead.
 
-export function useUpdateMemberRole(wsId: string) {
+// PATCH a member: send only what changes. `nickname: null` clears it.
+export function useUpdateMember(wsId: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (payload: { userId: string; role: WorkspaceRole }) => {
+    mutationFn: async ({
+      userId,
+      ...changes
+    }: {
+      userId: string;
+      role?: WorkspaceRole;
+      nickname?: string | null;
+    }) => {
       const { data } = await apiClient.patch<Member>(
-        `/workspaces/${wsId}/members/${payload.userId}`,
-        { role: payload.role },
+        `/workspaces/${wsId}/members/${userId}`,
+        changes,
       );
       return data;
     },

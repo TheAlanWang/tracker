@@ -210,17 +210,18 @@ async def _fan_out_mentions(
     if not member_ids:
         return
 
-    # Match handles against display_name first word OR email local part.
-    # If the lookup fails the comment still saves, just no mention notifs.
+    # Match handles against the first word of the workspace nickname or the
+    # global display name, or the email local part. If the lookup fails the
+    # comment still saves, just no mention notifs.
     matched: list[str] = []
-    profiles = await fetch_user_profiles(supabase, member_ids - {author_id})
+    profiles = await fetch_user_profiles(
+        supabase, member_ids - {author_id}, workspace_id=workspace_id
+    )
     for uid, p in profiles.items():
         email_local = (p["email"] or "").split("@", 1)[0].lower()
-        display = (p["display_name"] or "").strip()
-        first_word = display.split(" ", 1)[0].lower() if display else ""
-        if (email_local and email_local in handles) or (
-            first_word and first_word in handles
-        ):
+        names = {p.get("display_name"), p.get("profile_display_name")}
+        first_words = {n.strip().split(" ", 1)[0].lower() for n in names if n and n.strip()}
+        if (email_local and email_local in handles) or (first_words & handles):
             matched.append(uid)
 
     for mentioned_id in matched:
