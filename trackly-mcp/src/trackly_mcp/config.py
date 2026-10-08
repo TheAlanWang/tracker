@@ -35,6 +35,15 @@ class Config:
     google_client_secret: str = ""
 
 
+def public_web_url() -> str:
+    """Frontend origin for public assets (logos), safe to call at import time.
+
+    Unlike load_config() this doesn't fail on a missing env: it's used for
+    cosmetic URLs (server icon, picker logo) where a default is harmless.
+    """
+    return os.environ.get("WEB_URL", "https://gettrackly.dev").rstrip("/")
+
+
 def load_config() -> Config:
     missing = [name for name in _REQUIRED if not os.environ.get(name)]
     if missing:
