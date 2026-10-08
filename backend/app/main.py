@@ -8,12 +8,12 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from postgrest.exceptions import APIError
 
-logger = logging.getLogger("app")
-
 from app.routers import activity, agent, billing, charts, checklist, comments, dependencies, tasks, goals, invitations, me, members, notifications, projects, resolve, search, sprints, watchers, workspaces
 # Labels are shelved (2026-07): routes unregistered, code + tables kept.
 # Restore by re-adding `labels` above and its include_router below.
 # from app.routers import labels
+
+logger = logging.getLogger("app")
 
 app = FastAPI(title="tracker-api")
 

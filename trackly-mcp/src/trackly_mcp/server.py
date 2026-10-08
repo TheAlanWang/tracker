@@ -31,13 +31,6 @@ from .client import (
 )
 from .config import public_web_url
 
-# FastMCP's `settings.host` defaults to 127.0.0.1, which makes it auto-enable
-# DNS-rebinding protection that only allows a localhost Host header. Behind Fly
-# our Host is `trackly-mcp.fly.dev`, so that check returns 421 "Invalid Host
-# header". DNS-rebinding protection exists to stop malicious web pages from
-# reaching a *localhost-bound* MCP server; this is a public, OAuth-Bearer-gated
-# service, so the bearer token is the security boundary and the Host check is
-# both inapplicable and harmful. Disable it explicitly.
 _WEB_URL = public_web_url()
 
 mcp = FastMCP(
@@ -59,9 +52,10 @@ mcp = FastMCP(
     stateless_http=True,
     # FastMCP's settings.host defaults to 127.0.0.1, which auto-enables
     # DNS-rebinding protection that only allows a localhost Host header — behind
-    # Fly our Host is trackly-mcp.fly.dev, so /mcp returned 421 "Invalid Host
-    # header" after auth passed. That guard is for localhost-bound servers; this
-    # is a public OAuth-Bearer-gated service, so disable it.
+    # our host proxy the Host is mcp.gettrackly.dev, so /mcp returned 421
+    # "Invalid Host header" after auth passed. That guard is for localhost-bound
+    # servers; this is a public OAuth-Bearer-gated service (the bearer is the
+    # security boundary), so disable it.
     transport_security=TransportSecuritySettings(
         enable_dns_rebinding_protection=False,
     ),

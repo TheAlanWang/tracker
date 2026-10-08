@@ -154,7 +154,6 @@ function buildLayout(
         y: cursor + ROW_H / 2 - NODE_H / 2,
         childKeys: [],
       });
-      cursor += ROW_H;
     }
     if (goal) {
       nodes.set(key, {

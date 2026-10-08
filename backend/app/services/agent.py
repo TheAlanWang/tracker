@@ -671,7 +671,7 @@ async def run_agent_stream(
                         ok, summary = True, _summarize(block.name, block.input)
                     except (AgentError, tasks_svc.TaskError, comments_svc.CommentError) as exc:
                         result, ok, summary = json.dumps({"error": str(exc)}), False, str(exc)
-                    except Exception as exc:  # noqa: BLE001
+                    except Exception:  # noqa: BLE001
                         logger.exception("Agent tool %s failed", block.name)
                         result = json.dumps({"error": "tool failed"})
                         ok, summary = False, "tool failed"
@@ -704,7 +704,7 @@ async def run_agent_stream(
             logger.exception("Failed to persist agent conversation")
 
         yield _sse({"type": "done"})
-    except Exception as exc:  # noqa: BLE001 — surface a clean error in-stream
+    except Exception:  # noqa: BLE001 — surface a clean error in-stream
         logger.exception("Agent stream failed")
         yield _sse({"type": "error", "message": "The assistant hit an error. Please try again."})
 
