@@ -1819,10 +1819,45 @@ export function TaskDetailContent({
                     label: m.display_name || m.email || m.user_id,
                   })),
                 ]}
-                // Render name + email so identically-named members
-                // ("Ben" + "Ben") stay disambiguated. Email is muted +
-                // smaller so it doesn't compete with the name visually.
+                // Rows match AssigneePicker: avatar + name, email muted on
+                // a second line (keeps identically-named members apart
+                // without long names wrapping). The trigger stays one line.
                 renderOption={(o) => {
+                  if (o.value === "") {
+                    return (
+                      <span className="flex items-center gap-2 text-slate-500 dark:text-neutral-400">
+                        <span className="w-6 h-6 rounded-full border-2 border-dashed border-slate-300 dark:border-neutral-700 shrink-0" />
+                        Unassigned
+                      </span>
+                    );
+                  }
+                  const m = members.find((mm) => mm.user_id === o.value);
+                  const name = m?.display_name?.trim();
+                  const email = m?.email;
+                  return (
+                    <span className="flex items-center gap-2 min-w-0">
+                      <Avatar
+                        displayName={m?.display_name ?? null}
+                        email={email ?? null}
+                        avatarUrl={m?.avatar_url ?? null}
+                        color={m?.avatar_color ?? null}
+                        size={24}
+                        className="shrink-0"
+                      />
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-slate-900 dark:text-neutral-200">
+                          {name || email || o.label}
+                        </span>
+                        {name && email && (
+                          <span className="block truncate text-xs font-normal text-slate-400 dark:text-neutral-500">
+                            {email}
+                          </span>
+                        )}
+                      </span>
+                    </span>
+                  );
+                }}
+                renderValue={(o) => {
                   if (o.value === "") {
                     return (
                       <span className="text-slate-500 dark:text-neutral-400">
@@ -1831,21 +1866,19 @@ export function TaskDetailContent({
                     );
                   }
                   const m = members.find((mm) => mm.user_id === o.value);
-                  const name = m?.display_name?.trim();
-                  const email = m?.email;
-                  if (name && email) {
-                    return (
-                      <span className="inline-flex items-baseline gap-1.5 min-w-0">
-                        <span className="text-slate-900 dark:text-neutral-200">
-                          {name}
-                        </span>
-                        <span className="text-xs text-slate-500 dark:text-neutral-400 truncate">
-                          {email}
-                        </span>
-                      </span>
-                    );
-                  }
-                  return <span>{name || email || o.label}</span>;
+                  return (
+                    <span className="flex items-center gap-2 min-w-0">
+                      <Avatar
+                        displayName={m?.display_name ?? null}
+                        email={m?.email ?? null}
+                        avatarUrl={m?.avatar_url ?? null}
+                        color={m?.avatar_color ?? null}
+                        size={18}
+                        className="shrink-0"
+                      />
+                      <span className="truncate">{o.label}</span>
+                    </span>
+                  );
                 }}
               />
             ) : assigneeDraft ? (

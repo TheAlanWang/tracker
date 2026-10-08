@@ -20,6 +20,10 @@ type Props<T extends string> = {
   // pass in their pill component so users can see the color before
   // they pick.
   renderOption?: (option: Option<T>) => React.ReactNode;
+  // Optional separate render for the selected value in the trigger, when
+  // the dropdown rows are richer than fits on one line (e.g. avatar + name
+  // + email stacked). Defaults to renderOption.
+  renderValue?: (option: Option<T>) => React.ReactNode;
 };
 
 /**
@@ -35,6 +39,7 @@ export function Select<T extends string>({
   triggerClassName = "",
   placeholder,
   renderOption,
+  renderValue = renderOption,
 }: Props<T>) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -68,7 +73,7 @@ export function Select<T extends string>({
       >
         <span className="truncate">
           {current ? (
-            renderOption ? renderOption(current) : current.label
+            renderValue ? renderValue(current) : current.label
           ) : (
             <span className="text-slate-400 dark:text-neutral-500">{placeholder ?? "Select…"}</span>
           )}
@@ -91,7 +96,9 @@ export function Select<T extends string>({
                   : "w-full text-left px-3 py-1.5 text-sm hover:bg-slate-50 dark:hover:bg-neutral-800/50 flex items-center justify-between"
               }
             >
-              <span>{renderOption ? renderOption(o) : o.label}</span>
+              <span className="min-w-0 flex-1">
+                {renderOption ? renderOption(o) : o.label}
+              </span>
               {o.value === value && (
                 <span className="text-slate-400 dark:text-neutral-500 text-xs">✓</span>
               )}
