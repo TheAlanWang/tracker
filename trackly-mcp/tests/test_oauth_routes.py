@@ -319,3 +319,118 @@ async def test_token_code_is_one_time(transport, store):
             },
         )
         assert r2.status_code == 400
+
+
+# ─── Direct Google flow (oauth/google.py) ───
+
+
+@pytest.fixture
+def google_app(store, supabase):
+    from trackly_mcp.oauth.google import GoogleOAuthClient
+
+    router = build_oauth_router(
+        store=store,
+        supabase=supabase,
+        server_base_url="https://mcp.test",
+        google=GoogleOAuthClient("gid", "gsecret"),
+    )
+    return Starlette(routes=router.routes)
+
+
+async def _start_google(c, store):
+    await c.get(
+        "/authorize",
+        params={
+            "redirect_uri": "http://127.0.0.1:9000/cb",
+            "code_challenge": "client-chal",
+            "code_challenge_method": "S256",
+            "state": "client-state",
+        },
+    )
+    request_id = next(iter(store._auth.keys()))  # noqa: SLF001
+    r = await c.get(
+        "/authorize/start",
+        params={"request_id": request_id, "provider": "google"},
+        follow_redirects=False,
+    )
+    flow_id = next(iter(store._auth.keys()))  # noqa: SLF001
+    return r, flow_id
+
+
+async def test_google_start_redirects_to_google_not_supabase(google_app, store):
+    transport = httpx.ASGITransport(app=google_app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://test") as c:
+        r, flow_id = await _start_google(c, store)
+    loc = r.headers["location"]
+    qs = parse_qs(urlparse(loc).query)
+    assert loc.startswith("https://accounts.google.com/o/oauth2/v2/auth")
+    assert qs["redirect_uri"] == ["https://mcp.test/callback/google"]
+    assert qs["response_type"] == ["code"]
+    assert qs["state"] == [flow_id]
+    assert "supabase" not in loc
+
+
+async def test_google_unconfigured_falls_back_to_supabase(transport, store):
+    async with httpx.AsyncClient(transport=transport, base_url="http://test") as c:
+        r, _ = await _start_google(c, store)
+    assert r.headers["location"].startswith("https://supa.test/auth/v1/authorize")
+
+
+@respx.mock
+async def test_google_callback_exchanges_id_token_for_supabase_session(google_app, store):
+    google_token = respx.post("https://oauth2.googleapis.com/token").mock(
+        return_value=httpx.Response(200, json={"id_token": "g-idt", "access_token": "g-at"})
+    )
+    sb_token = respx.post("https://supa.test/auth/v1/token").mock(
+        return_value=httpx.Response(200, json={"access_token": "sb-at", "refresh_token": "sb-rt"})
+    )
+    transport = httpx.ASGITransport(app=google_app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://test") as c:
+        _, flow_id = await _start_google(c, store)
+        r = await c.get(
+            "/callback/google",
+            params={"code": "g-code", "state": flow_id},
+            cookies={"mcp_flow": flow_id},
+            follow_redirects=False,
+        )
+    assert r.status_code == 303
+    loc = r.headers["location"]
+    qs = parse_qs(urlparse(loc).query)
+    assert loc.startswith("http://127.0.0.1:9000/cb")
+    assert qs["state"] == ["client-state"]
+    assert store.pop_tokens(qs["code"][0]).access_token == "sb-at"
+
+    g_form = parse_qs(google_token.calls[0].request.content.decode())
+    assert g_form["redirect_uri"] == ["https://mcp.test/callback/google"]
+    assert g_form["client_secret"] == ["gsecret"]
+    sb_req = sb_token.calls[0].request
+    assert sb_req.url.params["grant_type"] == "id_token"
+    assert b'"id_token":"g-idt"' in sb_req.content.replace(b" ", b"")
+
+
+async def test_google_callback_rejects_state_cookie_mismatch(google_app, store):
+    transport = httpx.ASGITransport(app=google_app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://test") as c:
+        _, flow_id = await _start_google(c, store)
+        r = await c.get(
+            "/callback/google",
+            params={"code": "g-code", "state": "forged"},
+            cookies={"mcp_flow": flow_id},
+        )
+    assert r.status_code == 400
+
+
+@respx.mock
+async def test_google_callback_surfaces_exchange_failure(google_app, store):
+    respx.post("https://oauth2.googleapis.com/token").mock(
+        return_value=httpx.Response(400, json={"error": "invalid_grant"})
+    )
+    transport = httpx.ASGITransport(app=google_app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://test") as c:
+        _, flow_id = await _start_google(c, store)
+        r = await c.get(
+            "/callback/google",
+            params={"code": "bad", "state": flow_id},
+            cookies={"mcp_flow": flow_id},
+        )
+    assert r.status_code == 502

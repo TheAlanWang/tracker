@@ -28,6 +28,11 @@ class Config:
     # https://gettrackly.dev/browse/TRAC-7). Kept in env so a domain change
     # is a config edit, not a code change.
     web_url: str
+    # Optional. When set, the picker's "Continue with Google" runs the direct
+    # Google code flow (oauth/google.py) instead of Supabase's hosted redirect,
+    # whose supabase.co callback is no longer registered on the Google client.
+    google_client_id: str = ""
+    google_client_secret: str = ""
 
 
 def load_config() -> Config:
@@ -44,4 +49,6 @@ def load_config() -> Config:
         trackly_api_url=os.environ["TRACKLY_API_URL"].rstrip("/"),
         server_base_url=os.environ["SERVER_BASE_URL"].rstrip("/"),
         web_url=os.environ["WEB_URL"].rstrip("/"),
+        google_client_id=os.environ.get("GOOGLE_CLIENT_ID", ""),
+        google_client_secret=os.environ.get("GOOGLE_CLIENT_SECRET", ""),
     )
