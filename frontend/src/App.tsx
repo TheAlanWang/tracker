@@ -22,6 +22,7 @@ import Board from "@/pages/Board";
 import Browse from "@/pages/Browse";
 import Dashboard from "@/pages/Dashboard";
 import Goals from "@/pages/Goals";
+import GoogleAuthCallback from "@/pages/GoogleAuthCallback";
 import Home from "@/pages/Home";
 import Landing from "@/pages/Landing";
 import TaskDetail from "@/pages/TaskDetail";
@@ -80,6 +81,7 @@ export default function App() {
         />
         <Route path="/auth/callback" element={<AuthCallback />} />
         <Route path="/auth/confirm" element={<AuthConfirm />} />
+        <Route path="/auth/google" element={<GoogleAuthCallback />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/privacy" element={<Privacy />} />
         <Route path="/terms" element={<Terms />} />
