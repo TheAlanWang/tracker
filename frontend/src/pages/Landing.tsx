@@ -11,7 +11,7 @@
 
 import { useEffect, useState } from "react";
 import { Moon, Sparkles, Sun } from "lucide-react";
-import { useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 
 import { LoginDialog } from "@/components/LoginDialog";
 import { Button } from "@/components/ui/button";
@@ -716,6 +716,8 @@ export default function Landing() {
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between text-xs text-slate-500 dark:text-neutral-400">
           <Logo size="sm" className="text-slate-500 dark:text-neutral-400" />
           <div className="flex items-center gap-4">
+            <Link to="/privacy" className="hover:text-slate-900 dark:hover:text-neutral-100">Privacy</Link>
+            <Link to="/terms" className="hover:text-slate-900 dark:hover:text-neutral-100">Terms</Link>
             <button
               type="button"
               onClick={() => setTheme(isDark ? "light" : "dark")}

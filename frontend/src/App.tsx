@@ -29,11 +29,13 @@ import TaskList from "@/pages/TaskList";
 import MyIssues from "@/pages/MyIssues";
 import Billing from "@/pages/Billing";
 import NotFound from "@/pages/NotFound";
+import Privacy from "@/pages/Privacy";
 import ProfileSettings from "@/pages/ProfileSettings";
 import ProjectSettings from "@/pages/ProjectSettings";
 import ResetPassword from "@/pages/ResetPassword";
 import SprintDetail from "@/pages/SprintDetail";
 import SprintList from "@/pages/SprintList";
+import Terms from "@/pages/Terms";
 import WorkspaceHome from "@/pages/WorkspaceHome";
 import WorkspaceSettings from "@/pages/WorkspaceSettings";
 
@@ -79,6 +81,8 @@ export default function App() {
         <Route path="/auth/callback" element={<AuthCallback />} />
         <Route path="/auth/confirm" element={<AuthConfirm />} />
         <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/privacy" element={<Privacy />} />
+        <Route path="/terms" element={<Terms />} />
         <Route path="/" element={<RootRoute />} />
         <Route
           path="/browse/:identifier"
