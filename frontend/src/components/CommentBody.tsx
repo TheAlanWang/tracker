@@ -61,8 +61,15 @@ export function CommentBody({
   // this is provided so the affordance matches the behavior.
   onImageClick?: (url: string) => void;
 }) {
+  // Email local parts count too: the composer inserts one when a first
+  // name is shared, and the backend notifies on either.
   const handles = new Set(
-    members.map(handleFor).filter((h): h is string => !!h),
+    members
+      .flatMap((m) => [
+        handleFor(m),
+        (m.email ?? "").split("@", 1)[0]?.toLowerCase() ?? "",
+      ])
+      .filter((h): h is string => !!h),
   );
 
   return (

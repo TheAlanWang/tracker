@@ -20,6 +20,7 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 
+import { Avatar } from "@/components/Avatar";
 import type { Member } from "@/features/members/api";
 
 type Props = {
@@ -46,8 +47,31 @@ type Props = {
 function handleFor(m: Member): string {
   const name = (m.display_name ?? "").trim();
   if (name) return name.split(/\s+/)[0]!.toLowerCase();
-  const email = m.email ?? "";
-  return email.split("@", 1)[0]?.toLowerCase() ?? "";
+  return emailHandleFor(m);
+}
+
+function emailHandleFor(m: Member): string {
+  return (m.email ?? "").split("@", 1)[0]?.toLowerCase() ?? "";
+}
+
+// The token actually inserted for a picked member. The backend notifies
+// everyone whose first-name handle OR email local part matches, so a
+// first name shared with another member ("@ben" + "@ben") would notify
+// both — use the (unique) email local part in that case instead.
+function insertHandleFor(m: Member, members: Member[]): string {
+  const h = handleFor(m);
+  const shared = members.some(
+    (o) => o.user_id !== m.user_id && handleFor(o) === h,
+  );
+  return (shared && emailHandleFor(m)) || h;
+}
+
+// What a typed @-prefix can match: every word of the name plus the email
+// local part, so "@wang" finds "Jiayi Wang" and "@joy" finds joy.j…@….
+function searchTokensFor(m: Member): string[] {
+  const words = (m.display_name ?? "").toLowerCase().split(/\s+/).filter(Boolean);
+  const emailLocal = (m.email ?? "").split("@", 1)[0]?.toLowerCase() ?? "";
+  return emailLocal ? [...words, emailLocal] : words;
 }
 
 // Returns the @-prefix being typed if the caret is currently inside one,
@@ -90,22 +114,45 @@ export const MentionTextarea = forwardRef<HTMLTextAreaElement, Props>(
 
     const [mention, setMention] = useState<{ start: number; prefix: string } | null>(null);
     const [highlighted, setHighlighted] = useState(0);
-    const [pos, setPos] = useState({ left: 0, top: 0, width: 0 });
+    // `top` when the list opens below the textarea, `bottom` when it flips
+    // above (not enough room below — the comment box often sits at the
+    // bottom of the viewport).
+    const [pos, setPos] = useState<{
+      left: number;
+      width: number;
+      top?: number;
+      bottom?: number;
+    }>({ left: 0, width: 0, top: 0 });
 
-    // Candidates: members whose handle starts with the typed prefix.
+    // Candidates: every member with a word of their name or their email
+    // handle starting with the typed prefix — all of them, the list scrolls.
+    // Members whose @-handle itself matches sort first. Picking one still
+    // inserts their handle (first name word / email local part), which is
+    // what the backend matches mentions on.
     const candidates = useMemo(() => {
       if (!mention) return [];
       const p = mention.prefix.toLowerCase();
-      const scored = members
+      return members
         .map((m) => ({ m, h: handleFor(m) }))
-        .filter(({ h }) => h && (p === "" || h.startsWith(p)));
-      return scored.slice(0, 6);
+        .filter(
+          ({ m, h }) =>
+            h && (p === "" || searchTokensFor(m).some((t) => t.startsWith(p))),
+        )
+        .sort((a, b) => Number(!a.h.startsWith(p)) - Number(!b.h.startsWith(p)));
     }, [mention, members]);
+    const listRef = useRef<HTMLDivElement>(null);
 
     // Reset highlighted row whenever the candidate list changes shape.
     useEffect(() => {
       setHighlighted(0);
     }, [mention?.prefix]);
+
+    // Keep the keyboard-highlighted row visible in the scrolling list.
+    useEffect(() => {
+      listRef.current
+        ?.querySelector<HTMLElement>(`[data-index="${highlighted}"]`)
+        ?.scrollIntoView({ block: "nearest" });
+    }, [highlighted]);
 
     // Anchor the dropdown below the textarea each time it opens.
     useEffect(() => {
@@ -113,7 +160,13 @@ export const MentionTextarea = forwardRef<HTMLTextAreaElement, Props>(
       const el = localRef.current;
       if (!el) return;
       const r = el.getBoundingClientRect();
-      setPos({ left: r.left, top: r.bottom + 4, width: r.width });
+      const LIST_MAX_H = 256; // matches max-h-64
+      const below = window.innerHeight - r.bottom;
+      if (below < LIST_MAX_H + 8 && r.top > below) {
+        setPos({ left: r.left, width: r.width, bottom: window.innerHeight - r.top + 4 });
+      } else {
+        setPos({ left: r.left, width: r.width, top: r.bottom + 4 });
+      }
     }, [mention]);
 
     function syncMention() {
@@ -126,7 +179,7 @@ export const MentionTextarea = forwardRef<HTMLTextAreaElement, Props>(
     function commit(member: Member) {
       const el = localRef.current;
       if (!el || !mention) return;
-      const handle = handleFor(member);
+      const handle = insertHandleFor(member, members);
       const before = value.slice(0, mention.start);
       const after = value.slice(el.selectionStart ?? value.length);
       const next = `${before}@${handle} ${after}`;
@@ -197,17 +250,20 @@ export const MentionTextarea = forwardRef<HTMLTextAreaElement, Props>(
           candidates.length > 0 &&
           createPortal(
             <div
+              ref={listRef}
               style={{
                 position: "fixed",
                 left: pos.left,
                 top: pos.top,
-                width: Math.min(pos.width, 280),
+                bottom: pos.bottom,
+                width: Math.min(pos.width, 300),
               }}
-              className="z-50 rounded-lg border border-slate-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-xl py-1"
+              className="z-50 max-h-64 overflow-y-auto rounded-lg border border-slate-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-xl py-1"
             >
-              {candidates.map(({ m, h }, i) => (
+              {candidates.map(({ m }, i) => (
                 <button
                   key={m.user_id}
+                  data-index={i}
                   type="button"
                   // Use mousedown not click — textarea's onBlur fires before
                   // click would, and we'd lose the selection state.
@@ -216,16 +272,28 @@ export const MentionTextarea = forwardRef<HTMLTextAreaElement, Props>(
                     commit(m);
                   }}
                   onMouseEnter={() => setHighlighted(i)}
-                  className={`w-full text-left px-3 py-1.5 text-sm flex items-baseline gap-2 ${
+                  className={`w-full text-left px-3 py-2 text-sm flex items-center gap-2 ${
                     i === highlighted ? "bg-slate-100 dark:bg-neutral-800" : "hover:bg-slate-50 dark:hover:bg-neutral-800/50"
                   }`}
                 >
-                  <span className="font-medium text-slate-900 dark:text-neutral-200">@{h}</span>
-                  {m.display_name && (
-                    <span className="text-xs text-slate-500 dark:text-neutral-400 truncate">
-                      {m.display_name}
+                  <Avatar
+                    displayName={m.display_name}
+                    email={m.email}
+                    avatarUrl={m.avatar_url}
+                    color={m.avatar_color}
+                    size={24}
+                    className="shrink-0"
+                  />
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-slate-900 dark:text-neutral-200">
+                      {m.display_name?.trim() || m.email}
                     </span>
-                  )}
+                    {m.display_name?.trim() && m.email && (
+                      <span className="block truncate text-xs text-slate-400 dark:text-neutral-500">
+                        {m.email}
+                      </span>
+                    )}
+                  </span>
                 </button>
               ))}
             </div>,
