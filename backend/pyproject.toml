@@ -13,6 +13,7 @@ dependencies = [
   "resend>=2.0",
   "stripe>=10",
   "anthropic>=0.105.2",
+  "certifi>=2026.4.22",
 ]
 
 [dependency-groups]

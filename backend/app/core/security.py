@@ -1,6 +1,8 @@
+import ssl
 import time
 from threading import Lock
 
+import certifi
 import jwt
 from jwt import InvalidTokenError as PyJWTInvalidTokenError
 from jwt import PyJWKClient
@@ -19,6 +21,13 @@ class InvalidTokenError(Exception):
 _jwks_clients: dict[str, PyJWKClient] = {}
 _jwks_clients_lock = Lock()
 
+# PyJWKClient fetches over urllib, which uses the interpreter's default CA
+# store. uv-managed Pythons on macOS ship without one, so local runs against
+# hosted Supabase (`make dev-prd`) failed every request with
+# CERTIFICATE_VERIFY_FAILED. certifi's bundle is the same everywhere, so this
+# is a no-op on the Linux prod image.
+_JWKS_SSL_CONTEXT = ssl.create_default_context(cafile=certifi.where())
+
 
 def _get_jwks_client(jwks_url: str) -> PyJWKClient:
     """Return a process-wide cached PyJWKClient for the given URL."""
@@ -28,7 +37,12 @@ def _get_jwks_client(jwks_url: str) -> PyJWKClient:
     with _jwks_clients_lock:
         client = _jwks_clients.get(jwks_url)
         if client is None:
-            client = PyJWKClient(jwks_url, cache_keys=True, lifespan=600)
+            client = PyJWKClient(
+                jwks_url,
+                cache_keys=True,
+                lifespan=600,
+                ssl_context=_JWKS_SSL_CONTEXT,
+            )
             _jwks_clients[jwks_url] = client
         return client
 
