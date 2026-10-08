@@ -15,6 +15,7 @@ from starlette.applications import Starlette
 from .client import init_client
 from .config import load_config
 from .middleware import AuthMiddleware
+from .oauth.google import GoogleOAuthClient
 from .oauth.routes import build_oauth_router
 from .oauth.state import StateStore
 from .oauth.supabase import SupabaseAuthClient
@@ -32,10 +33,16 @@ def create_app() -> Starlette:
         supabase_url=cfg.supabase_url,
         anon_key=cfg.supabase_anon_key,
     )
+    google = (
+        GoogleOAuthClient(cfg.google_client_id, cfg.google_client_secret)
+        if cfg.google_client_id and cfg.google_client_secret
+        else None
+    )
     oauth = build_oauth_router(
         store=store,
         supabase=supabase,
         server_base_url=cfg.server_base_url,
+        google=google,
     )
 
     # FastMCP exposes its streamable-HTTP ASGI app via a method that varies by
@@ -57,6 +64,8 @@ def create_app() -> Starlette:
         finally:
             sweeper.cancel()
             await supabase.aclose()
+            if google is not None:
+                await google.aclose()
 
     # Serve FastMCP's streamable-HTTP route at the TOP LEVEL, next to the OAuth
     # routes. FastMCP already exposes it as Route("/mcp"), so we lift that route

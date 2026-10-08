@@ -56,6 +56,19 @@ class SupabaseAuthClient:
             extra={"auth_code": code, "code_verifier": code_verifier},
         )
 
+    async def sign_in_with_id_token(
+        self, id_token: str, access_token: str | None = None
+    ) -> dict[str, Any]:
+        """Exchange a Google ID token for a Supabase session.
+
+        Google code-flow ID tokens carry an `at_hash`, which Supabase checks
+        against `access_token` when provided.
+        """
+        extra = {"provider": "google", "id_token": id_token}
+        if access_token:
+            extra["access_token"] = access_token
+        return await self._post_token(grant_type="id_token", extra=extra)
+
     async def refresh(self, refresh_token: str) -> dict[str, Any]:
         return await self._post_token(
             grant_type="refresh_token",

@@ -6,6 +6,7 @@ Endpoints:
   - GET /authorize                  (renders picker; stores request_id → AuthState)
   - GET /authorize/start            (button-click; redirect to Supabase)
   - GET /callback                   (Supabase → us; exchanges code, redirects client)
+  - GET /callback/google            (Google → us, direct Google flow; see google.py)
   - POST /token                     (authorization_code + refresh_token grants)
 
 Security invariants enforced inline:
@@ -23,6 +24,7 @@ from starlette.requests import Request
 from starlette.responses import HTMLResponse, JSONResponse, RedirectResponse, Response
 from starlette.routing import Route, Router
 
+from .google import GoogleOAuthClient, GoogleOAuthError
 from .picker import render_picker
 from .state import AuthState, StateStore, SupabaseTokens
 from .supabase import SupabaseAuthClient, SupabaseAuthError
@@ -38,9 +40,47 @@ def _token_url(secrets_bytes: int = 32) -> str:
 
 
 def build_oauth_router(
-    *, store: StateStore, supabase: SupabaseAuthClient, server_base_url: str
+    *,
+    store: StateStore,
+    supabase: SupabaseAuthClient,
+    server_base_url: str,
+    google: GoogleOAuthClient | None = None,
 ) -> Router:
     base = server_base_url.rstrip("/")
+    google_redirect_uri = f"{base}/callback/google"
+
+    def _set_flow_cookie(resp: Response, flow_id: str) -> None:
+        # Binds the flow to this browser: /callback* only proceeds if the
+        # returning browser carries the id it was sent off with. SameSite=Lax
+        # so it rides the top-level redirect back from Supabase / Google.
+        resp.set_cookie(
+            "mcp_flow",
+            flow_id,
+            max_age=600,
+            httponly=True,
+            secure=True,
+            samesite="lax",
+            path="/",
+        )
+
+    def _redirect_to_client(saved: AuthState, tokens: dict) -> Response:
+        """Mint our one-time code for a Supabase session; hand it to the client."""
+        mcp_code = _token_url()
+        store.put_tokens(
+            mcp_code,
+            SupabaseTokens(
+                access_token=tokens["access_token"],
+                refresh_token=tokens["refresh_token"],
+                client_challenge=saved.client_challenge,
+            ),
+        )
+        loc = saved.client_redirect_uri + "?" + urlencode({
+            "code": mcp_code,
+            "state": saved.client_state,
+        })
+        resp = RedirectResponse(loc, status_code=303)
+        resp.delete_cookie("mcp_flow", path="/")
+        return resp
 
     async def well_known_resource(_: Request) -> JSONResponse:
         return JSONResponse({
@@ -143,24 +183,22 @@ def build_oauth_router(
                 client_state=saved.client_state,
             ),
         )
-        url = supabase.build_authorize_url(
-            provider=provider_raw,  # type: ignore[arg-type]
-            redirect_to=f"{base}/callback",
-            code_challenge=server_challenge,
-        )
+        if provider_raw == "google" and google is not None:
+            # Direct Google flow; Google echoes `state`, and the cookie binds
+            # the flow to this browser.
+            url = google.build_authorize_url(
+                redirect_uri=google_redirect_uri, state=new_state
+            )
+        else:
+            url = supabase.build_authorize_url(
+                provider=provider_raw,  # type: ignore[arg-type]
+                redirect_to=f"{base}/callback",
+                code_challenge=server_challenge,
+            )
         # Correlate this flow at /callback via a first-party cookie (Supabase
-        # returns only ?code=, no echo of our state). SameSite=Lax so it's sent
-        # on the top-level redirect back from Supabase.
+        # returns only ?code=, no echo of our state).
         resp = RedirectResponse(url, status_code=303)
-        resp.set_cookie(
-            "mcp_flow",
-            new_state,
-            max_age=600,
-            httponly=True,
-            secure=True,
-            samesite="lax",
-            path="/",
-        )
+        _set_flow_cookie(resp, new_state)
         return resp
 
     async def callback(request: Request) -> Response:
@@ -186,22 +224,34 @@ def build_oauth_router(
         except SupabaseAuthError as e:
             return JSONResponse({"error": "exchange failed", "detail": str(e)}, status_code=502)
 
-        mcp_code = _token_url()
-        store.put_tokens(
-            mcp_code,
-            SupabaseTokens(
-                access_token=tokens["access_token"],
-                refresh_token=tokens["refresh_token"],
-                client_challenge=saved.client_challenge,
-            ),
-        )
-        loc = saved.client_redirect_uri + "?" + urlencode({
-            "code": mcp_code,
-            "state": saved.client_state,
-        })
-        resp = RedirectResponse(loc, status_code=303)
-        resp.delete_cookie("mcp_flow", path="/")
-        return resp
+        return _redirect_to_client(saved, tokens)
+
+    async def google_callback(request: Request) -> Response:
+        # Google redirects here with ?code=&state= (or ?error= on cancel).
+        if google is None:
+            return JSONResponse({"error": "google sign-in not configured"}, status_code=404)
+        code = request.query_params.get("code", "")
+        state = request.query_params.get("state", "")
+        flow_id = request.cookies.get("mcp_flow", "")
+        if not code:
+            err = request.query_params.get("error") or "missing code"
+            return JSONResponse({"error": "oauth failed", "detail": err}, status_code=400)
+        if not flow_id or not secrets.compare_digest(flow_id, state):
+            return JSONResponse({"error": "flow mismatch (start over)"}, status_code=400)
+        try:
+            saved = store.pop_auth(flow_id)
+        except KeyError:
+            return JSONResponse({"error": "flow expired or invalid"}, status_code=400)
+
+        try:
+            g = await google.exchange_code(code=code, redirect_uri=google_redirect_uri)
+            tokens = await supabase.sign_in_with_id_token(
+                id_token=g["id_token"], access_token=g.get("access_token")
+            )
+        except (GoogleOAuthError, SupabaseAuthError) as e:
+            return JSONResponse({"error": "exchange failed", "detail": str(e)}, status_code=502)
+
+        return _redirect_to_client(saved, tokens)
 
     async def token(request: Request) -> Response:
         form = await request.form()
@@ -251,5 +301,6 @@ def build_oauth_router(
         Route("/authorize", authorize, methods=["GET"]),
         Route("/authorize/start", authorize_start, methods=["GET"]),
         Route("/callback", callback, methods=["GET"]),
+        Route("/callback/google", google_callback, methods=["GET"]),
         Route("/token", token, methods=["POST"]),
     ])
