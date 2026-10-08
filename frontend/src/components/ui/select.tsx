@@ -24,6 +24,11 @@ type Props<T extends string> = {
   // the dropdown rows are richer than fits on one line (e.g. avatar + name
   // + email stacked). Defaults to renderOption.
   renderValue?: (option: Option<T>) => React.ReactNode;
+  // When provided, the dropdown gets a search box on top that filters
+  // options by this text (case-insensitive substring) — for long lists
+  // such as workspace members. Enter picks the first match.
+  getSearchText?: (option: Option<T>) => string;
+  searchPlaceholder?: string;
 };
 
 /**
@@ -40,8 +45,11 @@ export function Select<T extends string>({
   placeholder,
   renderOption,
   renderValue = renderOption,
+  getSearchText,
+  searchPlaceholder = "Search…",
 }: Props<T>) {
   const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -63,12 +71,27 @@ export function Select<T extends string>({
   }, [open]);
 
   const current = options.find((o) => o.value === value);
+  const q = query.trim().toLowerCase();
+  const visible =
+    getSearchText && q
+      ? options.filter((o) => getSearchText(o).toLowerCase().includes(q))
+      : options;
+
+  function pick(v: T) {
+    onChange(v);
+    setOpen(false);
+  }
+
+  function toggle() {
+    setQuery("");
+    setOpen((v) => !v);
+  }
 
   return (
     <div className={`relative ${className}`} ref={ref}>
       <button
         type="button"
-        onClick={() => setOpen((v) => !v)}
+        onClick={toggle}
         className={`w-full flex items-center justify-between rounded border border-slate-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 px-2.5 py-1.5 text-sm text-slate-700 dark:text-neutral-300 hover:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-300 ${triggerClassName}`}
       >
         <span className="truncate">
@@ -81,29 +104,50 @@ export function Select<T extends string>({
         <span className="text-slate-400 dark:text-neutral-500 text-xs ml-2 shrink-0">▾</span>
       </button>
       {open && (
-        <div className="absolute z-20 mt-1 left-0 right-0 max-h-60 overflow-auto rounded-md border border-slate-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-lg py-1">
-          {options.map((o) => (
-            <button
-              key={o.value}
-              type="button"
-              onClick={() => {
-                onChange(o.value);
-                setOpen(false);
+        <div className="absolute z-20 mt-1 left-0 right-0 overflow-hidden rounded-md border border-slate-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-lg">
+          {getSearchText && (
+            <input
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  if (visible[0]) pick(visible[0].value);
+                }
               }}
-              className={
-                o.value === value
-                  ? "w-full text-left px-3 py-1.5 text-sm bg-slate-50 dark:bg-neutral-800/40 font-medium flex items-center justify-between"
-                  : "w-full text-left px-3 py-1.5 text-sm hover:bg-slate-50 dark:hover:bg-neutral-800/50 flex items-center justify-between"
-              }
-            >
-              <span className="min-w-0 flex-1">
-                {renderOption ? renderOption(o) : o.label}
-              </span>
-              {o.value === value && (
-                <span className="text-slate-400 dark:text-neutral-500 text-xs">✓</span>
-              )}
-            </button>
-          ))}
+              placeholder={searchPlaceholder}
+              aria-label={searchPlaceholder}
+              autoFocus
+              className="w-full px-3 py-2 text-sm outline-none border-b border-slate-100 dark:border-neutral-800 bg-white dark:bg-neutral-900 text-slate-900 dark:text-neutral-200 placeholder:text-slate-400"
+            />
+          )}
+          <div className="max-h-60 overflow-auto py-1">
+            {visible.length === 0 && (
+              <p className="px-3 py-2 text-sm text-slate-400 dark:text-neutral-500">
+                No matches
+              </p>
+            )}
+            {visible.map((o) => (
+              <button
+                key={o.value}
+                type="button"
+                onClick={() => pick(o.value)}
+                className={
+                  o.value === value
+                    ? "w-full text-left px-3 py-1.5 text-sm bg-slate-50 dark:bg-neutral-800/40 font-medium flex items-center justify-between"
+                    : "w-full text-left px-3 py-1.5 text-sm hover:bg-slate-50 dark:hover:bg-neutral-800/50 flex items-center justify-between"
+                }
+              >
+                <span className="min-w-0 flex-1">
+                  {renderOption ? renderOption(o) : o.label}
+                </span>
+                {o.value === value && (
+                  <span className="text-slate-400 dark:text-neutral-500 text-xs">✓</span>
+                )}
+              </button>
+            ))}
+          </div>
         </div>
       )}
     </div>

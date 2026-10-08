@@ -1857,6 +1857,11 @@ export function TaskDetailContent({
                     </span>
                   );
                 }}
+                getSearchText={(o) => {
+                  const m = members.find((mm) => mm.user_id === o.value);
+                  return `${o.label} ${m?.email ?? ""}`;
+                }}
+                searchPlaceholder="Search members…"
                 renderValue={(o) => {
                   if (o.value === "") {
                     return (
