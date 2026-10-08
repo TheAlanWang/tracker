@@ -26,3 +26,14 @@ def test_html_escapes_input():
     )
     assert "<script>alert(1)</script>" not in html
     assert "&lt;script&gt;" in html
+
+
+def test_renders_trackly_logo_from_web_url(monkeypatch):
+    monkeypatch.setenv("WEB_URL", "https://web.test/")
+    html = render_picker(
+        request_id="r",
+        client_state="x",
+        client_challenge="y",
+        client_redirect_uri="http://127.0.0.1:1/cb",
+    )
+    assert 'src="https://web.test/oauth/logo-120.png"' in html

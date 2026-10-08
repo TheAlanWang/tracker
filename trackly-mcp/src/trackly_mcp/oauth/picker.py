@@ -11,6 +11,8 @@ the picker was first rendered.
 
 from html import escape
 
+from ..config import public_web_url
+
 
 _TEMPLATE = """<!DOCTYPE html>
 <html lang="en">
@@ -35,6 +37,12 @@ _TEMPLATE = """<!DOCTYPE html>
       padding: 32px;
       max-width: 360px;
       width: 100%;
+    }}
+    .logo {{
+      width: 40px;
+      height: 40px;
+      display: block;
+      margin-bottom: 16px;
     }}
     h1 {{
       font-size: 18px;
@@ -61,6 +69,7 @@ _TEMPLATE = """<!DOCTYPE html>
 </head>
 <body>
   <div class="card">
+    <img class="logo" src="{logo_url}" alt="Trackly" width="40" height="40">
     <h1>Sign in to Trackly</h1>
     <p class="sub">Connect your Claude / Cursor MCP client to Trackly.</p>
     <a class="btn github" href="/authorize/start?request_id={request_id}&provider=github">Continue with GitHub</a>
@@ -80,4 +89,7 @@ def render_picker(
     """client_state / client_challenge / client_redirect_uri are unused in HTML
     (they live in the server-side state dict under request_id). Kept in signature
     to document what request_id points to."""
-    return _TEMPLATE.format(request_id=escape(request_id, quote=True))
+    return _TEMPLATE.format(
+        request_id=escape(request_id, quote=True),
+        logo_url=escape(f"{public_web_url()}/oauth/logo-120.png", quote=True),
+    )

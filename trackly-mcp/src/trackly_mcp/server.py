@@ -19,6 +19,7 @@ from typing import Any, Literal
 
 from mcp.server.fastmcp import FastMCP
 from mcp.server.transport_security import TransportSecuritySettings
+from mcp.types import Icon
 
 from .client import (
     TracklyError,
@@ -28,6 +29,7 @@ from .client import (
     resolve_task_identifier,
     resolve_workspace,
 )
+from .config import public_web_url
 
 # FastMCP's `settings.host` defaults to 127.0.0.1, which makes it auto-enable
 # DNS-rebinding protection that only allows a localhost Host header. Behind Fly
@@ -36,8 +38,17 @@ from .client import (
 # reaching a *localhost-bound* MCP server; this is a public, OAuth-Bearer-gated
 # service, so the bearer token is the security boundary and the Host check is
 # both inapplicable and harmful. Disable it explicitly.
+_WEB_URL = public_web_url()
+
 mcp = FastMCP(
     "trackly",
+    # Shown by MCP clients that render server branding (connector lists).
+    # The PNGs are served by the frontend from frontend/public/oauth/.
+    website_url=_WEB_URL,
+    icons=[
+        Icon(src=f"{_WEB_URL}/oauth/logo-512.png", mimeType="image/png", sizes=["512x512"]),
+        Icon(src=f"{_WEB_URL}/oauth/logo-120.png", mimeType="image/png", sizes=["120x120"]),
+    ],
     # Stateless: each HTTP request is processed inline, in a task derived from
     # that request's context. This is REQUIRED for our auth model — the
     # AuthMiddleware stashes the caller's bearer in a contextvar and the tools
