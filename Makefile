@@ -1,5 +1,9 @@
 .PHONY: help install dev dev-prd api api-prd web web-prd bench test test-api test-web test-e2e migrate seed clean db-status
 
+# Use a globally installed pnpm if there is one; otherwise run the version the
+# lockfile was built with via npx (no global install needed).
+PNPM ?= $(shell command -v pnpm 2>/dev/null || echo npx -y pnpm@9.15.9)
+
 # Bench tunables — override on the CLI:  make bench COUNT=50 CONC=5
 COUNT ?= 100
 CONC ?= 1
@@ -26,7 +30,7 @@ help:
 
 install:
 	cd backend && uv sync
-	cd frontend && pnpm install
+	cd frontend && $(PNPM) install
 
 dev:
 	@echo "Starting Supabase Local…"
@@ -34,14 +38,14 @@ dev:
 	@echo ""
 	@echo "→ Using .env.dev (local Supabase). Starting api :8000 + web :5173"
 	@(cd backend && APP_ENV=dev uv run uvicorn app.main:app --port 8000 --reload) & \
-	 (cd frontend && pnpm dev --mode dev) ; \
+	 (cd frontend && $(PNPM) dev) ; \
 	 wait
 
 dev-prd:
 	@echo "⚠️  Using .env.prd (HOSTED Supabase). No local Supabase needed."
 	@echo "→ Starting api :8000 + web :5173"
 	@(cd backend && APP_ENV=prd uv run uvicorn app.main:app --port 8000 --reload) & \
-	 (cd frontend && pnpm dev --mode prd) ; \
+	 (cd frontend && $(PNPM) dev:prd) ; \
 	 wait
 
 api:
@@ -51,10 +55,10 @@ api-prd:
 	cd backend && APP_ENV=prd uv run uvicorn app.main:app --port 8000 --reload
 
 web:
-	cd frontend && pnpm dev --mode dev
+	cd frontend && $(PNPM) dev
 
 web-prd:
-	cd frontend && pnpm dev --mode prd
+	cd frontend && $(PNPM) dev:prd
 
 bench:
 	@cd backend && APP_ENV=prd uv run python -m scripts.bench --count $(COUNT) --concurrency $(CONC)
@@ -65,10 +69,10 @@ test-api:
 	cd backend && uv run pytest
 
 test-web:
-	cd frontend && pnpm tsc --noEmit
+	cd frontend && $(PNPM) exec tsc --noEmit
 
 test-e2e:
-	cd frontend && pnpm exec playwright test
+	cd frontend && $(PNPM) exec playwright test
 
 migrate:
 	supabase db reset
