@@ -1586,7 +1586,10 @@ function SidebarNav({
         </div>
       )}
 
-      {showModal && (
+      {/* Portal: the sidebar wrapper's `lg:translate-x-0` makes it the
+          containing block for `fixed` descendants, which would trap this
+          overlay inside the sidebar instead of covering the viewport. */}
+      {showModal && createPortal(
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4"
           onClick={() => setShowModal(false)}
@@ -1662,7 +1665,8 @@ function SidebarNav({
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
 
       {projects.length === 0 && (
