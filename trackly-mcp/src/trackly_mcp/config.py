@@ -49,7 +49,7 @@ def load_config() -> Config:
     if missing:
         raise RuntimeError(
             f"Missing required env vars: {', '.join(missing)}. "
-            f"Set them via `fly secrets set` (production) or `.env` (local dev)."
+            f"Set them as Railway service variables (production) or in `.env` (local dev)."
         )
     return Config(
         supabase_url=os.environ["SUPABASE_URL"].rstrip("/"),

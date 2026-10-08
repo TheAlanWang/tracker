@@ -22,5 +22,5 @@ ENV PATH="/app/.venv/bin:$PATH"
 EXPOSE 8000
 
 # Honour $PORT when the platform injects one (Railway); fall back to 8000
-# (Fly internal_port / local dev). Shell form so $PORT expands.
+# (local dev). Shell form so $PORT expands.
 CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
