@@ -1,6 +1,6 @@
 """Latency benchmark for any tracker-api endpoint.
 
-Targets either prod (Fly) or local dev. Picks a real user from the database,
+Targets either prod (Railway) or local dev. Picks a real user from the database,
 mints an HS256 JWT signed with the project's SUPABASE_JWT_SECRET so the
 request passes auth + RLS, hits the endpoint N times (optionally concurrent),
 prints p50/p90/p95/p99/min/max/mean.
