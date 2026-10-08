@@ -400,8 +400,10 @@ export function LoginDialog({
 
           {!isSignin && (
             <p className="text-[11px] text-slate-400 dark:text-neutral-500 leading-relaxed">
-              By creating an account, you agree to our terms and acknowledge
-              the privacy policy.
+              By creating an account, you agree to our{" "}
+              <a href="/terms" target="_blank" rel="noreferrer" className="underline underline-offset-2 hover:text-slate-600 dark:hover:text-neutral-300">terms</a>{" "}
+              and acknowledge the{" "}
+              <a href="/privacy" target="_blank" rel="noreferrer" className="underline underline-offset-2 hover:text-slate-600 dark:hover:text-neutral-300">privacy policy</a>.
             </p>
           )}
         </form>
