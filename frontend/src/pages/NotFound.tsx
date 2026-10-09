@@ -5,7 +5,7 @@
 
 import { Link, useLocation } from "react-router-dom";
 
-import { buttonVariants } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button-variants";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 
 export default function NotFound() {
