@@ -56,11 +56,3 @@ export function GoalPicker({
     />
   );
 }
-
-export function findGoalById(
-  goals: { id: string; title: string }[],
-  id: string | null,
-): string | null {
-  if (!id) return null;
-  return goals.find((g) => g.id === id)?.title ?? null;
-}

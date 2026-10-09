@@ -48,7 +48,9 @@ export function AgentLauncher({ onOpen }: { onOpen: () => void }) {
     return defaultPos();
   });
   const posRef = useRef(pos);
-  posRef.current = pos;
+  useEffect(() => {
+    posRef.current = pos;
+  }, [pos]);
 
   // Re-clamp if the window shrinks so the button can't get stranded offscreen.
   useEffect(() => {

@@ -1,7 +1,7 @@
 import { Navigate } from "react-router-dom";
 
 import { PageSpinner } from "@/components/PageSpinner";
-import { useAuth } from "@/lib/auth";
+import { useAuth } from "@/lib/auth-context";
 
 export function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { session, loading } = useAuth();
