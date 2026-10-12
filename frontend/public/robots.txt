@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+# App routes are behind login — nothing for crawlers there.
+Disallow: /w/
+Disallow: /browse/
+Disallow: /t/
+Disallow: /auth/
+Disallow: /reset-password
+
+Sitemap: https://gettrackly.dev/sitemap.xml
