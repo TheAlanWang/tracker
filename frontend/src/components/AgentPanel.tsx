@@ -56,7 +56,9 @@ export function AgentPanel({
     return saved >= 360 && saved <= 760 ? saved : 420;
   });
   const widthRef = useRef(width);
-  widthRef.current = width;
+  useEffect(() => {
+    widthRef.current = width;
+  }, [width]);
 
   function startResize(e: React.MouseEvent) {
     e.preventDefault();

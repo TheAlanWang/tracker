@@ -13,7 +13,7 @@ import { ProjectLayout } from "@/components/ProjectLayout";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { WorkspaceLayout } from "@/components/WorkspaceLayout";
 import { FocusedTaskLayout } from "@/components/FocusedTaskLayout";
-import { useAuth } from "@/lib/auth";
+import { useAuth } from "@/lib/auth-context";
 import Archive from "@/pages/Archive";
 import AuthCallback from "@/pages/AuthCallback";
 import AuthConfirm from "@/pages/AuthConfirm";

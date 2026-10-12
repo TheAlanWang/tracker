@@ -254,10 +254,3 @@ export function ChecklistSection({ taskId }: { taskId: string }) {
   );
 }
 
-// Helper exported for TaskDetail's "marked done with unchecked items" toast.
-// Returns the count of unchecked items for a task without re-fetching.
-// Implemented as a hook so TaskDetail can simply read the count.
-export function useUncheckedCount(taskId: string): number {
-  const { data: items = [] } = useChecklist(taskId);
-  return items.filter((i) => !i.done).length;
-}
