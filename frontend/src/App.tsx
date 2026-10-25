@@ -13,6 +13,7 @@ import { ProjectLayout } from "@/components/ProjectLayout";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { WorkspaceLayout } from "@/components/WorkspaceLayout";
 import { FocusedTaskLayout } from "@/components/FocusedTaskLayout";
+import { GaPageViews } from "@/components/GaPageViews";
 import { useAuth } from "@/lib/auth-context";
 import Archive from "@/pages/Archive";
 import AuthCallback from "@/pages/AuthCallback";
@@ -72,6 +73,8 @@ export default function App() {
           referrers. Same root-level mount so SPA route changes get
           tracked. Dashboard → Analytics tab. */}
       <Analytics />
+      {/* Google Analytics — prod only, sanitized paths. See lib/analytics. */}
+      <GaPageViews />
       <Routes>
         {/* Legacy /login URL — keep functional but redirect to landing with
             the modal auto-open. */}

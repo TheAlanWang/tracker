@@ -34,8 +34,8 @@ export default function Privacy() {
           email; we never see or store your full card number.
         </li>
         <li>
-          <strong>Usage data</strong> — basic, cookie-free page-view analytics
-          and performance metrics, and server logs (such as IP address and
+          <strong>Usage data</strong> — page-view analytics (via Vercel and
+          Google Analytics, which sets cookies) and performance metrics, and server logs (such as IP address and
           request times) used for security and debugging.
         </li>
       </ul>
@@ -74,6 +74,7 @@ export default function Privacy() {
       <ul>
         <li><strong>Supabase</strong> — database and authentication</li>
         <li><strong>Vercel</strong> — web hosting and analytics</li>
+        <li><strong>Google Analytics</strong> — aggregate website usage analytics</li>
         <li><strong>Railway</strong> — API and MCP server hosting</li>
         <li><strong>Resend</strong> — transactional email</li>
         <li><strong>Stripe</strong> — payment processing</li>
