@@ -95,6 +95,20 @@ describe("AutosaveMarkdown", () => {
     expect(saved).not.toContain("![uploading");
   });
 
+  it("blur then unmount right away saves once", async () => {
+    let finish!: () => void;
+    const onSave = vi.fn(() => new Promise<void>((r) => (finish = r)));
+    const { view } = await mount({ onSave });
+    view.focus();
+    await type(view, "!");
+    await blur(view);
+    await act(async () => root!.unmount());
+    root = null;
+    await new Promise((r) => setTimeout(r, 10));
+    finish();
+    expect(onSave).toHaveBeenCalledTimes(1);
+  });
+
   it("does not overwrite local edits on external value change while focused", async () => {
     const { view, rerender } = await mount();
     view.focus();

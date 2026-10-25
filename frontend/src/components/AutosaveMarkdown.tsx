@@ -35,6 +35,8 @@ export function AutosaveMarkdown({ value, onSave, workspaceId, userId, placehold
   const textRef = useRef(value);
   const baseRef = useRef(value);
   const valueRef = useRef(value);
+  /** The text whose save is in flight. */
+  const savingRef = useRef<string | null>(null);
   const onSaveRef = useRef(onSave);
   useEffect(() => {
     onSaveRef.current = onSave;
@@ -72,11 +74,17 @@ export function AutosaveMarkdown({ value, onSave, workspaceId, userId, placehold
       }
       return;
     }
+    // Blur and unmount often come back to back (click outside → modal
+    // closes): one save per text.
+    if (t === savingRef.current) return;
+    savingRef.current = t;
     try {
       await onSaveRef.current(t);
       baseRef.current = t;
     } catch (err) {
       toast.error(err instanceof Error ? `Couldn't save: ${err.message}` : "Couldn't save");
+    } finally {
+      if (savingRef.current === t) savingRef.current = null;
     }
   }, [settled]);
 
