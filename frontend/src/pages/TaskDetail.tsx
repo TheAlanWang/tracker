@@ -20,9 +20,6 @@
 
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
-import ReactMarkdown from "react-markdown";
-import rehypeHighlight from "rehype-highlight";
-import remarkGfm from "remark-gfm";
 import { toast } from "sonner";
 import { Activity as ActivityIcon, AlignLeft, ArrowUpDown, ChevronRight, Mail, MessageSquare, Pencil, Trash2 } from "lucide-react";
 
@@ -44,9 +41,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
 import { CommentBody } from "@/components/CommentBody";
-import { TaskImage } from "@/components/TaskImage";
-import { markdownUrlTransform } from "@/lib/resolveTaskImageUrl";
 import { useImagePasteUpload } from "@/lib/useImagePasteUpload";
+import { AutosaveMarkdown } from "@/components/AutosaveMarkdown";
 import type { LiveMarkdownEditorHandle } from "@/components/LiveMarkdownEditor";
 import { LazyLiveMarkdownEditor } from "@/components/LiveMarkdownEditor.lazy";
 import { ChecklistSection } from "@/components/ChecklistSection";
@@ -618,12 +614,8 @@ export function TaskDetailContent({
   // Title editor: ref used by the auto-grow effect that lets the textarea
   // wrap long titles onto multiple lines without showing a scrollbar.
   const titleTextareaRef = useRef<HTMLTextAreaElement>(null);
-  const [descDraft, setDescDraft] = useState("");
-  // Description editor: ref for cursor-position insertion (image paste/drop)
-  // + a drag-over flag to show the "Drop image to upload" overlay + a tab
-  // mode that swaps the textarea for a rendered preview while still editing.
-  const descTextareaRef = useRef<HTMLTextAreaElement>(null);
-  const [descEditMode, setDescEditMode] = useState<"edit" | "preview">("edit");
+  // The description is not a draft: it's click-to-edit and autosaves on its
+  // own (AutosaveMarkdown), outside the Edit → Save flow.
   // Lightbox: URL of the image to display full-screen, or null. Wired into
   // every ReactMarkdown render on this page (description view, description
   // preview, comments) via a shared `img` component override.
@@ -644,18 +636,20 @@ export function TaskDetailContent({
     new Set(),
   );
 
-  // Hydrate draft fields from the loaded task. useQuery returns a stable
-  // reference until the task id changes, so this effect fires once per
-  // task-open, not on every render — the "cascading renders" failure mode
-  // the eslint rule is paranoid about doesn't apply here. Splitting this
-  // 600-line component into outer-loader + inner-drafts would pipe 8+ hooks
-  // through props and obscure the page logic, which is why we suppress
-  // locally instead.
-  /* eslint-disable react-hooks/set-state-in-effect */
+  // Hydrate draft fields from the loaded task: once per task-open, and
+  // again whenever the task changes while not in Edit mode (e.g. after Save).
+  // The description autosaves through the same mutation, which writes the
+  // new task into the cache; while the user is in Edit mode on the same
+  // task, that must not reset their other drafts or drop them out of edit.
+  const hydratedFor = useRef<{ id: string; editing: boolean }>({ id: "", editing: false });
+  useEffect(() => {
+    hydratedFor.current.editing = isEditing;
+  });
   useEffect(() => {
     if (task) {
+      if (hydratedFor.current.editing && hydratedFor.current.id === task.id) return;
+      hydratedFor.current.id = task.id;
       setTitleDraft(task.title);
-      setDescDraft(task.description);
       setStatusDraft(task.status);
       setPriorityDraft(task.priority);
       setDueDateDraft(task.due_date ?? "");
@@ -667,7 +661,6 @@ export function TaskDetailContent({
       setIsEditing(false); // reset to view mode when opening a different task
     }
   }, [task]);
-  /* eslint-enable react-hooks/set-state-in-effect */
 
   // Auto-grow the title textarea so a long title wraps onto multiple lines
   // without showing a scrollbar. Runs on every titleDraft change and on
@@ -697,47 +690,9 @@ export function TaskDetailContent({
       window.removeEventListener("keydown", onKey, { capture: true });
   }, [lightboxUrl]);
 
-  // Markdown component overrides: clickable images. Passed to every
-  // ReactMarkdown on this page so any image (description / preview /
-  // comment) opens the lightbox on click. Memoized to avoid recreating
-  // the function on every render (which would invalidate ReactMarkdown's
-  // internal caching).
-  const markdownComponents = useMemo(
-    () => ({
-      img: ({ src, alt }: React.ImgHTMLAttributes<HTMLImageElement>) => (
-        <TaskImage
-          src={typeof src === "string" ? src : undefined}
-          alt={typeof alt === "string" ? alt : undefined}
-          onClick={(resolvedUrl) => setLightboxUrl(resolvedUrl)}
-          // Cap rendered size so a 4K screenshot doesn't dominate the
-          // description; aspect ratio preserved via w-auto. Click →
-          // lightbox shows the original full-size (already resolved).
-          className="cursor-zoom-in rounded max-h-96 w-auto"
-        />
-      ),
-      // GFM tables can't shrink below their min-content width, so a wide
-      // table would spill under the side rail. Scroll the table itself
-      // instead (GitHub-style wrapper) rather than the whole description.
-      // The cell min-width keeps CJK columns (breakable between any two
-      // chars) from being squeezed to 2–3 chars per line by long
-      // unbreakable URLs/filenames in sibling columns — overflow goes to
-      // the horizontal scroll instead. Harmless on small tables: it's
-      // only a floor, prose tables still stretch to 100%.
-      table: ({ children }: React.TableHTMLAttributes<HTMLTableElement>) => (
-        <div className="overflow-x-auto">
-          <table className="[&_th]:min-w-[7rem] [&_td]:min-w-[7rem]">
-            {children}
-          </table>
-        </div>
-      ),
-    }),
-    [],
-  );
-
   const dirty =
     !!task &&
     (titleDraft !== task.title ||
-      descDraft !== task.description ||
       statusDraft !== task.status ||
       priorityDraft !== task.priority ||
       (dueDateDraft || null) !== task.due_date ||
@@ -804,12 +759,6 @@ export function TaskDetailContent({
 
   // Image paste / drag-drop upload, shared with the per-comment edit
   // composer (CommentEditor, defined below) via the same hook.
-  const descImg = useImagePasteUpload({
-    workspaceId: task?.workspace_id,
-    userId: me?.id,
-    textareaRef: descTextareaRef,
-    setDraft: setDescDraft,
-  });
   const commentImg = useImagePasteUpload({
     workspaceId: task?.workspace_id,
     userId: me?.id,
@@ -899,7 +848,6 @@ export function TaskDetailContent({
     if (!task || !dirty) return;
     const payload: Record<string, unknown> = {};
     if (titleDraft !== task.title) payload.title = titleDraft;
-    if (descDraft !== task.description) payload.description = descDraft;
     if (statusDraft !== task.status) payload.status = statusDraft;
     if (priorityDraft !== task.priority) payload.priority = priorityDraft;
     const dd = dueDateDraft === "" ? null : dueDateDraft;
@@ -931,7 +879,6 @@ export function TaskDetailContent({
       setPendingDepRemoveIds(new Set());
       toast.success("Saved");
       setIsEditing(false);
-      setDescEditMode("edit");
       // Soft reminder: if the user just marked this task as done but the
       // checklist still has unchecked items, surface that as a non-blocking
       // toast. Checklist state and task status are decoupled by design —
@@ -977,7 +924,6 @@ export function TaskDetailContent({
   function onDiscard() {
     if (!task) return;
     setTitleDraft(task.title);
-    setDescDraft(task.description);
     setStatusDraft(task.status);
     setPriorityDraft(task.priority);
     setDueDateDraft(task.due_date ?? "");
@@ -987,7 +933,6 @@ export function TaskDetailContent({
     setPendingDepAdds([]);
     setPendingDepRemoveIds(new Set());
     setIsEditing(false);
-    setDescEditMode("edit");
   }
 
   async function onPostComment(e?: React.FormEvent) {
@@ -1198,94 +1143,24 @@ export function TaskDetailContent({
             </svg>
             <AlignLeft className="w-3.5 h-3.5" aria-hidden />
             <span>Description</span>
-            {isEditing && (
-              // Inline Edit / Preview tabs anchored to the right of the
-              // section header to save vertical space. Each button calls
-              // preventDefault so the click doesn't bubble into <summary>
-              // and toggle the <details> collapse.
-              <div className="ml-auto flex gap-1 normal-case tracking-normal">
-                {(["edit", "preview"] as const).map((m) => (
-                  <button
-                    key={m}
-                    type="button"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      setDescEditMode(m);
-                    }}
-                    className={`px-2 py-0.5 text-xs rounded transition-colors ${
-                      descEditMode === m
-                        ? "bg-slate-200 dark:bg-neutral-700 text-slate-900 dark:text-neutral-200"
-                        : "text-slate-500 hover:text-slate-700 dark:text-neutral-400 dark:hover:text-neutral-200"
-                    }`}
-                  >
-                    {m === "edit" ? "Edit" : "Preview"}
-                  </button>
-                ))}
-              </div>
-            )}
           </summary>
           <div className="mt-3">
-            {isEditing ? (
-              <>
-                {descEditMode === "edit" ? (
-                  <>
-                    <div className="relative">
-                      <textarea
-                        ref={descTextareaRef}
-                        className="w-full rounded border border-slate-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 p-2 text-sm"
-                        rows={6}
-                        value={descDraft}
-                        onChange={(e) => setDescDraft(e.target.value)}
-                        onPaste={descImg.onPaste}
-                        onDragOver={descImg.onDragOver}
-                        onDragLeave={descImg.onDragLeave}
-                        onDrop={descImg.onDrop}
-                        placeholder="Add a description… (paste or drop an image to upload)"
-                      />
-                      {descImg.dragging && (
-                        <div className="pointer-events-none absolute inset-0 rounded border-2 border-dashed border-blue-400 bg-blue-50/80 dark:bg-blue-950/40 flex items-center justify-center text-sm font-medium text-blue-700 dark:text-blue-300">
-                          Drop image to upload
-                        </div>
-                      )}
-                    </div>
-                    <ImageThumbnails
-                      draft={descDraft}
-                      textareaRef={descTextareaRef}
-                    />
-                  </>
-                ) : (
-                  <div className="prose prose-sm max-w-none text-slate-700 dark:text-neutral-300 prose-pre:bg-slate-100 dark:prose-pre:bg-neutral-800/60 prose-pre:text-slate-800 dark:prose-pre:text-neutral-200 prose-pre:rounded-md prose-pre:p-3 prose-pre:text-[13px] prose-code:bg-slate-100 dark:prose-code:bg-neutral-800/60 prose-code:text-slate-800 dark:prose-code:text-neutral-200 prose-code:rounded prose-code:px-1 prose-code:py-0.5 prose-code:text-[0.85em] prose-code:font-normal prose-code:before:hidden prose-code:after:hidden rounded border border-slate-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 p-3 min-h-[10rem]">
-                    <ReactMarkdown
-                      remarkPlugins={[remarkGfm]}
-                      rehypePlugins={[rehypeHighlight]}
-                      components={markdownComponents}
-                      urlTransform={markdownUrlTransform}
-                    >
-                      {descDraft.trim() || "_Nothing to preview yet._"}
-                    </ReactMarkdown>
-                  </div>
-                )}
-              </>
-            ) : descDraft.trim() ? (
-              // Tweaks vs. raw @tailwindcss/typography: fenced <pre>
-              // blocks get a light slate bg + dark text (the default
-              // near-black dominates a mostly-prose description); inline
-              // <code> becomes a subtle pill with the plugin's auto
-              // backtick pseudo-elements suppressed.
-              <div className="prose prose-sm max-w-none text-slate-700 dark:text-neutral-300 prose-pre:bg-slate-100 dark:prose-pre:bg-neutral-800/60 prose-pre:text-slate-800 dark:prose-pre:text-neutral-200 prose-pre:rounded-md prose-pre:p-3 prose-pre:text-[13px] prose-code:bg-slate-100 dark:prose-code:bg-neutral-800/60 prose-code:text-slate-800 dark:prose-code:text-neutral-200 prose-code:rounded prose-code:px-1 prose-code:py-0.5 prose-code:text-[0.85em] prose-code:font-normal prose-code:before:hidden prose-code:after:hidden">
-                <ReactMarkdown
-                  remarkPlugins={[remarkGfm]}
-                  rehypePlugins={[rehypeHighlight]}
-                  components={markdownComponents}
-                  urlTransform={markdownUrlTransform}
-                >
-                  {descDraft}
-                </ReactMarkdown>
-              </div>
-            ) : (
-              <p className="text-sm italic text-slate-400 dark:text-neutral-500">
-                No description.
-              </p>
+            {task && (
+              // Keyed by task: switching tasks unmounts the old field, which
+              // saves any pending edit to the task it belongs to.
+              <AutosaveMarkdown
+                key={task.id}
+                value={task.description}
+                onSave={async (description) => {
+                  await updateMutation.mutateAsync({ description });
+                }}
+                workspaceId={task.workspace_id}
+                userId={me?.id}
+                label="Description"
+                placeholder="Add a description… (paste or drop an image)"
+                onImageClick={setLightboxUrl}
+                minHeight="3rem"
+              />
             )}
           </div>
         </details>
