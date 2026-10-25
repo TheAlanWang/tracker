@@ -5,7 +5,7 @@
 import { EditorSelection, EditorState } from "@codemirror/state";
 import type { Decoration } from "@codemirror/view";
 import { describe, expect, it } from "vitest";
-import { activeLines, buildDecorations, enterMarkup, linkAt, markdownLanguage, parseAll } from "./core";
+import { activeLines, buildDecorations, enterMarkup, linkAt, markdownLanguage, openableUrl, parseAll } from "./core";
 
 function stateOf(doc: string, selection?: EditorSelection) {
   const state = EditorState.create({ doc, selection, extensions: [markdownLanguage, EditorState.lineSeparator.of("\n")] });
@@ -224,5 +224,16 @@ describe("linkAt", () => {
     expect(linkAt(stateOf("see [a](https://x.y) end"), 6)).toBe("https://x.y");
     expect(linkAt(stateOf("go https://x.y now"), 5)).toBe("https://x.y");
     expect(linkAt(stateOf("plain text"), 3)).toBeNull();
+  });
+});
+
+describe("openableUrl", () => {
+  it("only http(s) and mailto links open; javascript: and data: never do", () => {
+    expect(openableUrl("https://x.y/a")).toBe("https://x.y/a");
+    expect(openableUrl("mailto:a@b.c")).toBe("mailto:a@b.c");
+    expect(openableUrl("javascript:alert(1)")).toBeNull();
+    expect(openableUrl(" JavaScript:alert(1)")).toBeNull();
+    expect(openableUrl("data:text/html,<b>x</b>")).toBeNull();
+    expect(openableUrl("task-image:a/b.png")).toBeNull();
   });
 });

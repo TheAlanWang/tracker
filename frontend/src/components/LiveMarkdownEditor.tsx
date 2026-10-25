@@ -23,7 +23,7 @@ import { forwardRef, useEffect, useImperativeHandle, useRef } from "react";
 
 import type { Member } from "@/features/members/api";
 import { mentionCompletion } from "@/lib/mentions";
-import { enterMarkup, linkAt, livePreview } from "@/lib/livePreview";
+import { enterMarkup, linkAt, livePreview, openableUrl } from "@/lib/livePreview";
 
 export type LiveMarkdownEditorHandle = {
   focus(): void;
@@ -134,7 +134,8 @@ const LiveMarkdownEditor = forwardRef<LiveMarkdownEditorHandle, LiveMarkdownEdit
             mousedown(e, view) {
               if (!(e.metaKey || e.ctrlKey) || e.button !== 0) return false;
               const pos = view.posAtCoords({ x: e.clientX, y: e.clientY });
-              const url = pos == null ? null : linkAt(view.state, pos);
+              const link = pos == null ? null : linkAt(view.state, pos);
+              const url = link && openableUrl(link);
               if (!url) return false;
               e.preventDefault();
               window.open(url, "_blank", "noopener,noreferrer");

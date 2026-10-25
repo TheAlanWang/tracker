@@ -288,6 +288,21 @@ export function linkAt(state: EditorState, pos: number): string | null {
   return null;
 }
 
+/**
+ * The URL to open for a Cmd/Ctrl+click, or null. Descriptions are written by
+ * other members and AI agents, so only http(s) and mailto open — never
+ * javascript:, data: or anything else.
+ */
+export function openableUrl(url: string): string | null {
+  let parsed: URL;
+  try {
+    parsed = new URL(url.trim());
+  } catch {
+    return null;
+  }
+  return ["http:", "https:", "mailto:"].includes(parsed.protocol) ? parsed.href : null;
+}
+
 /** Indent, quote marks, then a list mark ("- ", "* ", "+ ", "1. ", "1) ", with an optional "[ ] "). */
 const PREFIX = /^([ \t]*)((?:>[ \t]?)*)(?:([ \t]*)(?:([-*+])|(\d{1,9})([.)]))([ \t]+)(\[[ xX]\](?:[ \t]+|$))?)?/;
 
