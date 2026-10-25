@@ -94,7 +94,7 @@ export class TableWidget extends WidgetType {
       dom,
       // Same wrapper as the read-only renderer (TaskDetail markdownComponents.table):
       // scroll wide tables, 7rem cell floor so CJK columns aren't crushed.
-      <div className="prose prose-sm max-w-none overflow-x-auto [&_th]:min-w-[7rem] [&_td]:min-w-[7rem] dark:prose-invert">
+      <div className="prose prose-sm max-w-none overflow-x-auto [&_th]:min-w-[7rem] [&_td]:min-w-[7rem] dark:prose-invert prose-code:bg-slate-100 dark:prose-code:bg-neutral-800/60 prose-code:rounded prose-code:px-1 prose-code:py-0.5 prose-code:text-[0.85em] prose-code:font-normal prose-code:before:hidden prose-code:after:hidden">
         <ReactMarkdown remarkPlugins={[remarkGfm]} urlTransform={markdownUrlTransform}>
           {this.source}
         </ReactMarkdown>

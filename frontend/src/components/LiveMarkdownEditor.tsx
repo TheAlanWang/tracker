@@ -151,9 +151,11 @@ const LiveMarkdownEditor = forwardRef<LiveMarkdownEditorHandle, LiveMarkdownEdit
               const files = imageFiles(e.dataTransfer?.files);
               if (!files.length || !handlers.current.onImageFiles) return false;
               e.preventDefault();
-              // Insert where it was dropped.
+              // Insert where it was dropped, and take focus: a drop doesn't
+              // focus by itself, and leaving the editor is what autosaves.
               const pos = view.posAtCoords({ x: e.clientX, y: e.clientY });
               if (pos != null) view.dispatch({ selection: { anchor: pos } });
+              view.focus();
               handlers.current.onImageFiles(files);
               return true;
             },

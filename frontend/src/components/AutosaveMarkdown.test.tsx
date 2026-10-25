@@ -109,6 +109,17 @@ describe("AutosaveMarkdown", () => {
     expect(onSave).toHaveBeenCalledTimes(1);
   });
 
+  it("a dropped image focuses the editor, so leaving it saves", async () => {
+    const { view, onSave } = await mount();
+    const drop = new Event("drop", { bubbles: true, cancelable: true });
+    Object.defineProperty(drop, "dataTransfer", { value: { files: [new File(["x"], "d.png", { type: "image/png" })] } });
+    await act(async () => view.contentDOM.dispatchEvent(drop));
+    expect(view.hasFocus).toBe(true);
+    await act(async () => upload.resolve!("task-image:w/u/d.png"));
+    await blur(view);
+    await vi.waitFor(() => expect(onSave).toHaveBeenCalledWith(expect.stringContaining("![d.png](task-image:w/u/d.png)")));
+  });
+
   it("does not overwrite local edits on external value change while focused", async () => {
     const { view, rerender } = await mount();
     view.focus();
