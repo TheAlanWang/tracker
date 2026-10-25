@@ -1,10 +1,13 @@
 // @vitest-environment jsdom
 // The live editor in a layout-less DOM: text comes back byte for byte, the
 // keys (Mod-Enter, Escape with and without an IME), external values, limits.
+import { completionStatus, startCompletion } from "@codemirror/autocomplete";
 import { EditorView } from "@codemirror/view";
 import { act, createRef } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+import type { Member } from "@/features/members/api";
 
 import LiveMarkdownEditor, { type LiveMarkdownEditorHandle, type LiveMarkdownEditorProps } from "./LiveMarkdownEditor";
 
@@ -80,6 +83,20 @@ describe("LiveMarkdownEditor", () => {
     window.removeEventListener("keydown", outer);
     expect(outer).not.toHaveBeenCalled();
     expect(document.activeElement).not.toBe(view.contentDOM);
+  });
+
+  it("Escape that closes the @-mention list does not propagate", async () => {
+    const outer = vi.fn();
+    const members = [{ user_id: "1", display_name: "Joy Li", email: "joy@x.com" }] as Member[];
+    const { view } = await mount({ members });
+    view.focus();
+    await act(async () => view.dispatch({ changes: { from: 0, insert: "@jo" }, selection: { anchor: 3 } }));
+    await act(async () => void startCompletion(view));
+    await vi.waitFor(() => expect(completionStatus(view.state)).toBe("active"));
+    window.addEventListener("keydown", outer);
+    key(view, { key: "Escape" });
+    window.removeEventListener("keydown", outer);
+    expect(outer).not.toHaveBeenCalled();
   });
 
   it("external value applied when not focused, ignored while focused", async () => {

@@ -122,6 +122,16 @@ const LiveMarkdownEditor = forwardRef<LiveMarkdownEditorHandle, LiveMarkdownEdit
           keymap.of([...defaultKeymap.filter((b) => b.key !== "Escape" && b.key !== "Mod-Enter"), ...historyKeymap]),
           EditorView.lineWrapping,
           escapeHandling(),
+          // Escape never leaves the editor, even when a keymap (the @-mention
+          // list closing) handles it first and stops the handlers above.
+          Prec.highest(
+            EditorView.domEventHandlers({
+              keydown(e) {
+                if (e.key === "Escape") e.stopPropagation();
+                return false;
+              },
+            }),
+          ),
           EditorView.contentAttributes.of({ "aria-label": init.label, "aria-multiline": "true" }),
           init.placeholder ? placeholderExt(init.placeholder) : [],
           init.maxLength != null
