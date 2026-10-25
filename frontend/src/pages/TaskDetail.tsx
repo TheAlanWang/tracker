@@ -42,8 +42,8 @@ import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
 import { CommentBody } from "@/components/CommentBody";
 import { useImagePasteUpload } from "@/lib/useImagePasteUpload";
-import { AutosaveMarkdown } from "@/components/AutosaveMarkdown";
 import type { LiveMarkdownEditorHandle } from "@/components/LiveMarkdownEditor";
+import { TaskDescriptionField } from "@/components/TaskDescriptionField";
 import { LazyLiveMarkdownEditor } from "@/components/LiveMarkdownEditor.lazy";
 import { ChecklistSection } from "@/components/ChecklistSection";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -1148,18 +1148,11 @@ export function TaskDetailContent({
             {task && (
               // Keyed by task: switching tasks unmounts the old field, which
               // saves any pending edit to the task it belongs to.
-              <AutosaveMarkdown
+              <TaskDescriptionField
                 key={task.id}
-                value={task.description}
-                onSave={async (description) => {
-                  await updateMutation.mutateAsync({ description });
-                }}
-                workspaceId={task.workspace_id}
+                task={task}
                 userId={me?.id}
-                label="Description"
-                placeholder="Add a description… (paste or drop an image)"
                 onImageClick={setLightboxUrl}
-                minHeight="3rem"
               />
             )}
           </div>
