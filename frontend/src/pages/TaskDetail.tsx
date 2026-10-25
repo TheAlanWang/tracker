@@ -44,7 +44,6 @@ import { CommentBody } from "@/components/CommentBody";
 import { rebaseDraft } from "@/lib/rebaseDraft";
 import { useImagePasteUpload } from "@/lib/useImagePasteUpload";
 import type { LiveMarkdownEditorHandle } from "@/components/LiveMarkdownEditor";
-import { TaskDescriptionField } from "@/components/TaskDescriptionField";
 import { LazyLiveMarkdownEditor } from "@/components/LiveMarkdownEditor.lazy";
 import { ChecklistSection } from "@/components/ChecklistSection";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -616,8 +615,11 @@ export function TaskDetailContent({
   // Title editor: ref used by the auto-grow effect that lets the textarea
   // wrap long titles onto multiple lines without showing a scrollbar.
   const titleTextareaRef = useRef<HTMLTextAreaElement>(null);
-  // The description is not a draft: it's click-to-edit and autosaves on its
-  // own (AutosaveMarkdown), outside the Edit → Save flow.
+  // Description: a draft like the other fields. The live editor renders it
+  // read-only in view mode and becomes editable in Edit mode; the ref is for
+  // image paste/drop insertion at the cursor.
+  const [descDraft, setDescDraft] = useState("");
+  const descEditorRef = useRef<LiveMarkdownEditorHandle>(null);
   // Lightbox: URL of the image to display full-screen, or null. Wired into
   // every ReactMarkdown render on this page (description view, description
   // preview, comments) via a shared `img` component override.
@@ -653,6 +655,7 @@ export function TaskDetailContent({
     hydratedFor.current.task = task;
     if (hydratedFor.current.editing && prev?.id === task.id) {
       setTitleDraft((d) => rebaseDraft(d, prev.title, task.title));
+      setDescDraft((d) => rebaseDraft(d, prev.description, task.description));
       setStatusDraft((d) => rebaseDraft(d, prev.status, task.status));
       setPriorityDraft((d) => rebaseDraft(d, prev.priority, task.priority));
       setDueDateDraft((d) => rebaseDraft(d, prev.due_date ?? "", task.due_date ?? ""));
@@ -662,6 +665,7 @@ export function TaskDetailContent({
       return;
     }
     setTitleDraft(task.title);
+    setDescDraft(task.description);
     setStatusDraft(task.status);
     setPriorityDraft(task.priority);
     setDueDateDraft(task.due_date ?? "");
@@ -704,6 +708,7 @@ export function TaskDetailContent({
   const dirty =
     !!task &&
     (titleDraft !== task.title ||
+      descDraft !== task.description ||
       statusDraft !== task.status ||
       priorityDraft !== task.priority ||
       (dueDateDraft || null) !== task.due_date ||
@@ -770,6 +775,11 @@ export function TaskDetailContent({
 
   // Image paste / drag-drop upload, shared with the per-comment edit
   // composer (CommentEditor, defined below) via the same hook.
+  const descImg = useImagePasteUpload({
+    workspaceId: task?.workspace_id,
+    userId: me?.id,
+    editor: descEditorRef,
+  });
   const commentImg = useImagePasteUpload({
     workspaceId: task?.workspace_id,
     userId: me?.id,
@@ -859,6 +869,7 @@ export function TaskDetailContent({
     if (!task || !dirty) return;
     const payload: Record<string, unknown> = {};
     if (titleDraft !== task.title) payload.title = titleDraft;
+    if (descDraft !== task.description) payload.description = descDraft;
     if (statusDraft !== task.status) payload.status = statusDraft;
     if (priorityDraft !== task.priority) payload.priority = priorityDraft;
     const dd = dueDateDraft === "" ? null : dueDateDraft;
@@ -935,6 +946,7 @@ export function TaskDetailContent({
   function onDiscard() {
     if (!task) return;
     setTitleDraft(task.title);
+    setDescDraft(task.description);
     setStatusDraft(task.status);
     setPriorityDraft(task.priority);
     setDueDateDraft(task.due_date ?? "");
@@ -1070,7 +1082,7 @@ export function TaskDetailContent({
                   <Button
                     type="button"
                     onClick={onSave}
-                    disabled={!dirty || updateMutation.isPending}
+                    disabled={!dirty || updateMutation.isPending || descImg.pending > 0}
                   >
                     {updateMutation.isPending ? "Saving…" : "Save"}
                   </Button>
@@ -1156,15 +1168,34 @@ export function TaskDetailContent({
             <span>Description</span>
           </summary>
           <div className="mt-3">
-            {task && (
-              // Keyed by task: switching tasks unmounts the old field, which
-              // saves any pending edit to the task it belongs to.
-              <TaskDescriptionField
-                key={task.id}
-                task={task}
-                userId={me?.id}
-                onImageClick={setLightboxUrl}
-              />
+            {!isEditing && !descDraft.trim() ? (
+              <p className="text-sm italic text-slate-400 dark:text-neutral-500">
+                No description.
+              </p>
+            ) : (
+              // Same editor in both modes so nothing jumps when Edit flips:
+              // read-only (rendered, links open on click) in view mode,
+              // editable inside a box in Edit mode. Saved with Save.
+              <div
+                className={`relative -mx-2 rounded border px-2 py-1.5 ${
+                  isEditing
+                    ? "min-h-[6rem] border-slate-200 dark:border-neutral-800 bg-white dark:bg-neutral-900"
+                    : "border-transparent"
+                }`}
+                {...(isEditing ? descImg.dropHandlers : {})}
+              >
+                <LazyLiveMarkdownEditor
+                  ref={descEditorRef}
+                  value={descDraft}
+                  onChange={setDescDraft}
+                  readOnly={!isEditing}
+                  label="Description"
+                  placeholder="Add a description… (paste or drop an image)"
+                  onImageClick={setLightboxUrl}
+                  onImageFiles={isEditing ? descImg.onImageFiles : undefined}
+                />
+                {descImg.dragging && <DropOverlay />}
+              </div>
             )}
           </div>
         </details>
