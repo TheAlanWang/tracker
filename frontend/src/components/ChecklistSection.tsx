@@ -163,11 +163,22 @@ function AddRow({
   // cleared state, so the handler would still see the old text.
   const cancelledRef = useRef(false);
 
+  // One add per Enter: clear the input right away (restored if the request
+  // fails) and ignore commits while one is in flight. A blur during the
+  // request used to re-commit the same text and add the step twice.
+  const committingRef = useRef(false);
   async function commit() {
     const text = draft.trim();
-    if (!text) return;
-    await onCommit(text);
+    if (!text || committingRef.current) return;
+    committingRef.current = true;
     setDraft("");
+    try {
+      await onCommit(text);
+    } catch {
+      setDraft(text);
+    } finally {
+      committingRef.current = false;
+    }
   }
 
   return (
@@ -204,8 +215,7 @@ function AddRow({
         }}
         placeholder="Add a step…"
         maxLength={200}
-        disabled={pending}
-        className="flex-1 bg-transparent outline-none text-sm text-slate-800 dark:text-neutral-200 placeholder:text-slate-400 disabled:opacity-50"
+        className={`flex-1 bg-transparent outline-none text-sm text-slate-800 dark:text-neutral-200 placeholder:text-slate-400 ${pending ? "opacity-50" : ""}`}
       />
     </li>
   );
