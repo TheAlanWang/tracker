@@ -6,9 +6,11 @@ import { createRoot } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const update = vi.hoisted(() => vi.fn());
+// Never resolves: the request stays in flight for the whole test.
+const create = vi.hoisted(() => vi.fn(() => new Promise(() => {})));
 vi.mock("@/features/checklist/api", () => ({
   useChecklist: () => ({ data: [{ id: "i1", text: "Write tests", done: false }] }),
-  useCreateChecklistItem: () => ({ mutateAsync: vi.fn(), isPending: false }),
+  useCreateChecklistItem: () => ({ mutateAsync: create, isPending: create.mock.calls.length > 0 }),
   useUpdateChecklistItem: () => ({ mutate: update }),
   useDeleteChecklistItem: () => ({ mutate: vi.fn() }),
 }));
@@ -24,6 +26,7 @@ beforeEach(() => {
   document.body.replaceChildren(el);
   root = createRoot(el);
   update.mockClear();
+  create.mockClear();
 });
 afterEach(async () => {
   await act(async () => root.unmount());
@@ -46,5 +49,22 @@ describe("ChecklistSection", () => {
     expect(el.querySelector('input[placeholder="Add a step…"]')).not.toBeNull();
     expect(el.querySelector('[aria-label="Delete item"]')).not.toBeNull();
     expect([...el.querySelectorAll("button")].some((b) => b.textContent === "Write tests")).toBe(true);
+  });
+});
+
+describe("ChecklistSection add row", () => {
+  it("Enter adds the step once, even if the input blurs while the request is in flight", async () => {
+    await render(true);
+    const input = el.querySelector<HTMLInputElement>('input[placeholder="Add a step…"]')!;
+    input.focus();
+    await act(async () => {
+      const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!;
+      set.call(input, "New step");
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    await act(async () => input.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true })));
+    await act(async () => input.blur());
+    expect(create).toHaveBeenCalledTimes(1);
+    expect(create).toHaveBeenCalledWith("New step");
   });
 });

@@ -866,7 +866,13 @@ export function TaskDetailContent({
   };
 
   async function onSave() {
-    if (!task || !dirty) return;
+    if (!task) return;
+    // Nothing in the drafts (e.g. only checklist steps changed — those save
+    // immediately): Save just leaves Edit mode.
+    if (!dirty) {
+      setIsEditing(false);
+      return;
+    }
     const payload: Record<string, unknown> = {};
     if (titleDraft !== task.title) payload.title = titleDraft;
     if (descDraft !== task.description) payload.description = descDraft;
@@ -1082,7 +1088,7 @@ export function TaskDetailContent({
                   <Button
                     type="button"
                     onClick={onSave}
-                    disabled={!dirty || updateMutation.isPending || descImg.pending > 0}
+                    disabled={updateMutation.isPending || descImg.pending > 0}
                   >
                     {updateMutation.isPending ? "Saving…" : "Save"}
                   </Button>
