@@ -10,11 +10,9 @@
 import { AlignLeft, ChevronDown, ChevronUp, Link2, Plus, SquarePen, Trash2, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import ReactMarkdown from "react-markdown";
-import rehypeHighlight from "rehype-highlight";
-import remarkGfm from "remark-gfm";
 import { toast } from "sonner";
 
+import { AutosaveMarkdown } from "@/components/AutosaveMarkdown";
 import { Button } from "@/components/ui/button";
 import {
   type Project,
@@ -23,7 +21,7 @@ import {
   useUpdateProject,
 } from "@/features/projects/api";
 import { useWorkspaces } from "@/features/workspaces/api";
-import { markdownUrlTransform } from "@/lib/resolveTaskImageUrl";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 
 // Short display labels — DB keeps the full enum ("production" etc.) for
 // readability + AI agents, UI shows compact 3-4 char chips so multiple
@@ -77,22 +75,23 @@ export function ProjectDetailPopover({
   const popoverRef = useRef<HTMLDivElement>(null);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState<ProjectEnvironment[]>(project.environments);
-  const [descDraft, setDescDraft] = useState(project.description ?? "");
   const updateProject = useUpdateProject(project.workspace_id);
   // Workspace name for the "YDX / Frontend" breadcrumb in the popover
   // header — already cached by the layout, cheap selector.
   const { data: workspaces = [] } = useWorkspaces();
   const workspace = workspaces.find((w) => w.id === project.workspace_id);
 
+  const { data: me } = useCurrentUser();
+
   // Reset drafts + exit edit mode whenever the popover opens or the project
   // changes underneath (switching projects in the sidebar while popover open).
+  // The description isn't a draft: it's click-to-edit and autosaves.
   useEffect(() => {
     if (open) {
       setDraft(project.environments);
-      setDescDraft(project.description ?? "");
       setEditing(false);
     }
-  }, [open, project.environments, project.description]);
+  }, [open, project.environments]);
 
   // Position the popover anchored to the bottom-left of the trigger, but
   // flip / shift when that would push it off-screen.
@@ -121,7 +120,9 @@ export function ProjectDetailPopover({
       onClose();
     }
     function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") {
+      // Escape that cancels an IME composition in the description editor
+      // must not close the popover.
+      if (e.key === "Escape" && !e.isComposing && e.keyCode !== 229) {
         e.stopPropagation();
         onClose();
       }
@@ -135,7 +136,6 @@ export function ProjectDetailPopover({
   }, [open, onClose, anchorRef]);
 
   const dirty = useMemo(() => {
-    if (descDraft !== (project.description ?? "")) return true;
     if (draft.length !== project.environments.length) return true;
     return draft.some((d, i) => {
       const orig = project.environments[i];
@@ -145,7 +145,7 @@ export function ProjectDetailPopover({
         d.type !== orig.type
       );
     });
-  }, [draft, descDraft, project.environments, project.description]);
+  }, [draft, project.environments]);
 
   function updateRow(i: number, patch: Partial<ProjectEnvironment>) {
     setDraft((rows) => rows.map((r, idx) => (idx === i ? { ...r, ...patch } : r)));
@@ -186,15 +186,10 @@ export function ProjectDetailPopover({
       // row (forgot to fill in after "+ Add environment") drops.
       .filter((r) => r.url);
 
-    // Trim description; empty string means "clear" — backend converts to NULL.
-    const trimmedDesc = descDraft.trim();
     try {
       await updateProject.mutateAsync({
         projectId: project.id,
-        payload: {
-          description: trimmedDesc === "" ? null : trimmedDesc,
-          environments: cleaned,
-        },
+        payload: { environments: cleaned },
       });
       setEditing(false);
       toast.success("Saved");
@@ -206,7 +201,6 @@ export function ProjectDetailPopover({
 
   function cancel() {
     setDraft(project.environments);
-    setDescDraft(project.description ?? "");
     setEditing(false);
   }
 
@@ -322,29 +316,23 @@ export function ProjectDetailPopover({
                 "title underline" rather than "inter-section divider". */}
             <div className="h-px bg-slate-100 dark:bg-neutral-800 mt-2" />
           </div>
-          {editing ? (
-            <textarea
-              value={descDraft}
-              onChange={(e) => setDescDraft(e.target.value)}
-              placeholder="What is this project? (markdown supported)"
-              rows={3}
-              className="w-full rounded border border-slate-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 p-2 text-sm resize-y"
-            />
-          ) : project.description?.trim() ? (
-            <div className="prose prose-sm max-w-none text-slate-700 dark:text-neutral-300 prose-pre:bg-slate-100 dark:prose-pre:bg-neutral-800/60">
-              <ReactMarkdown
-                remarkPlugins={[remarkGfm]}
-                rehypePlugins={[rehypeHighlight]}
-                urlTransform={markdownUrlTransform}
-              >
-                {project.description}
-              </ReactMarkdown>
-            </div>
-          ) : (
-            <p className="text-sm italic text-slate-400 dark:text-neutral-500">
-              No description yet.
-            </p>
-          )}
+          {/* Keyed by project: switching projects saves the old one's edit. */}
+          <AutosaveMarkdown
+            key={project.id}
+            value={project.description ?? ""}
+            onSave={async (text) => {
+              // Saved as typed; empty / whitespace-only clears (backend stores NULL).
+              await updateProject.mutateAsync({
+                projectId: project.id,
+                payload: { description: text.trim() === "" ? null : text },
+              });
+            }}
+            workspaceId={project.workspace_id}
+            userId={me?.id}
+            label="Project description"
+            placeholder="What is this project? Click to write (Markdown)"
+            minHeight="1.5rem"
+          />
         </section>
 
         {/* Environments */}

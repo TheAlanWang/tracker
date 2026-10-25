@@ -168,3 +168,35 @@
     display: none;
   }
 }
+/* Live Markdown editor (components/LiveMarkdownEditor, lib/livePreview).
+   CodeMirror's own .cm-* classes plus the cm-lp-* decoration classes. Sizes
+   follow .prose-sm so the editor reads like the rendered views it replaces. */
+@layer components {
+  .live-md .cm-editor { @apply text-sm text-slate-700 dark:text-neutral-300 bg-transparent; }
+  .live-md .cm-editor.cm-focused { outline: none; }
+  .live-md .cm-scroller { font-family: inherit; line-height: 1.7; overflow: visible; }
+  .live-md .cm-content { @apply p-0; caret-color: currentColor; overflow-wrap: anywhere; }
+  .live-md .cm-line { padding: 0; }
+  .live-md .cm-placeholder { @apply italic text-slate-400 dark:text-neutral-500; }
+  .live-md .cm-lp-strong { @apply font-semibold text-slate-900 dark:text-neutral-100; }
+  .live-md .cm-lp-em { font-style: italic; }
+  .live-md .cm-lp-strike { @apply line-through decoration-slate-400; }
+  .live-md .cm-lp-code { @apply rounded bg-slate-100 dark:bg-neutral-800/60 text-slate-800 dark:text-neutral-200 px-1 py-0.5 font-mono text-[0.85em]; }
+  .live-md .cm-lp-link, .live-md .cm-lp-url { @apply text-blue-600 dark:text-blue-400 underline underline-offset-2; }
+  .live-md .cm-lp-h1, .live-md .cm-lp-h2, .live-md .cm-lp-h3, .live-md .cm-lp-h4 { @apply font-semibold text-slate-900 dark:text-neutral-100 pt-2; }
+  .live-md .cm-lp-h1 { font-size: 1.5em; line-height: 1.3; }
+  .live-md .cm-lp-h2 { font-size: 1.3em; line-height: 1.35; }
+  .live-md .cm-lp-h3 { font-size: 1.15em; }
+  .live-md .cm-lp-quote { @apply border-l-2 border-slate-300 dark:border-neutral-600 pl-3 text-slate-500 dark:text-neutral-400; }
+  .live-md .cm-lp-codeblock { @apply bg-slate-100 dark:bg-neutral-800/60 text-slate-800 dark:text-neutral-200 font-mono text-[13px] px-3; }
+  .live-md .cm-lp-bullet { display: inline-block; width: 0.35em; height: 0.35em; border-radius: 9999px; vertical-align: middle; margin: 0 0.45em 0 0.15em; @apply bg-slate-500 dark:bg-neutral-400; }
+  .live-md .cm-lp-task { display: inline-block; box-sizing: border-box; width: 0.95em; height: 0.95em; border-radius: 3px; vertical-align: -0.12em; margin: 0 0.3em 0 0.05em; position: relative; @apply border border-slate-400 dark:border-neutral-500; }
+  .live-md .cm-lp-task-done { @apply bg-slate-500 border-slate-500 dark:bg-neutral-400 dark:border-neutral-400; }
+  .live-md .cm-lp-task-done::after { content: ""; position: absolute; left: 0.28em; top: 0.08em; width: 0.25em; height: 0.5em; border-right: 2px solid white; border-bottom: 2px solid white; transform: rotate(45deg); }
+  .live-md .cm-lp-image { display: inline-block; vertical-align: top; margin: 0.25em 0; }
+  .live-md .cm-lp-table { margin: 0.5em 0; cursor: text; }
+  .live-md .cm-lp-table table { margin: 0; }
+  .live-md .cm-tooltip-autocomplete { @apply rounded-md border border-slate-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 shadow-lg text-sm; }
+  .live-md .cm-tooltip-autocomplete ul li[aria-selected] { @apply bg-slate-100 dark:bg-neutral-800 text-slate-900 dark:text-neutral-100; }
+  .live-md .cm-completionDetail { @apply ml-2 not-italic text-slate-400 dark:text-neutral-500; }
+}

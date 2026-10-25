@@ -1,65 +1,48 @@
-// Shared image paste / drag-drop upload for markdown textareas — used by
-// the task description editor and the comment composers (new + edit). It
-// mirrors the original inline description handlers: drop an optimistic
-// `![uploading…]()` placeholder at the caret, upload the file to the
-// task-images bucket, then swap the placeholder for the real `task-image:`
-// reference (or remove it on failure). Rendering of that reference is
-// handled downstream by <TaskImage>.
+// Shared image paste / drag-drop upload for the live Markdown editor — used
+// by the task description, the project description and the comment
+// composers (new + edit). Drops an optimistic `![uploading…]()` placeholder
+// at the cursor, uploads the file to the task-images bucket, then swaps the
+// placeholder for the real `task-image:` reference (or removes it on
+// failure). Rendering of that reference is handled by <TaskImage>.
 //
-// Returns the dragging flag (for the "Drop image to upload" overlay) plus
-// the four textarea event handlers, ready to spread onto a <textarea> or
-// <MentionTextarea>.
+// Returns the dragging flag (for the "Drop image to upload" overlay), the
+// drag handlers for the wrapper element, `onImageFiles` for the editor, and
+// `pending` / `settled()` so autosave can wait for uploads to finish
+// instead of saving a placeholder.
 
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { toast } from "sonner";
 
+import type { LiveMarkdownEditorHandle } from "@/components/LiveMarkdownEditor";
 import { uploadTaskImage } from "@/lib/uploadTaskImage";
 
 type Options = {
-  // Undefined while the task / current user is still loading; handleFile
-  // no-ops until both are known so callers can pass task?.workspace_id /
+  // Undefined while the task / current user is still loading; uploads
+  // no-op until both are known so callers can pass task?.workspace_id /
   // me?.id without guarding at the call site.
   workspaceId: string | undefined;
   userId: string | undefined;
-  textareaRef: React.RefObject<HTMLTextAreaElement | null>;
-  setDraft: React.Dispatch<React.SetStateAction<string>>;
+  editor: React.RefObject<LiveMarkdownEditorHandle | null>;
 };
 
-export type ImagePasteHandlers = {
+export type ImagePasteUpload = {
   dragging: boolean;
-  onPaste: (e: React.ClipboardEvent<HTMLTextAreaElement>) => void;
-  onDrop: (e: React.DragEvent<HTMLTextAreaElement>) => void;
-  onDragOver: (e: React.DragEvent<HTMLTextAreaElement>) => void;
-  onDragLeave: (e: React.DragEvent<HTMLTextAreaElement>) => void;
+  /** Uploads in flight. */
+  pending: number;
+  /** Resolves once every upload started so far has finished (either way). */
+  settled: () => Promise<void>;
+  onImageFiles: (files: File[]) => void;
+  dropHandlers: {
+    onDragOver: (e: React.DragEvent) => void;
+    onDragLeave: () => void;
+    onDrop: () => void;
+  };
 };
 
-export function useImagePasteUpload({
-  workspaceId,
-  userId,
-  textareaRef,
-  setDraft,
-}: Options): ImagePasteHandlers {
+export function useImagePasteUpload({ workspaceId, userId, editor }: Options): ImagePasteUpload {
   const [dragging, setDragging] = useState(false);
-
-  // Insert text at the textarea's caret (or append if the ref is gone).
-  const insertAtCaret = useCallback(
-    (snippet: string) => {
-      const ta = textareaRef.current;
-      if (!ta) {
-        setDraft((d) => d + snippet);
-        return;
-      }
-      const start = ta.selectionStart ?? 0;
-      const end = ta.selectionEnd ?? 0;
-      setDraft((d) => d.slice(0, start) + snippet + d.slice(end));
-      requestAnimationFrame(() => {
-        ta.focus();
-        const pos = start + snippet.length;
-        ta.setSelectionRange(pos, pos);
-      });
-    },
-    [textareaRef, setDraft],
-  );
+  const [pending, setPending] = useState(0);
+  const inflight = useRef(new Set<Promise<void>>());
 
   const handleFile = useCallback(
     async (file: File) => {
@@ -68,53 +51,46 @@ export function useImagePasteUpload({
       // race; we swap it for the real URL when upload finishes, or drop it
       // entirely on error.
       const placeholder = `![uploading ${file.name}…]()`;
-      insertAtCaret(placeholder + "\n");
+      editor.current?.insertAtCursor(placeholder + "\n");
       try {
         const url = await uploadTaskImage(file, workspaceId, userId);
-        setDraft((d) => d.replace(placeholder, `![${file.name}](${url})`));
+        editor.current?.replaceText(placeholder, `![${file.name}](${url})`);
       } catch (err) {
-        const msg =
-          err instanceof Error ? err.message : "Failed to upload image";
+        const msg = err instanceof Error ? err.message : "Failed to upload image";
         toast.error(msg);
-        setDraft((d) => d.replace(placeholder + "\n", ""));
+        editor.current?.replaceText(placeholder + "\n", "");
       }
     },
-    [workspaceId, userId, insertAtCaret, setDraft],
+    [workspaceId, userId, editor],
   );
 
-  const onPaste = useCallback(
-    (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
-      const files = Array.from(e.clipboardData.files).filter((f) =>
-        f.type.startsWith("image/"),
-      );
-      if (files.length === 0) return; // text / non-image paste falls through
-      e.preventDefault();
-      files.forEach((f) => void handleFile(f));
-    },
-    [handleFile],
-  );
-
-  const onDrop = useCallback(
-    (e: React.DragEvent<HTMLTextAreaElement>) => {
-      const files = Array.from(e.dataTransfer.files).filter((f) =>
-        f.type.startsWith("image/"),
-      );
+  const onImageFiles = useCallback(
+    (files: File[]) => {
       setDragging(false);
-      if (files.length === 0) return;
-      e.preventDefault();
-      files.forEach((f) => void handleFile(f));
+      for (const f of files) {
+        const p = handleFile(f).finally(() => {
+          inflight.current.delete(p);
+          setPending(inflight.current.size);
+        });
+        inflight.current.add(p);
+      }
+      setPending(inflight.current.size);
     },
     [handleFile],
   );
 
-  const onDragOver = useCallback((e: React.DragEvent<HTMLTextAreaElement>) => {
-    if (e.dataTransfer.types.includes("Files")) {
-      e.preventDefault();
-      setDragging(true);
-    }
+  const settled = useCallback(async () => {
+    while (inflight.current.size) await Promise.allSettled([...inflight.current]);
   }, []);
 
-  const onDragLeave = useCallback(() => setDragging(false), []);
+  const dropHandlers = {
+    onDragOver: useCallback((e: React.DragEvent) => {
+      if (e.dataTransfer.types.includes("Files")) setDragging(true);
+    }, []),
+    // The editor handles the drop itself (onImageFiles); this only clears the overlay.
+    onDragLeave: useCallback(() => setDragging(false), []),
+    onDrop: useCallback(() => setDragging(false), []),
+  };
 
-  return { dragging, onPaste, onDrop, onDragOver, onDragLeave };
+  return { dragging, pending, settled, onImageFiles, dropHandlers };
 }
