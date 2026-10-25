@@ -1200,10 +1200,10 @@ export function TaskDetailContent({
           </div>
         </details>
 
-        {/* Checklist items persist immediately via their own mutations,
-            so we don't gate edits behind the task-level Edit / Save flow.
-            Always visible (even empty) — the AddRow is the entry point. */}
-        {task && <ChecklistSection taskId={task.id} />}
+        {/* Checklist items persist immediately via their own mutations.
+            Outside Edit mode they can only be ticked; Edit mode adds
+            rename / delete / add (still saved right away, not on Save). */}
+        {task && <ChecklistSection taskId={task.id} editing={isEditing} />}
 
         {/* Comments uses the same collapsible <details> pattern as
             Activity below — default open so the conversation is visible
