@@ -6,8 +6,11 @@
 // the parent task can be marked done with items still unchecked; a soft
 // toast warns the user about that, but doesn't block.
 //
-// The add affordance is a permanently visible ghost row at the bottom of
-// the list — it mirrors the geometry of a real checklist row (faint "+"
+// Outside the task's Edit mode the list is tick / untick only. In Edit mode
+// it also gets rename, delete and the add row — each still saved right
+// away (not part of the task's Save / Discard draft).
+//
+// The add affordance is a ghost row at the bottom of the list — it mirrors the geometry of a real checklist row (faint "+"
 // in the checkbox slot, text input where the label would be). No explicit
 // Add button — Enter commits. This matches the Notion / Things / Linear
 // pattern where adding feels like "type, then Enter" rather than "open a
@@ -26,11 +29,14 @@ import {
 
 function ChecklistRow({
   item,
+  editable,
   onToggle,
   onRename,
   onDelete,
 }: {
   item: ChecklistItem;
+  /** Rename + delete (task Edit mode); ticking works either way. */
+  editable: boolean;
   onToggle: (next: boolean) => void;
   onRename: (next: string) => void;
   onDelete: () => void;
@@ -106,6 +112,14 @@ function ChecklistRow({
           maxLength={200}
           className="flex-1 bg-transparent outline-none text-sm text-slate-800 dark:text-neutral-200"
         />
+      ) : !editable ? (
+        <span
+          className={`flex-1 text-sm ${
+            item.done ? "line-through text-slate-400 dark:text-neutral-500" : "text-slate-800 dark:text-neutral-200"
+          }`}
+        >
+          {item.text}
+        </span>
       ) : (
         <button
           type="button"
@@ -117,14 +131,16 @@ function ChecklistRow({
           {item.text}
         </button>
       )}
-      <button
-        type="button"
-        onClick={onDelete}
-        className="opacity-0 group-hover:opacity-100 text-slate-400 dark:text-neutral-500 hover:text-red-600 text-xs px-1 transition-opacity"
-        aria-label="Delete item"
-      >
-        ×
-      </button>
+      {editable && (
+        <button
+          type="button"
+          onClick={onDelete}
+          className="opacity-0 group-hover:opacity-100 text-slate-400 dark:text-neutral-500 hover:text-red-600 text-xs px-1 transition-opacity"
+          aria-label="Delete item"
+        >
+          ×
+        </button>
+      )}
     </li>
   );
 }
@@ -195,7 +211,7 @@ function AddRow({
   );
 }
 
-export function ChecklistSection({ taskId }: { taskId: string }) {
+export function ChecklistSection({ taskId, editing }: { taskId: string; editing: boolean }) {
   const { data: items = [] } = useChecklist(taskId);
   const createItem = useCreateChecklistItem(taskId);
   const updateItem = useUpdateChecklistItem(taskId);
@@ -204,9 +220,8 @@ export function ChecklistSection({ taskId }: { taskId: string }) {
   const total = items.length;
   const done = items.filter((i) => i.done).length;
 
-  // Always rendered, even when empty — the AddRow doubles as the
-  // "create a checklist" entry point, so there's no separate button
-  // and no edit mode to enter. Users can fold the <details> away.
+  // Always rendered, even when empty. In Edit mode the AddRow is the
+  // "create a checklist" entry point. Users can fold the <details> away.
 
   return (
     <details open className="pt-6 group">
@@ -236,6 +251,7 @@ export function ChecklistSection({ taskId }: { taskId: string }) {
           <ChecklistRow
             key={it.id}
             item={it}
+            editable={editing}
             onToggle={(next) =>
               updateItem.mutate({ itemId: it.id, payload: { done: next } })
             }
@@ -245,10 +261,18 @@ export function ChecklistSection({ taskId }: { taskId: string }) {
             onDelete={() => deleteItem.mutate(it.id)}
           />
         ))}
-        <AddRow
-          onCommit={(text) => createItem.mutateAsync(text).then(() => undefined)}
-          pending={createItem.isPending}
-        />
+        {editing ? (
+          <AddRow
+            onCommit={(text) => createItem.mutateAsync(text).then(() => undefined)}
+            pending={createItem.isPending}
+          />
+        ) : (
+          total === 0 && (
+            <li className="py-1 text-sm italic text-slate-400 dark:text-neutral-500">
+              No steps yet.
+            </li>
+          )
+        )}
       </ul>
     </details>
   );
