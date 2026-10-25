@@ -12,7 +12,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { toast } from "sonner";
 
-import { AutosaveMarkdown } from "@/components/AutosaveMarkdown";
+import { LazyLiveMarkdownEditor } from "@/components/LiveMarkdownEditor.lazy";
 import { Button } from "@/components/ui/button";
 import {
   type Project,
@@ -21,7 +21,6 @@ import {
   useUpdateProject,
 } from "@/features/projects/api";
 import { useWorkspaces } from "@/features/workspaces/api";
-import { useCurrentUser } from "@/hooks/useCurrentUser";
 
 // Short display labels — DB keeps the full enum ("production" etc.) for
 // readability + AI agents, UI shows compact 3-4 char chips so multiple
@@ -75,23 +74,22 @@ export function ProjectDetailPopover({
   const popoverRef = useRef<HTMLDivElement>(null);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState<ProjectEnvironment[]>(project.environments);
+  const [descDraft, setDescDraft] = useState(project.description ?? "");
   const updateProject = useUpdateProject(project.workspace_id);
   // Workspace name for the "YDX / Frontend" breadcrumb in the popover
   // header — already cached by the layout, cheap selector.
   const { data: workspaces = [] } = useWorkspaces();
   const workspace = workspaces.find((w) => w.id === project.workspace_id);
 
-  const { data: me } = useCurrentUser();
-
   // Reset drafts + exit edit mode whenever the popover opens or the project
   // changes underneath (switching projects in the sidebar while popover open).
-  // The description isn't a draft: it's click-to-edit and autosaves.
   useEffect(() => {
     if (open) {
       setDraft(project.environments);
+      setDescDraft(project.description ?? "");
       setEditing(false);
     }
-  }, [open, project.environments]);
+  }, [open, project.environments, project.description]);
 
   // Position the popover anchored to the bottom-left of the trigger, but
   // flip / shift when that would push it off-screen.
@@ -136,6 +134,7 @@ export function ProjectDetailPopover({
   }, [open, onClose, anchorRef]);
 
   const dirty = useMemo(() => {
+    if (descDraft !== (project.description ?? "")) return true;
     if (draft.length !== project.environments.length) return true;
     return draft.some((d, i) => {
       const orig = project.environments[i];
@@ -145,7 +144,7 @@ export function ProjectDetailPopover({
         d.type !== orig.type
       );
     });
-  }, [draft, project.environments]);
+  }, [draft, descDraft, project.environments, project.description]);
 
   function updateRow(i: number, patch: Partial<ProjectEnvironment>) {
     setDraft((rows) => rows.map((r, idx) => (idx === i ? { ...r, ...patch } : r)));
@@ -189,7 +188,11 @@ export function ProjectDetailPopover({
     try {
       await updateProject.mutateAsync({
         projectId: project.id,
-        payload: { environments: cleaned },
+        payload: {
+          // Saved as typed; empty / whitespace-only clears (backend stores NULL).
+          description: descDraft.trim() === "" ? null : descDraft,
+          environments: cleaned,
+        },
       });
       setEditing(false);
       toast.success("Saved");
@@ -201,6 +204,7 @@ export function ProjectDetailPopover({
 
   function cancel() {
     setDraft(project.environments);
+    setDescDraft(project.description ?? "");
     setEditing(false);
   }
 
@@ -316,23 +320,28 @@ export function ProjectDetailPopover({
                 "title underline" rather than "inter-section divider". */}
             <div className="h-px bg-slate-100 dark:bg-neutral-800 mt-2" />
           </div>
-          {/* Keyed by project: switching projects saves the old one's edit. */}
-          <AutosaveMarkdown
-            key={project.id}
-            value={project.description ?? ""}
-            onSave={async (text) => {
-              // Saved as typed; empty / whitespace-only clears (backend stores NULL).
-              await updateProject.mutateAsync({
-                projectId: project.id,
-                payload: { description: text.trim() === "" ? null : text },
-              });
-            }}
-            workspaceId={project.workspace_id}
-            userId={me?.id}
-            label="Project description"
-            placeholder="What is this project? Click to write (Markdown)"
-            minHeight="1.5rem"
-          />
+          {!editing && !descDraft.trim() ? (
+            <p className="text-sm italic text-slate-400 dark:text-neutral-500">
+              No description yet.
+            </p>
+          ) : (
+            // Rendered read-only in view mode, editable in edit mode.
+            <div
+              className={`-mx-2 rounded border px-2 py-1.5 ${
+                editing
+                  ? "min-h-[4.5rem] border-slate-200 dark:border-neutral-800 bg-white dark:bg-neutral-900"
+                  : "border-transparent"
+              }`}
+            >
+              <LazyLiveMarkdownEditor
+                value={descDraft}
+                onChange={setDescDraft}
+                readOnly={!editing}
+                label="Project description"
+                placeholder="What is this project? (markdown supported)"
+              />
+            </div>
+          )}
         </section>
 
         {/* Environments */}

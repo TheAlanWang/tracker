@@ -11,7 +11,8 @@
 // Shift+Enter is a plain newline; Mod-Enter = onSubmit. Escape blurs the
 // editor (so the description autosaves) and stops there; a second Escape
 // reaches the modal. While an IME composes, Escape only cancels the
-// composition. Cmd/Ctrl+click on a link opens it in a new tab.
+// composition. Cmd/Ctrl+click on a link opens it in a new tab (a plain
+// click when readOnly).
 //
 // Styles: the cm-lp-* classes live in index.css (Tailwind, light + dark).
 
@@ -51,6 +52,8 @@ export type LiveMarkdownEditorProps = {
   onImageFiles?: (files: File[]) => void;
   minHeight?: string;
   className?: string;
+  /** Rendered but not editable (no cursor); a plain click on a link opens it. */
+  readOnly?: boolean;
 };
 
 function imageFiles(list: FileList | undefined | null) {
@@ -80,8 +83,12 @@ function escapeHandling() {
   });
 }
 
+function editability(readOnly: boolean) {
+  return [EditorState.readOnly.of(readOnly), EditorView.editable.of(!readOnly)];
+}
+
 const LiveMarkdownEditor = forwardRef<LiveMarkdownEditorHandle, LiveMarkdownEditorProps>(function LiveMarkdownEditor(
-  { value, onChange, onBlur, onSubmit, placeholder, label, maxLength, members, onImageClick, onImageFiles, minHeight, className },
+  { value, onChange, onBlur, onSubmit, placeholder, label, maxLength, members, onImageClick, onImageFiles, minHeight, className, readOnly = false },
   ref,
 ) {
   const host = useRef<HTMLDivElement>(null);
@@ -93,9 +100,10 @@ const LiveMarkdownEditor = forwardRef<LiveMarkdownEditorHandle, LiveMarkdownEdit
     handlers.current = { onChange, onBlur, onSubmit, onImageFiles };
   });
   const mentions = useRef(new Compartment());
+  const editable = useRef(new Compartment());
 
   // The view lives as long as the component; later props are synced below.
-  const initial = useRef({ value, label, placeholder, maxLength, members, onImageClick, minHeight });
+  const initial = useRef({ value, label, placeholder, maxLength, members, onImageClick, minHeight, readOnly });
   useEffect(() => {
     const init = initial.current;
     const v = new EditorView({
@@ -137,12 +145,13 @@ const LiveMarkdownEditor = forwardRef<LiveMarkdownEditorHandle, LiveMarkdownEdit
           init.maxLength != null
             ? EditorState.changeFilter.of((tr) => !tr.docChanged || tr.newDoc.length <= init.maxLength! || tr.newDoc.length <= tr.startState.doc.length)
             : [],
+          editable.current.of(editability(init.readOnly)),
           mentions.current.of(init.members ? autocompletion({ override: [mentionCompletion(init.members)], icons: false }) : []),
           livePreview({ onImageClick: init.onImageClick }),
           init.minHeight ? EditorView.theme({ ".cm-content": { minHeight: init.minHeight } }) : [],
           EditorView.domEventHandlers({
             mousedown(e, view) {
-              if (!(e.metaKey || e.ctrlKey) || e.button !== 0) return false;
+              if (!(e.metaKey || e.ctrlKey || view.state.readOnly) || e.button !== 0) return false;
               const pos = view.posAtCoords({ x: e.clientX, y: e.clientY });
               const link = pos == null ? null : linkAt(view.state, pos);
               const url = link && openableUrl(link);
@@ -190,6 +199,10 @@ const LiveMarkdownEditor = forwardRef<LiveMarkdownEditorHandle, LiveMarkdownEdit
       view.current = null;
     };
   }, []);
+
+  useEffect(() => {
+    view.current?.dispatch({ effects: editable.current.reconfigure(editability(readOnly)) });
+  }, [readOnly]);
 
   // Member list arrives after the first render (React Query): swap the completion in.
   useEffect(() => {

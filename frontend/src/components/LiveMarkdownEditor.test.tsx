@@ -127,3 +127,14 @@ describe("LiveMarkdownEditor", () => {
     expect(onChange).toHaveBeenLastCalledWith("aYYb");
   });
 });
+
+describe("LiveMarkdownEditor readOnly", () => {
+  it("readOnly: not editable until the prop turns false", async () => {
+    const { view, rerender } = await mount({ value: "a", readOnly: true });
+    expect(view.state.readOnly).toBe(true);
+    expect(view.contentDOM.getAttribute("contenteditable")).toBe("false");
+    await rerender({ value: "a", readOnly: false });
+    expect(view.state.readOnly).toBe(false);
+    expect(view.contentDOM.getAttribute("contenteditable")).toBe("true");
+  });
+});
