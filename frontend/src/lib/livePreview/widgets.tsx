@@ -6,18 +6,13 @@
 
 import { Facet } from "@codemirror/state";
 import { type EditorView, WidgetType } from "@codemirror/view";
-import { lazy, type ReactNode, Suspense } from "react";
+import type { ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
+import { TaskImage } from "@/components/TaskImage";
 import { markdownUrlTransform } from "@/lib/resolveTaskImageUrl";
-
-// Lazy so the decoration code (and its tests) never pull in the Supabase
-// client; the chunk loads the first time an image is drawn. (Not a page
-// component, so fast refresh has nothing to preserve here.)
-// eslint-disable-next-line react-refresh/only-export-components
-const TaskImage = lazy(() => import("@/components/TaskImage").then((m) => ({ default: m.TaskImage })));
 
 /** Called with the resolved URL when an image in the editor is clicked (the page's lightbox). */
 export const imageClickFacet = Facet.define<(url: string) => void, ((url: string) => void) | null>({
@@ -59,14 +54,12 @@ export class ImageWidget extends WidgetType {
     const onClick = view.state.facet(imageClickFacet);
     mount(
       dom,
-      <Suspense fallback={null}>
-        <TaskImage
-          src={this.src}
-          alt={this.alt}
-          onClick={onClick ?? undefined}
-          className={`rounded max-h-96 w-auto${onClick ? " cursor-zoom-in" : ""}`}
-        />
-      </Suspense>,
+      <TaskImage
+        src={this.src}
+        alt={this.alt}
+        onClick={onClick ?? undefined}
+        className={`rounded max-h-96 w-auto${onClick ? " cursor-zoom-in" : ""}`}
+      />,
     );
     return dom;
   }
