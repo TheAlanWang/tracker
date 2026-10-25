@@ -47,7 +47,8 @@ import { CommentBody } from "@/components/CommentBody";
 import { TaskImage } from "@/components/TaskImage";
 import { markdownUrlTransform } from "@/lib/resolveTaskImageUrl";
 import { useImagePasteUpload } from "@/lib/useImagePasteUpload";
-import { MentionTextarea } from "@/components/MentionTextarea";
+import type { LiveMarkdownEditorHandle } from "@/components/LiveMarkdownEditor";
+import { LazyLiveMarkdownEditor } from "@/components/LiveMarkdownEditor.lazy";
 import { ChecklistSection } from "@/components/ChecklistSection";
 import { Skeleton } from "@/components/ui/skeleton";
 import { GoalPicker } from "@/components/GoalPicker";
@@ -221,110 +222,15 @@ const FIELD_LABEL: Record<string, string> = {
 // top of the task, no one needs the char-by-char history mid-feed.
 const FREE_TEXT_FIELDS = new Set(["title", "description"]);
 
-// Markdown image regex used by the description editor's thumbnail strip.
-// Matches what our paste/drop handler inserts (predictable `![alt](url)`)
-// plus the common hand-typed form. We don't try to skip code fences —
-// spurious thumbnails inside ``` blocks are an acceptable trade for not
-// pulling in a full markdown AST walker just for this.
-const IMAGE_RE = /!\[([^\]]*)\]\(([^)\s]+)\)/g;
+// Box around the comment editors (new + edit), matching the old textarea.
+const COMPOSER_BOX =
+  "rounded border border-slate-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 px-2 py-1.5";
 
-type DescriptionImageHit = {
-  alt: string;
-  url: string;
-  start: number;
-  length: number;
-};
-
-function parseDescriptionImages(md: string): DescriptionImageHit[] {
-  const hits: DescriptionImageHit[] = [];
-  for (const m of md.matchAll(IMAGE_RE)) {
-    hits.push({
-      alt: m[1] ?? "",
-      url: m[2] ?? "",
-      start: m.index ?? 0,
-      length: m[0].length,
-    });
-  }
-  return hits;
-}
-
-// Thumbnail strip rendered below a markdown textarea (task description and
-// comment composers) when it contains images. Clicking a thumbnail focuses
-// the textarea and selects the `![](url)` span in the underlying markdown —
-// useful for jumping to / replacing an image without manually scanning the
-// source.
-function ImageThumbnails({
-  draft,
-  textareaRef,
-}: {
-  draft: string;
-  textareaRef: React.RefObject<HTMLTextAreaElement | null>;
-}) {
-  const hits = useMemo(() => parseDescriptionImages(draft), [draft]);
-  if (hits.length === 0) return null;
-
-  function jumpTo(hit: DescriptionImageHit) {
-    const ta = textareaRef.current;
-    if (!ta) return;
-    ta.focus();
-    ta.setSelectionRange(hit.start, hit.start + hit.length);
-    // setSelectionRange usually auto-scrolls but isn't guaranteed on long
-    // textareas; compute the line and nudge scrollTop as a backup.
-    // line-height ~20px for our text-sm font.
-    const linesBefore = draft.slice(0, hit.start).split("\n").length - 1;
-    ta.scrollTop = Math.max(0, linesBefore * 20 - 40);
-  }
-
+// Shown over an editor while image files are dragged onto it.
+function DropOverlay() {
   return (
-    <div className="mt-2 flex flex-wrap gap-2">
-      {hits.map((hit, i) => (
-        <button
-          key={`${hit.start}-${i}`}
-          type="button"
-          onClick={() => jumpTo(hit)}
-          title={hit.alt || hit.url}
-          className="group relative h-16 w-16 rounded border border-slate-200 dark:border-neutral-700 overflow-hidden hover:ring-2 hover:ring-blue-300 transition-shadow bg-slate-100 dark:bg-neutral-800/40"
-        >
-          <TaskImage
-            src={hit.url}
-            alt={hit.alt}
-            className="h-full w-full object-cover"
-          />
-          <span className="absolute inset-x-0 bottom-0 truncate bg-black/50 px-1 py-0.5 text-[9px] text-white opacity-0 group-hover:opacity-100">
-            {hit.alt || "image"}
-          </span>
-        </button>
-      ))}
-    </div>
-  );
-}
-
-// Small Edit / Preview segmented toggle for the comment composers — same
-// look as the description editor's tabs. Lives standalone so the new-comment
-// form and CommentEditor share it.
-function EditPreviewTabs({
-  mode,
-  onChange,
-}: {
-  mode: "edit" | "preview";
-  onChange: (m: "edit" | "preview") => void;
-}) {
-  return (
-    <div className="flex justify-end gap-1">
-      {(["edit", "preview"] as const).map((m) => (
-        <button
-          key={m}
-          type="button"
-          onClick={() => onChange(m)}
-          className={`px-2 py-0.5 text-xs rounded transition-colors ${
-            mode === m
-              ? "bg-slate-200 dark:bg-neutral-700 text-slate-900 dark:text-neutral-200"
-              : "text-slate-500 hover:text-slate-700 dark:text-neutral-400 dark:hover:text-neutral-200"
-          }`}
-        >
-          {m === "edit" ? "Edit" : "Preview"}
-        </button>
-      ))}
+    <div className="pointer-events-none absolute inset-0 rounded border-2 border-dashed border-blue-400 bg-blue-50/80 dark:bg-blue-950/40 flex items-center justify-center text-sm font-medium text-blue-700 dark:text-blue-300">
+      Drop image to upload
     </div>
   );
 }
@@ -332,8 +238,9 @@ function EditPreviewTabs({
 // Inline editor for an existing comment. Lives in its own component because
 // it calls useImagePasteUpload — a hook can't be called inside the
 // comments.map() loop, so each editing row mounts its own instance. Mirrors
-// the new-comment composer: MentionTextarea + paste/drop image upload +
-// thumbnail strip, with Save/Cancel.
+// the new-comment composer: live Markdown editor with @-mentions + paste/drop
+// image upload, with Save/Cancel (an edit is an explicit action because
+// mentions notify people).
 function CommentEditor({
   comment,
   members,
@@ -350,19 +257,17 @@ function CommentEditor({
   onImageClick?: (url: string) => void;
 }) {
   const [draft, setDraft] = useState(comment.body);
-  const [mode, setMode] = useState<"edit" | "preview">("edit");
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const editorRef = useRef<LiveMarkdownEditorHandle>(null);
   const updateMutation = useUpdateComment(comment.task_id);
   const img = useImagePasteUpload({
     workspaceId: workspaceId || undefined,
     userId: userId || undefined,
-    textareaRef,
-    setDraft,
+    editor: editorRef,
   });
 
-  async function onSave(e: React.FormEvent) {
-    e.preventDefault();
-    if (!draft.trim()) return;
+  async function onSave(e?: React.FormEvent) {
+    e?.preventDefault();
+    if (!draft.trim() || img.pending > 0) return;
     try {
       await updateMutation.mutateAsync({ commentId: comment.id, body: draft });
       onDone();
@@ -376,45 +281,25 @@ function CommentEditor({
 
   return (
     <form onSubmit={onSave} className="space-y-2">
-      <EditPreviewTabs mode={mode} onChange={setMode} />
-      {mode === "edit" ? (
-        <>
-          <div className="relative">
-            <MentionTextarea
-              ref={textareaRef}
-              value={draft}
-              onChange={setDraft}
-              members={members}
-              placeholder="Edit comment… use @ to mention · paste or drop an image"
-              rows={3}
-              maxLength={10000}
-              className="w-full rounded border border-slate-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 p-2 text-sm"
-              onPaste={img.onPaste}
-              onDragOver={img.onDragOver}
-              onDragLeave={img.onDragLeave}
-              onDrop={img.onDrop}
-            />
-            {img.dragging && (
-              <div className="pointer-events-none absolute inset-0 rounded border-2 border-dashed border-blue-400 bg-blue-50/80 dark:bg-blue-950/40 flex items-center justify-center text-sm font-medium text-blue-700 dark:text-blue-300">
-                Drop image to upload
-              </div>
-            )}
-          </div>
-          <ImageThumbnails draft={draft} textareaRef={textareaRef} />
-        </>
-      ) : (
-        <div className="rounded border border-slate-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 p-2 min-h-[5.5rem]">
-          {draft.trim() ? (
-            <CommentBody body={draft} members={members} onImageClick={onImageClick} />
-          ) : (
-            <p className="text-sm italic text-slate-400 dark:text-neutral-500">
-              Nothing to preview.
-            </p>
-          )}
-        </div>
-      )}
+      <div className="relative" {...img.dropHandlers}>
+        <LazyLiveMarkdownEditor
+          ref={editorRef}
+          value={draft}
+          onChange={setDraft}
+          onSubmit={() => void onSave()}
+          members={members}
+          label="Edit comment"
+          placeholder="Edit comment… use @ to mention · paste or drop an image"
+          maxLength={10000}
+          minHeight="4.5rem"
+          onImageClick={onImageClick}
+          onImageFiles={img.onImageFiles}
+          className={COMPOSER_BOX}
+        />
+        {img.dragging && <DropOverlay />}
+      </div>
       <div className="flex items-center justify-end gap-2">
-        <Button type="submit" disabled={updateMutation.isPending}>
+        <Button type="submit" disabled={updateMutation.isPending || img.pending > 0}>
           {updateMutation.isPending ? "Saving…" : "Save"}
         </Button>
         <Button
@@ -910,10 +795,10 @@ export function TaskDetailContent({
   const createCommentMutation = useCreateComment(task?.id ?? "");
   const deleteCommentMutation = useDeleteComment(task?.id ?? "");
   const [commentDraft, setCommentDraft] = useState("");
-  const commentTextareaRef = useRef<HTMLTextAreaElement>(null);
-  const [commentEditMode, setCommentEditMode] = useState<"edit" | "preview">(
-    "edit",
-  );
+  const commentEditorRef = useRef<LiveMarkdownEditorHandle>(null);
+  // Bumped after a post / cancel to remount the composer empty (a focused
+  // editor ignores outside value changes, e.g. after Cmd+Enter).
+  const [composerKey, setComposerKey] = useState(0);
   // Which comment is currently in inline-edit mode (null = none).
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
 
@@ -928,8 +813,7 @@ export function TaskDetailContent({
   const commentImg = useImagePasteUpload({
     workspaceId: task?.workspace_id,
     userId: me?.id,
-    textareaRef: commentTextareaRef,
-    setDraft: setCommentDraft,
+    editor: commentEditorRef,
   });
 
   const { data: activity = [] } = useTaskActivity(task?.id ?? "");
@@ -1106,13 +990,13 @@ export function TaskDetailContent({
     setDescEditMode("edit");
   }
 
-  async function onPostComment(e: React.FormEvent) {
-    e.preventDefault();
-    if (!commentDraft.trim()) return;
+  async function onPostComment(e?: React.FormEvent) {
+    e?.preventDefault();
+    if (!commentDraft.trim() || commentImg.pending > 0) return;
     try {
       await createCommentMutation.mutateAsync({ body: commentDraft });
       setCommentDraft("");
-      setCommentEditMode("edit");
+      setComposerKey((k) => k + 1);
     } catch (err) {
       const detail =
         (err as { response?: { data?: { detail?: string } } }).response?.data
@@ -1558,53 +1442,24 @@ export function TaskDetailContent({
             </button>
           )}
           <form onSubmit={onPostComment} className="space-y-2">
-            {/* Edit / Preview toggle only appears once there's a draft —
-                keeps the resting state just the textarea + placeholder.
-                Preview renders the same way the posted comment will
-                (CommentBody: markdown + images + mentions). */}
-            {commentDraft.trim() && (
-              <EditPreviewTabs
-                mode={commentEditMode}
-                onChange={setCommentEditMode}
+            <div className="relative" {...commentImg.dropHandlers}>
+              <LazyLiveMarkdownEditor
+                key={composerKey}
+                ref={commentEditorRef}
+                value={commentDraft}
+                onChange={setCommentDraft}
+                onSubmit={() => void onPostComment()}
+                members={members}
+                label="Write a comment"
+                placeholder="Write a comment… use @ to mention · paste or drop an image"
+                maxLength={10000}
+                minHeight="4.5rem"
+                onImageClick={setLightboxUrl}
+                onImageFiles={commentImg.onImageFiles}
+                className={COMPOSER_BOX}
               />
-            )}
-            {commentEditMode === "edit" || !commentDraft.trim() ? (
-              <>
-                <div className="relative">
-                  <MentionTextarea
-                    ref={commentTextareaRef}
-                    value={commentDraft}
-                    onChange={setCommentDraft}
-                    members={members}
-                    placeholder="Write a comment… use @ to mention · paste or drop an image"
-                    rows={3}
-                    maxLength={10000}
-                    className="w-full rounded border border-slate-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 p-2 text-sm"
-                    onPaste={commentImg.onPaste}
-                    onDragOver={commentImg.onDragOver}
-                    onDragLeave={commentImg.onDragLeave}
-                    onDrop={commentImg.onDrop}
-                  />
-                  {commentImg.dragging && (
-                    <div className="pointer-events-none absolute inset-0 rounded border-2 border-dashed border-blue-400 bg-blue-50/80 dark:bg-blue-950/40 flex items-center justify-center text-sm font-medium text-blue-700 dark:text-blue-300">
-                      Drop image to upload
-                    </div>
-                  )}
-                </div>
-                <ImageThumbnails
-                  draft={commentDraft}
-                  textareaRef={commentTextareaRef}
-                />
-              </>
-            ) : (
-              <div className="rounded border border-slate-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 p-2 min-h-[5.5rem]">
-                <CommentBody
-                  body={commentDraft}
-                  members={members}
-                  onImageClick={setLightboxUrl}
-                />
-              </div>
-            )}
+              {commentImg.dragging && <DropOverlay />}
+            </div>
             {/* Buttons only appear once the user has typed something —
                 resting state is just the textarea + placeholder, no
                 idle "Post comment" sitting around disabled. The
@@ -1614,7 +1469,7 @@ export function TaskDetailContent({
               <div className="flex items-center justify-end gap-2">
                 <Button
                   type="submit"
-                  disabled={createCommentMutation.isPending}
+                  disabled={createCommentMutation.isPending || commentImg.pending > 0}
                 >
                   {createCommentMutation.isPending ? "Posting…" : "Post comment"}
                 </Button>
@@ -1623,7 +1478,7 @@ export function TaskDetailContent({
                   variant="outline"
                   onClick={() => {
                     setCommentDraft("");
-                    setCommentEditMode("edit");
+                    setComposerKey((k) => k + 1);
                   }}
                   disabled={createCommentMutation.isPending}
                 >
