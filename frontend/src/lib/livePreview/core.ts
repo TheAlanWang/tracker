@@ -15,8 +15,9 @@
 // - "> ": hidden, a rule on the left, muted text.
 // - [text](url): only "text", underlined; the url hidden. Cmd/Ctrl+click
 //   opens it (LiveMarkdownEditor, via linkAt). A bare url is only styled.
-// Images, tables and code fences are drawn by ./blocks and ./widgets; here
-// they are left alone (code blocks only get their monospace line style).
+// - ![alt](src): the real image (./widgets ImageWidget).
+// Tables and code fences are drawn by ./blocks; here they are left alone
+// (code blocks only get their monospace line style).
 // Styles (bold, heading size, ...) stay on the active line too, so the text
 // doesn't jump when the cursor arrives; only the marks come back.
 
@@ -25,6 +26,8 @@ import { EditorSelection, type EditorState, type Range, type StateCommand } from
 import { Decoration, type DecorationSet, type EditorView, ViewPlugin, type ViewUpdate, WidgetType } from "@codemirror/view";
 import type { SyntaxNode } from "@lezer/common";
 import { GFM, parser } from "@lezer/markdown";
+
+import { ImageWidget } from "./widgets";
 
 const data = defineLanguageFacet({});
 /** CommonMark + GFM (tables, task lists, strikethrough, bare urls). No nested languages: code stays plain text. */
@@ -194,7 +197,15 @@ export function buildDecorations(state: EditorState, ranges: readonly { from: nu
           out.push(Decoration.replace({ widget: new TaskWidget(checked) }).range(node.from, node.to));
           return;
         }
-        if (name === "Image") return false; // drawn by ./widgets
+        if (name === "Image") {
+          if (!isActive(node.from, node.to) && oneLine(node.from, node.to)) {
+            const [open, close] = kids(node, "LinkMark");
+            const alt = open && close ? doc.sliceString(open.to, close.from) : "";
+            const src = node.getChild("URL");
+            out.push(Decoration.replace({ widget: new ImageWidget(src ? doc.sliceString(src.from, src.to) : "", alt) }).range(node.from, node.to));
+          }
+          return false;
+        }
         if (name === "Link") {
           const marks = kids(node, "LinkMark");
           const [open, close] = marks;

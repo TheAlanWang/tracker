@@ -131,6 +131,21 @@ describe("buildDecorations", () => {
     expect(lone.marks).toEqual([]);
   });
 
+  it("images: an ImageWidget carrying src and alt; raw on the active line", () => {
+    const doc = "Shot ![shot](task-image:a/b.png) end";
+    const f = decorate(doc);
+    expect(f.widgets.map((w) => [w.cls, doc.slice(w.from, w.to)])).toEqual([["ImageWidget", "![shot](task-image:a/b.png)"]]);
+    const state = stateOf(doc);
+    const set = buildDecorations(state, [{ from: 0, to: doc.length }], new Set());
+    const widgets: { src: string; alt: string }[] = [];
+    set.between(0, doc.length, (_f, _t, d) => {
+      const w = (d.spec as { widget?: { src: string; alt: string } }).widget;
+      if (w) widgets.push({ src: w.src, alt: w.alt });
+    });
+    expect(widgets).toEqual([{ src: "task-image:a/b.png", alt: "shot" }]);
+    expect(decorate(doc, [1]).widgets).toEqual([]);
+  });
+
   it("tables, code blocks and HTML stay raw; code blocks get the monospace line", () => {
     const doc = "| a | **b** |\n| - | - |\n| 1 | 2 |\n\n```js\nconst **x** = 1\n```\n\n<div>**raw**</div>\n\n    indented *code*";
     const f = decorate(doc);
