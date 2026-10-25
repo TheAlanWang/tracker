@@ -41,6 +41,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
 import { CommentBody } from "@/components/CommentBody";
+import { rebaseDraft } from "@/lib/rebaseDraft";
 import { useImagePasteUpload } from "@/lib/useImagePasteUpload";
 import type { LiveMarkdownEditorHandle } from "@/components/LiveMarkdownEditor";
 import { TaskDescriptionField } from "@/components/TaskDescriptionField";
@@ -68,6 +69,7 @@ import {
   useUpdateComment,
 } from "@/features/comments/api";
 import {
+  type Task,
   TaskPriority,
   TaskStatus,
   useDeleteTask,
@@ -637,29 +639,38 @@ export function TaskDetailContent({
   );
 
   // Hydrate draft fields from the loaded task: once per task-open, and
-  // again whenever the task changes while not in Edit mode (e.g. after Save).
-  // The description autosaves through the same mutation, which writes the
-  // new task into the cache; while the user is in Edit mode on the same
-  // task, that must not reset their other drafts or drop them out of edit.
-  const hydratedFor = useRef<{ id: string; editing: boolean }>({ id: "", editing: false });
+  // whenever the task changes while not in Edit mode (e.g. after Save).
+  // In Edit mode on the same task (a refetch, someone else's change, our own
+  // description autosave), keep the user in edit and rebase: drafts they
+  // haven't touched follow the server, edited ones stay (lib/rebaseDraft).
+  const hydratedFor = useRef<{ task: Task | null; editing: boolean }>({ task: null, editing: false });
   useEffect(() => {
     hydratedFor.current.editing = isEditing;
   });
   useEffect(() => {
-    if (task) {
-      if (hydratedFor.current.editing && hydratedFor.current.id === task.id) return;
-      hydratedFor.current.id = task.id;
-      setTitleDraft(task.title);
-      setStatusDraft(task.status);
-      setPriorityDraft(task.priority);
-      setDueDateDraft(task.due_date ?? "");
-      setSprintDraft(task.sprint_id);
-      setAssigneeDraft(task.assignee_id);
-      setGoalDraft(task.goal_id);
-      setPendingDepAdds([]);
-      setPendingDepRemoveIds(new Set());
-      setIsEditing(false); // reset to view mode when opening a different task
+    if (!task) return;
+    const prev = hydratedFor.current.task;
+    hydratedFor.current.task = task;
+    if (hydratedFor.current.editing && prev?.id === task.id) {
+      setTitleDraft((d) => rebaseDraft(d, prev.title, task.title));
+      setStatusDraft((d) => rebaseDraft(d, prev.status, task.status));
+      setPriorityDraft((d) => rebaseDraft(d, prev.priority, task.priority));
+      setDueDateDraft((d) => rebaseDraft(d, prev.due_date ?? "", task.due_date ?? ""));
+      setSprintDraft((d) => rebaseDraft(d, prev.sprint_id, task.sprint_id));
+      setAssigneeDraft((d) => rebaseDraft(d, prev.assignee_id, task.assignee_id));
+      setGoalDraft((d) => rebaseDraft(d, prev.goal_id, task.goal_id));
+      return;
     }
+    setTitleDraft(task.title);
+    setStatusDraft(task.status);
+    setPriorityDraft(task.priority);
+    setDueDateDraft(task.due_date ?? "");
+    setSprintDraft(task.sprint_id);
+    setAssigneeDraft(task.assignee_id);
+    setGoalDraft(task.goal_id);
+    setPendingDepAdds([]);
+    setPendingDepRemoveIds(new Set());
+    setIsEditing(false); // reset to view mode when opening a different task
   }, [task]);
 
   // Auto-grow the title textarea so a long title wraps onto multiple lines
