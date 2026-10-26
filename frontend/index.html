@@ -32,6 +32,18 @@
       content="A multi-tenant task tracker with a built-in Claude agent + an MCP server. FastAPI + React + Supabase."
     />
     <meta name="twitter:image" content="https://gettrackly.dev/og-image.png" />
+    <!-- Canonical URL. This one index.html serves every route, so a
+         hardcoded href would point /privacy and /terms at the homepage.
+         Build it from the current path on the apex domain instead
+         (www already 308s to apex; query/hash dropped on purpose). -->
+    <script>
+      (function () {
+        var link = document.createElement("link");
+        link.rel = "canonical";
+        link.href = "https://gettrackly.dev" + location.pathname;
+        document.head.appendChild(link);
+      })();
+    </script>
     <!-- Apply persisted theme before React mounts so the first paint
          matches the user's preference. Without this, light styles
          flash for ~100ms when the page loads in dark mode. -->
